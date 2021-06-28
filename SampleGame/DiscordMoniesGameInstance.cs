@@ -2,32 +2,40 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Leisure;
 
-namespace MathOlympics
+namespace DiscordMoniesGame
 {
     public sealed class DiscordMoniesGameInstance : GameInstance
     {       
-        record UserState (int Money = 1500);
+        record UserState (int Money);
 
         readonly int originalPlayerCount;
-        readonly ConcurrentDictionary<IUser, UserState> userStates;
+        readonly ConcurrentDictionary<IUser, UserState> userStates = new();
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
             : base(id, client, players, spectators)
         {
             originalPlayerCount = players.Length;
-            userStates = new(players.Select(p => new KeyValuePair<IUser, UserState>(p, new UserState())));
         }
 
 
         public override async Task Initialize()
-        {   
-            await this.Broadcast("The game has started! Every player has been given Ð1.500")
+        {
+            await this.Broadcast("The game has started! Every player has been given Ð1.500");
+
+            var asm = GetType().Assembly;
+
+            using var stream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.png");
+            foreach (var p in Players)
+                await p.SendFileAsync(stream!, "board.png");
         }
         
         public override async Task OnMessage(IUserMessage msg, int pos)
@@ -38,8 +46,9 @@ namespace MathOlympics
                 return;
             }
 
-            Close();
             // Do not react to spectator messages
+            if (Spectators.Contains(msg.Author, DiscordComparers.UserComparer))
+                return;
         }
 
         void Close()

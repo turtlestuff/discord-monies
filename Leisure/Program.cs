@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -27,6 +28,7 @@ namespace Leisure
         
         static async Task Main()
         {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             string token;
             if (!File.Exists("token.txt"))
             {

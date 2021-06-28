@@ -1,11 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <OutputPath>../Leisure/bin/Debug/net6.0/Games</OutputPath>
         <Nullable>enable</Nullable>
-        <RootNamespace>MathOlympics</RootNamespace>
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Resources\*.*" />
+    </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Leisure.Api\Leisure.Api.csproj" />

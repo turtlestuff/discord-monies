@@ -1,0 +1,501 @@
+{
+  "StartingMoney": 1500,
+  "JailBounds": {
+    "X": 820,
+    "Y": 80,
+    "Width": 100,
+    "Height": 100
+  },
+  "GroupNames": [
+    "yellow",
+    "pink",
+    "green",
+    "orange",
+    "blue",
+    "red",
+    "cyan",
+    "gray"
+  ],
+  "BoardPieces": [
+    {
+      "Type": "Start",
+      "Name": "Go!",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 40,
+        "Width": 140,
+        "Height": 140
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "A1 Road",
+      "Value": 60,
+      "Group": 0,
+      "Bounds": {
+        "X": 180,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chest",
+      "Name": "A Community Chest",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 251,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "A3 Road",
+      "Value": 60,
+      "Group": 0,
+      "Bounds": {
+        "X": 322,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Tax",
+      "Name": "Income Tax",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 393,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "A Station",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 464,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "A6 Road",
+      "Value": 100,
+      "Group": 1,
+      "Bounds": {
+        "X": 535,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chance",
+      "Name": "A Chance",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 606,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "A8 Road",
+      "Value": 100,
+      "Group": 1,
+      "Bounds": {
+        "X": 677,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "A9 Road",
+      "Value": 120,
+      "Group": 1,
+      "Bounds": {
+        "X": 748,
+        "Y": 40,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Simple",
+      "Name": "Visiting Jail",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 820,
+        "Y": 40,
+        "Width": 140,
+        "Height": 40
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "B1 Road",
+      "Value": 140,
+      "Group": 2,
+      "Bounds": {
+        "X": 860,
+        "Y": 180,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Special",
+      "Name": "Electric Company",
+      "Value": 150,
+      "Group": null,
+      "Bounds": {
+        "X": 860,
+        "Y": 251,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "B3 Road",
+      "Value": 140,
+      "Group": 2,
+      "Bounds": {
+        "X": 860,
+        "Y": 322,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "B4 Road",
+      "Value": 160,
+      "Group": 2,
+      "Bounds": {
+        "X": 860,
+        "Y": 393,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "B Station",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 860,
+        "Y": 464,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "B6 Road",
+      "Value": 180,
+      "Group": 3,
+      "Bounds": {
+        "X": 860,
+        "Y": 535,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chest",
+      "Name": "B Community Chest",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 860,
+        "Y": 606,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "B8 Road",
+      "Value": 180,
+      "Group": 3,
+      "Bounds": {
+        "X": 860,
+        "Y": 677,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "B9 Road",
+      "Value": 200,
+      "Group": 3,
+      "Bounds": {
+        "X": 860,
+        "Y": 748,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Simple",
+      "Name": "Free Parking",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 820,
+        "Y": 820,
+        "Width": 140,
+        "Height": 140
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "C1 Road",
+      "Value": 220,
+      "Group": 4,
+      "Bounds": {
+        "X": 748,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chance",
+      "Name": "C Chance",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 677,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "C3 Road",
+      "Value": 220,
+      "Group": 4,
+      "Bounds": {
+        "X": 606,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "C4 Road",
+      "Value": 240,
+      "Group": 4,
+      "Bounds": {
+        "X": 535,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "C Station",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 464,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "C6 Road",
+      "Value": 260,
+      "Group": 5,
+      "Bounds": {
+        "X": 393,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "C7 Road",
+      "Value": 260,
+      "Group": 5,
+      "Bounds": {
+        "X": 322,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Special",
+      "Name": "Water Works",
+      "Value": 150,
+      "Group": null,
+      "Bounds": {
+        "X": 251,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "C9 Road",
+      "Value": 280,
+      "Group": 5,
+      "Bounds": {
+        "X": 180,
+        "Y": 860,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "GoToJail",
+      "Name": "Go to Jail",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 820,
+        "Width": 140,
+        "Height": 140
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "D1 Road",
+      "Value": 300,
+      "Group": 6,
+      "Bounds": {
+        "X": 40,
+        "Y": 748,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "D2 Road",
+      "Value": 300,
+      "Group": 6,
+      "Bounds": {
+        "X": 40,
+        "Y": 677,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chest",
+      "Name": "D Community Chest",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 606,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "D4 Road",
+      "Value": 320,
+      "Group": 6,
+      "Bounds": {
+        "X": 40,
+        "Y": 535,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "D Station",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 464,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chance",
+      "Name": "D Chance",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 393,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "D7 Road",
+      "Value": 350,
+      "Group": 7,
+      "Bounds": {
+        "X": 40,
+        "Y": 322,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Tax",
+      "Name": "Luxury Tax",
+      "Value": 100,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 251,
+        "Width": 70,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "D9 Road",
+      "Value": 400,
+      "Group": 7,
+      "Bounds": {
+        "X": 40,
+        "Y": 180,
+        "Width": 70,
+        "Height": 70
+      }
+    }
+  ]
+}
