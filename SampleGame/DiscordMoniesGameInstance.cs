@@ -35,6 +35,8 @@ namespace DiscordMoniesGame
         
         public override async Task OnMessage(IUserMessage msg, int pos)
         {
+            var userStateForAuthor = userStates[msg.Author];
+
             if (msg.Content.AsSpan(pos).Equals("drop", default))
             {
                 DropPlayer(msg.Author);
@@ -44,6 +46,12 @@ namespace DiscordMoniesGame
             // Do not react to spectator messages
             if (Spectators.Contains(msg.Author, DiscordComparers.UserComparer))
                 return;
+
+            if (msg.Content.AsSpan(pos).Equals("bal", default))
+            { 
+                await this.BroadcastTo($"Your balance is Ð{userStates[msg.Author].Money:N0}.", false, null, msg.Author);
+                return;
+            }
         }
 
         void Close()
