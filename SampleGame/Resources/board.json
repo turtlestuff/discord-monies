@@ -1,5 +1,5 @@
 {
-  "StartingMoney": 1500,
+  "StartingMoney": 1534,
   "JailBounds": {
     "X": 820,
     "Y": 80,
@@ -16,7 +16,7 @@
     "cyan",
     "gray"
   ],
-  "BoardPieces": [
+  "BoardSpaces": [
     {
       "Type": "Start",
       "Name": "Go!",
@@ -162,7 +162,7 @@
       }
     },
     {
-      "Type": "Special",
+      "Type": "Utility",
       "Name": "Electric Company",
       "Value": 150,
       "Group": null,
@@ -354,7 +354,7 @@
       }
     },
     {
-      "Type": "Special",
+      "Type": "Utility",
       "Name": "Water Works",
       "Value": 150,
       "Group": null,

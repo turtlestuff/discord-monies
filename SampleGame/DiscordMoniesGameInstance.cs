@@ -1,12 +1,7 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Leisure;
@@ -19,6 +14,7 @@ namespace DiscordMoniesGame
 
         readonly int originalPlayerCount;
         readonly ConcurrentDictionary<IUser, UserState> userStates = new();
+        Board board = default!;
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
             : base(id, client, players, spectators)
@@ -28,14 +24,13 @@ namespace DiscordMoniesGame
 
 
         public override async Task Initialize()
-        {
-            await this.Broadcast("The game has started! Every player has been given Ð1.500");
-
+        { 
             var asm = GetType().Assembly;
 
-            using var stream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.png");
-            foreach (var p in Players)
-                await p.SendFileAsync(stream!, "board.png");
+            using var jsonStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.json");
+            board = await Board.BoardFromJson(jsonStream!); 
+            await this.Broadcast($"The game has started! Every player has been given Ð{board.StartingMoney:N0}");
+
         }
         
         public override async Task OnMessage(IUserMessage msg, int pos)
