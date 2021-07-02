@@ -82,5 +82,8 @@ namespace DiscordMoniesGame
 
             return new Board(startingMoney, jailBounds, groupNames, spaces.ToArray());
         }
+
+        public static int BoardPosition(string positionString) =>
+            (char.ToLowerInvariant(positionString[0]) - 'a') * 10 + int.Parse(positionString[1..]);
     }
 }
