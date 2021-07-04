@@ -11,7 +11,7 @@ namespace DiscordMoniesGame
 {
     public sealed partial class DiscordMoniesGameInstance : GameInstance
     {       
-        record UserState (int Money, int Position, bool Jailed, bool GetOutOfJailCard);
+        public record UserState (int Money, int Position, bool Jailed, bool GetOutOfJailCard, System.Drawing.Color Color);
 
         readonly int originalPlayerCount;
         readonly ConcurrentDictionary<IUser, UserState> playerStates = new(DiscordComparers.UserComparer);
@@ -19,6 +19,8 @@ namespace DiscordMoniesGame
         IUser currentPlr;
         int round = 1;
         int continuousRolls;
+        readonly BoardRenderer boardRenderer = new();
+
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
             : base(id, client, players, spectators)
         {
@@ -35,9 +37,12 @@ namespace DiscordMoniesGame
             using var jsonStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.json")!;
             board = await Board.BoardFromJson(jsonStream);
 
-            foreach (var player in Players)
-                if (!playerStates.TryAdd(player, new UserState(board.StartingMoney, 00, false, false))) 
+            for (var i = 0; i < Players.Length; i++) 
+            {
+                if (!playerStates.TryAdd(Players[i], 
+                    new UserState(board.StartingMoney, 00, false, false, BoardRenderer.Colors[i])))
                     throw new Exception("Something very wrong happened Initializing");
+            }
 
             var embed = new EmbedBuilder()
             {
@@ -46,6 +51,7 @@ namespace DiscordMoniesGame
                 Color = Color.Green
             }.Build();
             await this.Broadcast("", embed: embed);
+            await SendBoard();
         }
 
         public override async Task OnMessage(IUserMessage msg, int pos)
@@ -87,6 +93,23 @@ namespace DiscordMoniesGame
                 Color = Color.Green
             }.Build();
             await this.Broadcast("", embed: embed);
+            await SendBoard();
+        }
+
+        async Task SendBoard()
+        {
+            using var bmp = boardRenderer.Render(Players, playerStates, board);
+            using var memStr = new MemoryStream();
+            bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
+            foreach (var u in Users)
+            {
+                Console.WriteLine(u);
+                memStr.Position = 0;
+                using var clone = new MemoryStream();
+                await memStr.CopyToAsync(clone);
+                clone.Position = 0;
+                await u.SendFileAsync(clone, $"board{round}.png");
+            }
         }
 
         void Close()
