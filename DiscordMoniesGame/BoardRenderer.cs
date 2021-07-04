@@ -5,7 +5,9 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
+using System.Linq;
+using System.Numerics;
+using System.Security.Cryptography;
 using Color = System.Drawing.Color;
 
 namespace DiscordMoniesGame
@@ -48,9 +50,11 @@ namespace DiscordMoniesGame
                 var bounds = playerStates[p].Jailed
                     ? board.JailBounds
                     : board.BoardSpaces[playerStates[p].Position].Bounds;
-                var hash = p.Id.GetHashCode() ^ bounds.GetHashCode();
-                var xOff = (hash & 0xFF) / 255.0;
-                var yOff = ((hash & 0xFF00) >> 8) / 255.0;
+
+                var array = new BigInteger(p.Id).ToByteArray().Union(new BigInteger(bounds.GetHashCode()).ToByteArray()).ToArray();
+                var hash = MD5.Create().ComputeHash(array);
+                var xOff = hash[0] / 255.0;
+                var yOff = hash[1] / 255.0;
                 var xPos = (int)(xOff * (bounds.Width - basePiece.Width) + (bounds.X + basePiece.Width / 2));
                 var yPos = (int)(yOff * (bounds.Height - basePiece.Height) + (bounds.Y + basePiece.Height / 2));
                 using var colored = ColoredPiece(playerStates[p].Color);

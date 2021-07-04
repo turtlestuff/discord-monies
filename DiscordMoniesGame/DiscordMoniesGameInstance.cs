@@ -109,6 +109,7 @@ namespace DiscordMoniesGame
                 clone.Position = 0;
                 if (embed is not null)
                 {
+                    embed.ImageUrl = "attachment://board.png";
                     await u.SendFileAsync(clone, "board.png", embed: embed.Build());
                 }
                 else
