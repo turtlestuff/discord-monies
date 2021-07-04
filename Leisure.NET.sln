@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Leisure", "Leisure\Leisure.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Leisure.Api", "Leisure.Api\Leisure.Api.csproj", "{3882650A-E1DA-4EBC-851C-9C4FA9BF1C93}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordMoniesGame", "SampleGame\DiscordMoniesGame.csproj", "{1AD442EC-D937-4517-A193-E2BFD8428E8A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordMoniesGame", "DiscordMoniesGame\DiscordMoniesGame.csproj", "{A75BC679-1287-4688-8B0A-175878440C31}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +23,10 @@ Global
 		{3882650A-E1DA-4EBC-851C-9C4FA9BF1C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3882650A-E1DA-4EBC-851C-9C4FA9BF1C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3882650A-E1DA-4EBC-851C-9C4FA9BF1C93}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1AD442EC-D937-4517-A193-E2BFD8428E8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1AD442EC-D937-4517-A193-E2BFD8428E8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1AD442EC-D937-4517-A193-E2BFD8428E8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1AD442EC-D937-4517-A193-E2BFD8428E8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A75BC679-1287-4688-8B0A-175878440C31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A75BC679-1287-4688-8B0A-175878440C31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A75BC679-1287-4688-8B0A-175878440C31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A75BC679-1287-4688-8B0A-175878440C31}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

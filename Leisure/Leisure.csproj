@@ -13,7 +13,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Leisure.Api\Leisure.Api.csproj" />
-      <ProjectReference Include="..\SampleGame\DiscordMoniesGame.csproj" />
     </ItemGroup>
 
 </Project>
