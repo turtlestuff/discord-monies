@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -51,7 +52,7 @@ namespace DiscordMoniesGame
                 Color = Color.Green
             }.Build();
             await this.Broadcast("", embed: embed);
-            await SendBoard();
+            await SendBoard(Users);
         }
 
         public override async Task OnMessage(IUserMessage msg, int pos)
@@ -93,17 +94,16 @@ namespace DiscordMoniesGame
                 Color = Color.Green
             }.Build();
             await this.Broadcast("", embed: embed);
-            await SendBoard();
+            await SendBoard(Users);
         }
 
-        async Task SendBoard()
+        async Task SendBoard(IEnumerable<IUser> users)
         {
             using var bmp = boardRenderer.Render(Players, playerStates, board);
             using var memStr = new MemoryStream();
             bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
-            foreach (var u in Users)
+            foreach (var u in users)
             {
-                Console.WriteLine(u);
                 memStr.Position = 0;
                 using var clone = new MemoryStream();
                 await memStr.CopyToAsync(clone);

@@ -44,11 +44,11 @@ namespace DiscordMoniesGame
                 var bounds = playerStates[p].Jailed
                     ? board.JailBounds
                     : board.BoardSpaces[playerStates[p].Position].Bounds;
-                var hash = p.Id.GetHashCode();
+                var hash = p.Id.GetHashCode() ^ bounds.GetHashCode();
                 var xOff = (hash & 0xFF) / 255.0;
                 var yOff = ((hash & 0xFF00) >> 8) / 255.0;
-                var xPos = (int)xOff * bounds.Width + bounds.X;
-                var yPos = (int)yOff * bounds.Height + bounds.Y;
+                var xPos = (int)(xOff * bounds.Width + bounds.X);
+                var yPos = (int)(yOff * bounds.Height + bounds.Y);
 
                 gfx.DrawImage(basePiece, xPos - basePiece.Height / 2, yPos - basePiece.Width / 2);
             }

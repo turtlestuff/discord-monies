@@ -3,7 +3,8 @@
     <PropertyGroup>
         <OutputType>Library</OutputType>
         <TargetFramework>net6.0</TargetFramework>
-        <Nullable>enable</Nullable>
+      <OutputPath>../Leisure/bin/Debug/net6.0/Games</OutputPath>
+      <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
     </PropertyGroup>
 

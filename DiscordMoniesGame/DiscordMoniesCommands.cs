@@ -83,7 +83,11 @@ namespace DiscordMoniesGame
                     {
                         await this.BroadcastTo(ex.Message, players: msg.Author);
                     }
-                }), 
+                }),
+                new Command("board", CanRun.Any, async (args, msg) =>
+                {
+                    await SendBoard(new [] { msg.Author });
+                }),
                 new Command("roll", CanRun.CurrentPlayer, async (args,msg) =>
                 {
                     continuousRolls++;
