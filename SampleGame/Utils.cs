@@ -34,5 +34,18 @@ namespace DiscordMoniesGame
 
         public static IUser MatchClosest(string name, IEnumerable<IUser> users) =>
             users.Select(u => (Dist: Distance(name, u.Username), User: u)).OrderBy(i => i.Dist).First().User;
+
+        public static string BuildingsAsString(int houses)
+        {
+            if (houses == 0)
+                return "None";
+            if (houses == 1)
+                return "1 house";
+            if (houses > 1 && houses < 5)
+                return $"{houses} houses";
+            if (houses == 5)
+                return "Hotel";
+            return "Invalid";
+        }
     }
 }

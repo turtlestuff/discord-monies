@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -83,7 +84,27 @@ namespace DiscordMoniesGame
             return new Board(startingMoney, jailBounds, groupNames, spaces.ToArray());
         }
 
-        public static int BoardPosition(string positionString) =>
+        public static int Position(string positionString) =>
             (char.ToLowerInvariant(positionString[0]) - 'a') * 10 + int.Parse(positionString[1..]);
+
+        public static string PositionString(int position)
+        {
+            var letter = (char)('A' + (int)Math.Floor(position / 10.0));
+            var number = (position % 10).ToString();
+            return $"{letter}{number}";
+        }
+            
+        public Space ParseBoardSpace(string loc)
+        {
+            if (loc.Length != 2 || !char.IsLetter(loc[0]) || !char.IsDigit(loc[1]))
+                throw new ArgumentException("Invalid argument format");
+           
+            var spacePos = Board.Position(loc.ToLowerInvariant());
+
+            if (spacePos < 0 || spacePos > BoardSpaces.Length)
+                throw new ArgumentException("Out of bounds");
+            
+            return BoardSpaces[spacePos];
+        }
     }
 }

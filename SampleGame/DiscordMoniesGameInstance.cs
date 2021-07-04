@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -10,18 +11,20 @@ namespace DiscordMoniesGame
 {
     public sealed partial class DiscordMoniesGameInstance : GameInstance
     {       
-        record UserState (int Money);
+        record UserState (int Money, int Position, bool Jailed, bool GetOutOfJailCard);
 
         readonly int originalPlayerCount;
         readonly ConcurrentDictionary<IUser, UserState> playerStates = new(DiscordComparers.UserComparer);
         Board board = default!;
-        IUser currentUser = default!;
-
+        IUser currentPlr;
+        int round = 1;
+        int continuousRolls;
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
             : base(id, client, players, spectators)
         {
             originalPlayerCount = players.Length;
             RegisterCommands();
+            currentPlr = Players[Random.Shared.Next(Players.Length)];
         }
 
 
@@ -29,54 +32,27 @@ namespace DiscordMoniesGame
         { 
             var asm = GetType().Assembly;
 
-            using var jsonStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.json");
-            board = await Board.BoardFromJson(jsonStream!);
-
+            using var jsonStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.json")!;
+            board = await Board.BoardFromJson(jsonStream);
 
             foreach (var player in Players)
-                if (!playerStates.TryAdd(player, new UserState(board.StartingMoney))) 
-                    throw new Exception("Something very wrong happened");
+                if (!playerStates.TryAdd(player, new UserState(board.StartingMoney, 00, false, false))) 
+                    throw new Exception("Something very wrong happened Initializing");
 
             var embed = new EmbedBuilder()
             {
                 Title = "Balance",
-                Description = $"The game has started! Every player has been given `Ð{board.StartingMoney:N0}`",
+                Description = $"The game has started! Every player has been given `Ð{board.StartingMoney:N0}`\nThe first player is **{currentPlr.Username}**",
                 Color = Color.Green
             }.Build();
             await this.Broadcast("", embed: embed);
-
         }
-        
+
         public override async Task OnMessage(IUserMessage msg, int pos)
         {
             try
             {
                 var msgContent = msg.Content[pos..];
-                if (msgContent == "drop")
-                {
-                    if (currentUser.Equals(msg.Author))
-                    {
-                        await this.BroadcastTo("You can't `drop` on your own turn.", players: msg.Author);
-                        return;
-                    }
-
-                    if (playerStates.TryRemove(msg.Author, out _))
-                    {
-                        var droppedPlayerName = msg.Author.Username;
-                        DropPlayer(msg.Author);
-                        var embed = new EmbedBuilder()
-                        {
-                            Title = "Drop",
-                            Description = $"**{droppedPlayerName}** has dropped from the game.",
-                            Color = Color.Gold
-                        }.Build();
-                        await this.Broadcast("", embed: embed);
-                        return;
-                    }
-
-                    await this.BroadcastTo("`drop` failed, please try again.", players: msg.Author);
-                    return;
-                }
 
                 if (await TryHandleCommand(msgContent, msg))
                     return;
@@ -93,8 +69,24 @@ namespace DiscordMoniesGame
             }
             catch (Exception ex)
             {
-                Console.Error.Write(ex);
+                await this.BroadcastTo($"Command failed: {ex.Message}", players: msg.Author);
+                Console.Error.WriteLine(ex);
             }
+        }
+
+        async Task AdvanceRound()
+        {
+            continuousRolls = 0;
+            round++;
+            var index = Players.IndexOf(currentPlr);
+            currentPlr = Players[(index + 1) % Players.Length];
+            var embed = new EmbedBuilder()
+            {
+                Title = "Next Round",
+                Description = $"Current Round: {round}\nPlayer: **{currentPlr}** @ `{Board.PositionString(playerStates[currentPlr].Position)}`",
+                Color = Color.Green
+            }.Build();
+            await this.Broadcast("", embed: embed);
         }
 
         void Close()

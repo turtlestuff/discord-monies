@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace DiscordMoniesGame
@@ -20,9 +21,18 @@ namespace DiscordMoniesGame
                 {
                     IUser user;
                     if (args == "")
+                    {
+                        if (Spectators.Contains(msg.Author, DiscordComparers.UserComparer))
+                        {
+                            await this.BroadcastTo("As a spectator, you may only view other players' balances.");
+                            return;
+                        }
                         user = msg.Author;
+                    }
                     else
+                    {
                         user = Utils.MatchClosest(args, Players);
+                    }
 
                     if (user is not null)
                     {
@@ -37,10 +47,85 @@ namespace DiscordMoniesGame
                     }
                     await this.BroadcastTo($"Can't find player \"{args}\".");
                 }),
+                new Command("info", CanRun.Any, async (args, msg) =>
+                {
+                    try
+                    {
+                        var space = board.ParseBoardSpace(args);
+                        var eb = new EmbedBuilder()
+                        {
+                            Title = "Space Info",
+                            Color = Color.Gold,
+                            Fields = new List<EmbedFieldBuilder>
+                            {
+                                new() { IsInline = true, Name = "Type", Value = space.GetType().Name },
+                                new() { IsInline = true, Name = "Name", Value = space.Name }
+                            }
+                        };
 
+                        if (space is ValueSpace vs)
+                            eb.Fields.Add(new() { IsInline = true, Name = "Value", Value = $"`Ð{vs.Value:N0}`" });
+
+                        if (space is PropertySpace ps)
+                        {
+                            eb.Fields.Add(new() { IsInline = true, Name = "Owner", Value = ps.Owner?.Username ?? "None" });
+                            eb.Fields.Add(new() { IsInline = true, Name = "Mortgaged?", Value=ps.Mortgaged ? "Yes" : "No" });
+                        }
+
+                        if (space is RoadSpace rs)
+                        {
+                            eb.Fields.Add(new() { IsInline = true, Name = "Color", Value = board.GroupNames[rs.Group] });
+                            eb.Fields.Add(new() { IsInline = true, Name = "Buildings", Value=Utils.BuildingsAsString(rs.Houses) });
+                        }
+
+                        await this.BroadcastTo("", embed: eb.Build(), players: msg.Author);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        await this.BroadcastTo(ex.Message, players: msg.Author);
+                    }
+                }), 
+                new Command("roll", CanRun.CurrentPlayer, async (args,msg) =>
+                {
+                    continuousRolls++;
+                    if (!playerStates[msg.Author].Jailed) 
+                    { 
+                        var roll1 = Random.Shared.Next(1,7);
+                        var roll2 = Random.Shared.Next(1,7);
+                        var doubles = roll1 == roll2;
+                        var speedLimit = continuousRolls >= 3;
+                        var position = (playerStates[msg.Author].Position + roll1 + roll2) % board.BoardSpaces.Length;
+                        var embed = new EmbedBuilder()
+                        {
+                            Title = "Roll",
+                            Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}`" +
+                            (!speedLimit ? $"and has gone to space `{Board.PositionString(position)}` ({board.BoardSpaces[position].Name})." : "") +
+                            (doubles && !speedLimit ? "\nSince they have rolled doubles, they may roll another time!" : "") +
+                            (speedLimit ? ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!" : ""),
+                            Color = Color.Gold
+                        }.Build();
+
+                        await this.Broadcast("", embed: embed);
+
+                        if (speedLimit)
+                        {
+                            // TODO: Go to jail
+                            await AdvanceRound();
+                        }
+
+                        playerStates[msg.Author] = playerStates[msg.Author] with { Position = position };
+
+                        // TODO: Handle GO bonus, landing in spaces, rent, etc.
+
+                        if (!doubles)
+                            await AdvanceRound();
+                    }
+                    // TODO: Handle jailed player
+
+                })
             }.ToImmutableArray();
         }
-
+        
         async Task<bool> TryHandleCommand(string msgContent, IUserMessage msg)
         {
             var index = msgContent.IndexOf(' ');
@@ -72,7 +157,7 @@ namespace DiscordMoniesGame
                     await commandObj.CmdFunc(args, msg);
                     return true;
                 case CanRun.CurrentPlayer:
-                    if (!currentUser.Equals(msg.Author))
+                    if (currentPlr.Id != msg.Author.Id)
                     {
                         await this.BroadcastTo("Only the current player can run this!", players: msg.Author);
                         return true; //don't chat that!
