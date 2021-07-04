@@ -86,6 +86,7 @@ The lobby was closed, but an invalid amount of players were in the lobby. {game.
             }
             else
             {
+                lobby.Closed = true;
                 await channel.SendMessageAsync($"Lobby #{lobby.Id} has closed and the game is now starting.");
                 var newGame = game.CreateGame(lobby.Id, Client, lobby.Players.ToImmutable(), lobby.Spectators.ToImmutable());
 
@@ -144,7 +145,11 @@ The lobby was closed, but an invalid amount of players were in the lobby. {game.
             }.WithCurrentTimestamp();
             
             await msg.Channel.SendMessageAsync("", embed: builder.Build());
-            _ = Task.Delay(TimeSpan.FromMinutes(5)).ContinueWith(t => CloseLobby(game, msg.Channel, lobby));
+            _ = Task.Delay(TimeSpan.FromMinutes(5)).ContinueWith(async t =>
+            {
+                if (lobby.Closed) return;
+                await CloseLobby(game, msg.Channel, lobby);
+            });
         }
         
         #endregion

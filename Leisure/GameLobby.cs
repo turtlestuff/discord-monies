@@ -11,6 +11,7 @@ namespace Leisure
     /// </summary>
     public class GameLobby
     {
+        internal bool Closed { get; set; } = false;
         internal GameLobby(int id, IUser startingUser, IMessageChannel channel, GameInfo gameInfo)
         {
             Id = id;
@@ -24,7 +25,7 @@ namespace Leisure
         /// The members in the lobby that will join the game when it starts.
         /// </summary>
         public ImmutableArray<IUser>.Builder Players { get; } = ImmutableArray.CreateBuilder<IUser>();
-        
+            
         /// <summary>
         /// The members in the lobby that will spectate the game when it starts.
         /// </summary>
