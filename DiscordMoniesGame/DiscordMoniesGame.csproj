@@ -6,7 +6,9 @@
       <OutputPath>../Leisure/bin/Debug/net6.0/Games</OutputPath>
       <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
+
 
     <ItemGroup>
       <PackageReference Include="System.Drawing.Common" Version="6.0.0-preview.5.21301.5" />

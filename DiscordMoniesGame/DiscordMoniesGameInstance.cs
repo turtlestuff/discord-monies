@@ -92,12 +92,11 @@ namespace DiscordMoniesGame
                 Title = "Next Round",
                 Description = $"Current Round: {round}\nPlayer: **{currentPlr}** @ `{Board.PositionString(playerStates[currentPlr].Position)}`",
                 Color = Color.Green
-            }.Build();
-            await this.Broadcast("", embed: embed);
-            await SendBoard(Users);
+            };
+            await SendBoard(Users, embed);
         }
 
-        async Task SendBoard(IEnumerable<IUser> users)
+        async Task SendBoard(IEnumerable<IUser> users, EmbedBuilder? embed = null)
         {
             using var bmp = boardRenderer.Render(Players, playerStates, board);
             using var memStr = new MemoryStream();
@@ -108,7 +107,14 @@ namespace DiscordMoniesGame
                 using var clone = new MemoryStream();
                 await memStr.CopyToAsync(clone);
                 clone.Position = 0;
-                await u.SendFileAsync(clone, $"board{round}.png");
+                if (embed is not null)
+                {
+                    await u.SendFileAsync(clone, "board.png", embed: embed.Build());
+                }
+                else
+                {
+                    await u.SendFileAsync(clone, "board.png");
+                }
             }
         }
 
