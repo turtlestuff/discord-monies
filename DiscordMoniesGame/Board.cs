@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Collections.Concurrent.Extensions;
 
 namespace DiscordMoniesGame
 {
@@ -29,35 +30,24 @@ namespace DiscordMoniesGame
         public ConcurrentStack<LuckCard> ChestCards { get; }
         public ConcurrentBag<LuckCard> UsedChestCards { get; }  = new();
 
-        Board(int sm, SpaceBounds jb, ImmutableArray<string> gn, Space[] bs)
+        Board(int sm, SpaceBounds jb, ImmutableArray<string> gn, Space[] bs, TitleDeed[] td, LuckCard[] chance, LuckCard[] chest)
         {
             StartingMoney = sm;
             JailBounds = jb;
             GroupNames = gn;
             BoardSpaces = bs;
-            var s = new Stack<LuckCard>();
-            s.Push(new("aa", "aa"));
-            var l = new List<TitleDeed>();
-            for (var i = 0; i < bs.Length; i++)
-            {
-                var p = 1;
-                if (bs[i] is not PropertySpace) return;
-                if (bs[i] is RoadSpace) p = 6;
-                l.Add(new(i, new int[p], 0, 0, 0));
-            }
-            var ss = JsonSerializer.Serialize(s);
-            var ls = JsonSerializer.Serialize(l.ToArray());
-            File.WriteAllText("C:/luckcards.json", ss);
-            File.WriteAllText("C:/basedeeds.json", ls);
+            TitleDeeds = td;
+            ChanceCards = new(chance);
+            ChestCards = new(chest);
         }
 
-        public async static Task<Board> BoardFromJson(Stream jsonStream)
+        public async static Task<Board> BoardFromJson(Stream boardJson, Stream titleDeedStream, Stream chestStream, Stream chanceStream)
         {
             static SpaceBounds decodeBounds(JsonElement el) =>
                 new(el.GetProperty("X").GetInt32(), el.GetProperty("Y").GetInt32(),
                     el.GetProperty("Width").GetInt32(), el.GetProperty("Height").GetInt32());
             
-            var raw = await JsonSerializer.DeserializeAsync<Dictionary<string, JsonElement>>(jsonStream) 
+            var raw = await JsonSerializer.DeserializeAsync<Dictionary<string, JsonElement>>(boardJson) 
                 ?? throw new JsonException("DeserializeAsync returned null");
             var startingMoney = raw["StartingMoney"].GetInt32();
             var jailBounds = decodeBounds(raw["JailBounds"]);
@@ -109,7 +99,11 @@ namespace DiscordMoniesGame
                 }
             }
 
-            return new Board(startingMoney, jailBounds, groupNames, spaces.ToArray());
+            var titleDeeds = await JsonSerializer.DeserializeAsync<TitleDeed[]>(titleDeedStream);
+            var chanceCards = await JsonSerializer.DeserializeAsync<LuckCard[]>(chanceStream);
+            var chestCards = await JsonSerializer.DeserializeAsync<LuckCard[]>(chestStream);
+
+            return new Board(startingMoney, jailBounds, groupNames, spaces.ToArray(), titleDeeds!, chanceCards!, chestCards!);
         }
 
         public static int Position(string positionString) =>
