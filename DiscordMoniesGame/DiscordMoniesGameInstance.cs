@@ -12,10 +12,11 @@ namespace DiscordMoniesGame
 {
     public sealed partial class DiscordMoniesGameInstance : GameInstance
     {       
-        public record UserState (int Money, int Position, bool Jailed, bool GetOutOfJailCard, System.Drawing.Color Color);
+        public record PlayerState(int Money, int Position, int JailStatus, bool GetOutOfJailCard, System.Drawing.Color Color);
+        // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
 
         readonly int originalPlayerCount;
-        readonly ConcurrentDictionary<IUser, UserState> playerStates = new(DiscordComparers.UserComparer);
+        readonly ConcurrentDictionary<IUser, PlayerState> playerStates = new(DiscordComparers.UserComparer);
         Board board = default!;
         IUser currentPlr;
         int round = 1;
@@ -41,7 +42,7 @@ namespace DiscordMoniesGame
             for (var i = 0; i < Players.Length; i++) 
             {
                 if (!playerStates.TryAdd(Players[i], 
-                    new UserState(board.StartingMoney, 00, false, false, BoardRenderer.Colors[i])))
+                    new PlayerState(board.StartingMoney, 00, -1, false, BoardRenderer.Colors[i])))
                     throw new Exception("Something very wrong happened Initializing");
             }
 

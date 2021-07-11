@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -10,10 +11,23 @@ namespace DiscordMoniesGame
 {
     public class Board
     {
+        public record struct TitleDeed(int Position, int[] RentValues, int MortgageValue, int HouseCost, int HotelCost);
+        public record struct LuckCard(string Description, string Command);
+
+
         public int StartingMoney { get; }
         public SpaceBounds JailBounds { get; }
         public ImmutableArray<string> GroupNames { get; }
         public Space[] BoardSpaces { get; }
+
+        public int AvailableHouses { get; set; } = 32;
+        public int AvailableHotels { get; set; } = 12;
+
+        public TitleDeed[] TitleDeeds { get; }
+        public ConcurrentStack<LuckCard> ChanceCards { get; }
+        public ConcurrentBag<LuckCard> UsedChanceCards { get; } = new();
+        public ConcurrentStack<LuckCard> ChestCards { get; }
+        public ConcurrentBag<LuckCard> UsedChestCards { get; }  = new();
 
         Board(int sm, SpaceBounds jb, ImmutableArray<string> gn, Space[] bs)
         {
@@ -21,6 +35,20 @@ namespace DiscordMoniesGame
             JailBounds = jb;
             GroupNames = gn;
             BoardSpaces = bs;
+            var s = new Stack<LuckCard>();
+            s.Push(new("aa", "aa"));
+            var l = new List<TitleDeed>();
+            for (var i = 0; i < bs.Length; i++)
+            {
+                var p = 1;
+                if (bs[i] is not PropertySpace) return;
+                if (bs[i] is RoadSpace) p = 6;
+                l.Add(new(i, new int[p], 0, 0, 0));
+            }
+            var ss = JsonSerializer.Serialize(s);
+            var ls = JsonSerializer.Serialize(l.ToArray());
+            File.WriteAllText("C:/luckcards.json", ss);
+            File.WriteAllText("C:/basedeeds.json", ls);
         }
 
         public async static Task<Board> BoardFromJson(Stream jsonStream)
@@ -28,7 +56,7 @@ namespace DiscordMoniesGame
             static SpaceBounds decodeBounds(JsonElement el) =>
                 new(el.GetProperty("X").GetInt32(), el.GetProperty("Y").GetInt32(),
                     el.GetProperty("Width").GetInt32(), el.GetProperty("Height").GetInt32());
-
+            
             var raw = await JsonSerializer.DeserializeAsync<Dictionary<string, JsonElement>>(jsonStream) 
                 ?? throw new JsonException("DeserializeAsync returned null");
             var startingMoney = raw["StartingMoney"].GetInt32();

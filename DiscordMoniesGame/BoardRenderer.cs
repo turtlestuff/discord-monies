@@ -38,16 +38,14 @@ namespace DiscordMoniesGame
         }
 
         public Bitmap Render(ImmutableArray<IUser> players, 
-            ConcurrentDictionary<IUser, DiscordMoniesGameInstance.UserState> playerStates, Board board)
+            ConcurrentDictionary<IUser, DiscordMoniesGameInstance.PlayerState> playerStates, Board board)
         {
-            var timer = new Stopwatch();
-            timer.Start();
             var bmp = new Bitmap(baseBoard);
             using var gfx = Graphics.FromImage(bmp);
             
             foreach (var p in players)
             {
-                var bounds = playerStates[p].Jailed
+                var bounds = playerStates[p].JailStatus != -1
                     ? board.JailBounds
                     : board.BoardSpaces[playerStates[p].Position].Bounds;
 
@@ -61,8 +59,6 @@ namespace DiscordMoniesGame
 
                 gfx.DrawImage(colored, xPos - basePiece.Height / 2, yPos - basePiece.Width / 2);
             }
-            timer.Stop();
-            Console.WriteLine($"{timer.ElapsedMilliseconds}ms to render");
             return bmp;
         }
 

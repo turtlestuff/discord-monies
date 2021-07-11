@@ -91,7 +91,7 @@ namespace DiscordMoniesGame
                 new Command("roll", CanRun.CurrentPlayer, async (args,msg) =>
                 {
                     continuousRolls++;
-                    if (!playerStates[msg.Author].Jailed) 
+                    if (playerStates[msg.Author].JailStatus == -1) 
                     { 
                         var roll1 = Random.Shared.Next(1,7);
                         var roll2 = Random.Shared.Next(1,7);

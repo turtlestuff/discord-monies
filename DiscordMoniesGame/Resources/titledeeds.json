@@ -1,0 +1,364 @@
+[
+  {
+    "Position": 1,
+    "RentValues": [
+      2,
+      10,
+      30,
+      90,
+      160,
+      250
+    ],
+    "MortgageValue": 30,
+    "HouseCost": 50,
+    "HotelCost": 50
+  },
+  {
+    "Position": 3,
+    "RentValues": [
+      4,
+      20,
+      60,
+      180,
+      320,
+      450
+    ],
+    "MortgageValue": 30,
+    "HouseCost": 50,
+    "HotelCost": 50
+  },
+  {
+    "Position": 5,
+    "RentValues": [
+      25
+    ],
+    "MortgageValue": 100,
+    "HouseCost": 0,
+    "HotelCost": 0
+  },
+  {
+    "Position": 6,
+    "RentValues": [
+      6,
+      30,
+      90,
+      270,
+      400,
+      550
+    ],
+    "MortgageValue": 50,
+    "HouseCost": 50,
+    "HotelCost": 50
+  },
+  {
+    "Position": 8,
+    "RentValues": [
+      6,
+      30,
+      90,
+      270,
+      400,
+      550
+    ],
+    "MortgageValue": 50,
+    "HouseCost": 50,
+    "HotelCost": 50
+  },
+  {
+    "Position": 9,
+    "RentValues": [
+      8,
+      40,
+      100,
+      300,
+      450,
+      600
+    ],
+    "MortgageValue": 60,
+    "HouseCost": 50,
+    "HotelCost": 50
+  },
+  {
+    "Position": 11,
+    "RentValues": [
+      10,
+      50,
+      150,
+      450,
+      625,
+      750
+    ],
+    "MortgageValue": 70,
+    "HouseCost": 100,
+    "HotelCost": 100
+  },
+  {
+    "Position": 12,
+    "RentValues": [
+      0
+    ],
+    "MortgageValue": 75,
+    "HouseCost": 0,
+    "HotelCost": 0
+  },
+  {
+    "Position": 13,
+    "RentValues": [
+      10,
+      50,
+      150,
+      450,
+      625,
+      750
+    ],
+    "MortgageValue": 70,
+    "HouseCost": 100,
+    "HotelCost": 100
+  },
+  {
+    "Position": 14,
+    "RentValues": [
+      12,
+      60,
+      180,
+      500,
+      700,
+      900
+    ],
+    "MortgageValue": 80,
+    "HouseCost": 100,
+    "HotelCost": 100
+  },
+  {
+    "Position": 15,
+    "RentValues": [
+      25
+    ],
+    "MortgageValue": 100,
+    "HouseCost": 0,
+    "HotelCost": 0
+  },
+  {
+    "Position": 16,
+    "RentValues": [
+      14,
+      70,
+      200,
+      550,
+      750,
+      950
+    ],
+    "MortgageValue": 90,
+    "HouseCost": 100,
+    "HotelCost": 100
+  },
+  {
+    "Position": 18,
+    "RentValues": [
+      14,
+      70,
+      200,
+      550,
+      750,
+      950
+    ],
+    "MortgageValue": 90,
+    "HouseCost": 100,
+    "HotelCost": 100
+  },
+  {
+    "Position": 19,
+    "RentValues": [
+      16,
+      80,
+      220,
+      600,
+      800,
+      1000
+    ],
+    "MortgageValue": 100,
+    "HouseCost": 100,
+    "HotelCost": 100
+  },
+  {
+    "Position": 21,
+    "RentValues": [
+      18,
+      90,
+      250,
+      700,
+      875,
+      1050
+    ],
+    "MortgageValue": 110,
+    "HouseCost": 150,
+    "HotelCost": 150
+  },
+  {
+    "Position": 23,
+    "RentValues": [
+      18,
+      90,
+      250,
+      700,
+      875,
+      1050
+    ],
+    "MortgageValue": 110,
+    "HouseCost": 150,
+    "HotelCost": 150
+  },
+  {
+    "Position": 24,
+    "RentValues": [
+      20,
+      100,
+      300,
+      750,
+      925,
+      1100
+    ],
+    "MortgageValue": 120,
+    "HouseCost": 150,
+    "HotelCost": 150
+  },
+  {
+    "Position": 25,
+    "RentValues": [
+      25
+    ],
+    "MortgageValue": 100,
+    "HouseCost": 0,
+    "HotelCost": 0
+  },
+  {
+    "Position": 26,
+    "RentValues": [
+      22,
+      110,
+      330,
+      800,
+      975,
+      1150
+    ],
+    "MortgageValue": 130,
+    "HouseCost": 150,
+    "HotelCost": 150
+  },
+  {
+    "Position": 27,
+    "RentValues": [
+      22,
+      110,
+      330,
+      800,
+      975,
+      1150
+    ],
+    "MortgageValue": 130,
+    "HouseCost": 150,
+    "HotelCost": 150
+  },
+  {
+    "Position": 28,
+    "RentValues": [
+      0
+    ],
+    "MortgageValue": 75,
+    "HouseCost": 0,
+    "HotelCost": 0
+  },
+  {
+    "Position": 29,
+    "RentValues": [
+      24,
+      120,
+      360,
+      850,
+      1025,
+      1200
+    ],
+    "MortgageValue": 140,
+    "HouseCost": 150,
+    "HotelCost": 150
+  },
+  {
+    "Position": 31,
+    "RentValues": [
+      26,
+      130,
+      390,
+      900,
+      1100,
+      1275
+    ],
+    "MortgageValue": 150,
+    "HouseCost": 200,
+    "HotelCost": 200
+  },
+  {
+    "Position": 32,
+    "RentValues": [
+      26,
+      130,
+      390,
+      900,
+      1100,
+      1275
+    ],
+    "MortgageValue": 150,
+    "HouseCost": 200,
+    "HotelCost": 200
+  },
+  {
+    "Position": 34,
+    "RentValues": [
+      28,
+      150,
+      450,
+      1000,
+      1200,
+      1400
+    ],
+    "MortgageValue": 160,
+    "HouseCost": 200,
+    "HotelCost": 200
+  },
+  {
+    "Position": 35,
+    "RentValues": [
+      25
+    ],
+    "MortgageValue": 100,
+    "HouseCost": 0,
+    "HotelCost": 0
+  },
+  {
+    "Position": 37,
+    "RentValues": [
+      35,
+      175,
+      500,
+      1100,
+      1300,
+      1500
+    ],
+    "MortgageValue": 175,
+    "HouseCost": 200,
+    "HotelCost": 200
+  },
+  {
+    "Position": 39,
+    "RentValues": [
+      50,
+      200,
+      600,
+      1400,
+      1700,
+      2000
+    ],
+    "MortgageValue": 200,
+    "HouseCost": 200,
+    "HotelCost": 200
+  }
+]
