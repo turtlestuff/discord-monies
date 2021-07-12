@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Xml;
 
 namespace DiscordMoniesGame
 {
@@ -44,9 +43,9 @@ namespace DiscordMoniesGame
                             {
                                 new() { IsInline = true, Name = "Balance", Value = playerState.Money.MoneyString() },
                                 new() { IsInline = true, Name = "Position", Value = playerState.Position.PositionString() },
-                                new() { IsInline = true, Name = "Color", Value = playerState.Color.ToString()}
+                                new() { IsInline = true, Name = "Color", Value = Colors.NameOfColor(playerState.Color) }
                             },
-                            Color = new(playerState.Color.R, playerState.Color.G, playerState.Color.B)
+                            Color = PlayerColor(player)
                         }.Build();
                         await this.BroadcastTo("", embed: embed, players: msg.Author);
                         return;
@@ -61,7 +60,6 @@ namespace DiscordMoniesGame
                         var eb = new EmbedBuilder()
                         {
                             Title = "Space Info",
-                            Color = Color.Gold,
                             Fields = new List<EmbedFieldBuilder>
                             {
                                 new() { IsInline = true, Name = "Type", Value = space.GetType().Name },
@@ -82,6 +80,7 @@ namespace DiscordMoniesGame
                         {
                             eb.Fields.Add(new() { IsInline = true, Name = "Color", Value = board.GroupNames[rs.Group] });
                             eb.Fields.Add(new() { IsInline = true, Name = "Buildings", Value = rs.Houses.BuildingsAsString() });
+                            eb.Color = Colors.ColorOfName(board.GroupNames[rs.Group]).ToDiscordColor();
                         }
 
                         await this.BroadcastTo("", embed: eb.Build(), players: msg.Author);
@@ -102,7 +101,6 @@ namespace DiscordMoniesGame
                         var eb = new EmbedBuilder()
                         {
                             Title = $"Title Deed for {space.Name}" + (space is RoadSpace rs ? $" ({board.GroupNames[rs.Group]}) " : ""),
-                            Color = Color.Gold,
                             Fields = new()
                         };
 
@@ -122,7 +120,7 @@ namespace DiscordMoniesGame
                                 "If one utility is owned, the rent is **4x** the value on the dice.\nIf both are owned, it is **10x** the value on the dice."});
                         }
 
-                        if (space is RoadSpace)
+                        if (space is RoadSpace r)
                         {
                             var text = "";
                             for (var i = 0; i < deed.RentValues.Length; i++)
@@ -136,6 +134,7 @@ namespace DiscordMoniesGame
                             eb.Fields.Add(new() { IsInline = false, Name = "Rent Values", Value = text });
                             eb.Fields.Add(new() { IsInline = true, Name = "House Cost", Value = deed.HouseCost.MoneyString() });
                             eb.Fields.Add(new() { IsInline = true, Name = "Hotel Cost", Value = deed.HotelCost.MoneyString() });
+                            eb.Color = Colors.ColorOfName(board.GroupNames[r.Group]).ToDiscordColor();
                         }
 
                          eb.Fields.Add(new() { IsInline = true, Name = "Mortgage Value", Value = deed.MortgageValue.MoneyString() });
@@ -173,7 +172,7 @@ namespace DiscordMoniesGame
                             (!speedLimit ? $"and has gone to space `{position.PositionString()}` ({board.BoardSpaces[position].Name})." : "") +
                             (doubles && !speedLimit ? "\nSince they have rolled doubles, they may roll another time!" : "") +
                             (speedLimit ? ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!" : ""),
-                            Color = Color.Gold
+                            Color = PlayerColor(msg.Author)
                         }.Build();
 
                         await this.Broadcast("", embed: embed);

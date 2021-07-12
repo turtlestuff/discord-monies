@@ -45,10 +45,12 @@ namespace DiscordMoniesGame
 
             board = await Board.BoardFromJson(boardStream, titleStream, chestStream, chanceStream);
 
+            var shuffledColors = Colors.ColorList.OrderBy(_ => Random.Shared.Next()).ToArray();
+
             for (var i = 0; i < Players.Length; i++) 
             {
                 if (!playerStates.TryAdd(Players[i], 
-                    new PlayerState(board.StartingMoney, 00, -1, false, BoardRenderer.Colors[i])))
+                    new PlayerState(board.StartingMoney, 00, -1, false, shuffledColors[i].Value)))
                     throw new Exception("Something very wrong happened Initializing");
             }
 
@@ -157,6 +159,12 @@ namespace DiscordMoniesGame
             }
             playerStates[player] = playerStates[player] with { Position = position, Money = playerMoney};
             return position;
+        }
+
+        Color PlayerColor(IUser player)
+        {
+            var color = playerStates[player].Color;
+            return new(color.R, color.G, color.B);
         }
 
         void Close()

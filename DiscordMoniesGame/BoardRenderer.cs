@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
@@ -14,16 +13,6 @@ namespace DiscordMoniesGame
 {
     public class BoardRenderer : IDisposable
     {
-        public static readonly Color[] Colors = new[]
-        {
-            Color.FromArgb(255, 146, 146), //Red
-            Color.FromArgb(255, 204, 109), //Orange
-            Color.FromArgb(255, 251, 140), //Yellow
-            Color.FromArgb(181, 255, 109), //Green
-            Color.FromArgb(152, 244, 255), //Cyan
-            Color.FromArgb(161, 164, 236)  //Blue
-        };
-
         readonly Bitmap baseBoard;
         readonly Bitmap basePiece;
         readonly Bitmap owned;
