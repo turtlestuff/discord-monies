@@ -35,7 +35,7 @@ namespace DiscordMoniesGame
         public static IUser MatchClosest(string name, IEnumerable<IUser> users) =>
             users.Select(u => (Dist: Distance(name, u.Username), User: u)).OrderBy(i => i.Dist).First().User;
 
-        public static string BuildingsAsString(int houses)
+        public static string BuildingsAsString(this int houses)
         {
             if (houses == 0)
                 return "None";
@@ -47,5 +47,7 @@ namespace DiscordMoniesGame
                 return "Hotel";
             return "Invalid";
         }
+
+        public static string MoneyString(this int money) => $"`Ð{money:N0}`";
     }
 }

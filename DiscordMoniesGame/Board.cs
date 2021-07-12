@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Collections.Concurrent.Extensions;
 
 namespace DiscordMoniesGame
 {
@@ -14,7 +13,6 @@ namespace DiscordMoniesGame
     {
         public record struct TitleDeed(int Position, int[] RentValues, int MortgageValue, int HouseCost, int HotelCost);
         public record struct LuckCard(string Description, string Command);
-
 
         public int StartingMoney { get; }
         public SpaceBounds JailBounds { get; }
@@ -29,6 +27,8 @@ namespace DiscordMoniesGame
         public ConcurrentBag<LuckCard> UsedChanceCards { get; } = new();
         public ConcurrentStack<LuckCard> ChestCards { get; }
         public ConcurrentBag<LuckCard> UsedChestCards { get; }  = new();
+
+        public int VisitingJailPosition => Array.FindIndex(BoardSpaces, s => s.Name == "Visiting Jail");
 
         Board(int sm, SpaceBounds jb, ImmutableArray<string> gn, Space[] bs, TitleDeed[] td, LuckCard[] chance, LuckCard[] chest)
         {
@@ -116,17 +116,29 @@ namespace DiscordMoniesGame
             return $"{letter}{number}";
         }
             
-        public Space ParseBoardSpace(string loc)
+        public int ParseBoardSpaceInt(string loc)
         {
             if (loc.Length != 2 || !char.IsLetter(loc[0]) || !char.IsDigit(loc[1]))
                 throw new ArgumentException("Invalid argument format");
-           
+
             var spacePos = Board.Position(loc.ToLowerInvariant());
 
             if (spacePos < 0 || spacePos > BoardSpaces.Length)
                 throw new ArgumentException("Out of bounds");
-            
-            return BoardSpaces[spacePos];
+
+            return spacePos;
+        }
+
+        public Space ParseBoardSpace(string loc) => BoardSpaces[ParseBoardSpaceInt(loc)];
+
+        public TitleDeed TitleDeedFor(int loc)
+        {
+            if (BoardSpaces[loc] is not PropertySpace)
+            {
+                throw new ArgumentException("That is not a property space!");
+            }
+
+            return TitleDeeds.First(td => td.Position == loc);
         }
     }
 }

@@ -22,6 +22,7 @@ namespace DiscordMoniesGame
         int round = 1;
         int continuousRolls;
         readonly BoardRenderer boardRenderer = new();
+        bool canRoll = true;
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
             : base(id, client, players, spectators)
@@ -36,8 +37,12 @@ namespace DiscordMoniesGame
         { 
             var asm = GetType().Assembly;
 
-            using var jsonStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.json")!;
-            board = await Board.BoardFromJson(jsonStream);
+            using var boardStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.json")!;
+            using var titleStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.titledeeds.json")!;
+            using var chestStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.communitychest.json")!;
+            using var chanceStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.chance.json")!;
+
+            board = await Board.BoardFromJson(boardStream, titleStream, chestStream, chanceStream);
 
             for (var i = 0; i < Players.Length; i++) 
             {
@@ -49,11 +54,10 @@ namespace DiscordMoniesGame
             var embed = new EmbedBuilder()
             {
                 Title = "Balance",
-                Description = $"The game has started! Every player has been given `Ð{board.StartingMoney:N0}`\nThe first player is **{currentPlr.Username}**",
+                Description = $"The game has started! Every player has been given {board.StartingMoney.MoneyString()}\nThe first player is **{currentPlr.Username}**",
                 Color = Color.Green
-            }.Build();
-            await this.Broadcast("", embed: embed);
-            await SendBoard(Users);
+            };
+            await SendBoard(Users, embed);
         }
 
         public override async Task OnMessage(IUserMessage msg, int pos)
@@ -84,6 +88,7 @@ namespace DiscordMoniesGame
 
         async Task AdvanceRound()
         {
+            canRoll = true;
             continuousRolls = 0;
             round++;
             var index = Players.IndexOf(currentPlr);
@@ -91,10 +96,36 @@ namespace DiscordMoniesGame
             var embed = new EmbedBuilder()
             {
                 Title = "Next Round",
-                Description = $"Current Round: {round}\nPlayer: **{currentPlr}** @ `{Board.PositionString(playerStates[currentPlr].Position)}`",
+                Description = $"Current Round: {round}\nPlayer: **{currentPlr}** @ " +
+                (playerStates[currentPlr].JailStatus == -1 ? Board.PositionString(playerStates[currentPlr].Position) : "Jail"),
                 Color = Color.Green
             };
             await SendBoard(Users, embed);
+
+            if (playerStates[currentPlr].JailStatus != -1)
+            {
+                if (playerStates[currentPlr].JailStatus == 3)
+                {
+                    canRoll = false;
+                }
+                else
+                {
+                    // TODO: Handle this stuff!!!!!!!!!!!!!
+                }
+            }
+        }
+
+        async Task SendToJail(IUser player)
+        {
+            playerStates[player] = playerStates[player] with { JailStatus = 0, Position = board.VisitingJailPosition };
+            var embed = new EmbedBuilder()
+            {
+                Title = "Jail 🚔", //oncoming police car emoji
+                Description = $"{player.Username} has been sent to jail.",
+                Color = Color.Red
+            }.Build();
+
+            await this.Broadcast("", embed: embed);
         }
 
         async Task SendBoard(IEnumerable<IUser> users, EmbedBuilder? embed = null)
