@@ -1,5 +1,6 @@
 {
   "StartingMoney": 1500,
+  "JailFine": 50,
   "JailBounds": {
     "X": 820,
     "Y": 80,

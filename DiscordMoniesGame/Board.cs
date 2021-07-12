@@ -11,10 +11,11 @@ namespace DiscordMoniesGame
 {
     public class Board
     {
-        public record struct TitleDeed(int Position, int[] RentValues, int MortgageValue, int HouseCost, int HotelCost);
-        public record struct LuckCard(string Description, string Command);
+        public readonly record struct TitleDeed(int Position, int[] RentValues, int MortgageValue, int HouseCost, int HotelCost);
+        public readonly record struct LuckCard(string Description, string Command);
 
         public int StartingMoney { get; }
+        public int JailFine { get; }
         public SpaceBounds JailBounds { get; }
         public ImmutableArray<string> GroupNames { get; }
         public Space[] BoardSpaces { get; }
@@ -29,10 +30,12 @@ namespace DiscordMoniesGame
         public ConcurrentBag<LuckCard> UsedChestCards { get; }  = new();
 
         public int VisitingJailPosition => Array.FindIndex(BoardSpaces, s => s.Name == "Visiting Jail");
+        public int PassGoValue => ((GoSpace)Array.Find(BoardSpaces, s => s is GoSpace)!).Value;
 
-        Board(int sm, SpaceBounds jb, ImmutableArray<string> gn, Space[] bs, TitleDeed[] td, LuckCard[] chance, LuckCard[] chest)
+        Board(int sm, int jf, SpaceBounds jb, ImmutableArray<string> gn, Space[] bs, TitleDeed[] td, LuckCard[] chance, LuckCard[] chest)
         {
             StartingMoney = sm;
+            JailFine = jf;
             JailBounds = jb;
             GroupNames = gn;
             BoardSpaces = bs;
@@ -50,6 +53,7 @@ namespace DiscordMoniesGame
             var raw = await JsonSerializer.DeserializeAsync<Dictionary<string, JsonElement>>(boardJson) 
                 ?? throw new JsonException("DeserializeAsync returned null");
             var startingMoney = raw["StartingMoney"].GetInt32();
+            var jailFine = raw["JailFine"].GetInt32();
             var jailBounds = decodeBounds(raw["JailBounds"]);
             var groupNames = raw["GroupNames"].EnumerateArray().Select(n => n.GetString() ?? "null name").ToImmutableArray();
             var spaces = new List<Space>();
@@ -103,18 +107,11 @@ namespace DiscordMoniesGame
             var chanceCards = await JsonSerializer.DeserializeAsync<LuckCard[]>(chanceStream);
             var chestCards = await JsonSerializer.DeserializeAsync<LuckCard[]>(chestStream);
 
-            return new Board(startingMoney, jailBounds, groupNames, spaces.ToArray(), titleDeeds!, chanceCards!, chestCards!);
+            return new Board(startingMoney, jailFine, jailBounds, groupNames, spaces.ToArray(), titleDeeds!, chanceCards!, chestCards!);
         }
 
-        public static int Position(string positionString) =>
+        static int Position(string positionString) =>
             (char.ToLowerInvariant(positionString[0]) - 'a') * 10 + int.Parse(positionString[1..]);
-
-        public static string PositionString(int position)
-        {
-            var letter = (char)('A' + (int)Math.Floor(position / 10.0));
-            var number = (position % 10).ToString();
-            return $"{letter}{number}";
-        }
             
         public int ParseBoardSpaceInt(string loc)
         {
@@ -129,7 +126,7 @@ namespace DiscordMoniesGame
             return spacePos;
         }
 
-        public Space ParseBoardSpace(string loc) => BoardSpaces[ParseBoardSpaceInt(loc)];
+        public ref Space ParseBoardSpace(string loc) => ref BoardSpaces[ParseBoardSpaceInt(loc)];
 
         public TitleDeed TitleDeedFor(int loc)
         {

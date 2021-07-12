@@ -28,26 +28,28 @@ namespace DiscordMoniesGame
                         mat[i, j] + substitutionCost);
                 }
             }
-
             return mat[a.Length, b.Length];
         }
 
         public static IUser MatchClosest(string name, IEnumerable<IUser> users) =>
-            users.Select(u => (Dist: Distance(name, u.Username), User: u)).OrderBy(i => i.Dist).First().User;
+            users.Select(u => (Dist: Distance(name.ToLowerInvariant(), u.Username.ToLowerInvariant()), User: u)).OrderBy(i => i.Dist).First().User;
 
-        public static string BuildingsAsString(this int houses)
+        public static string BuildingsAsString(this int houses) => houses switch
         {
-            if (houses == 0)
-                return "None";
-            if (houses == 1)
-                return "1 house";
-            if (houses > 1 && houses < 5)
-                return $"{houses} houses";
-            if (houses == 5)
-                return "Hotel";
-            return "Invalid";
-        }
+            0 => "None",
+            1 => "1 house",
+            var x when x > 1 && x < 5 => $"{x} houses",
+            5 => "Hotel",
+            _ => "Invalid"
+        };
 
         public static string MoneyString(this int money) => $"`Ð{money:N0}`";
+
+        public static string PositionString(this int position)
+        {
+            var letter = (char)('A' + (int)Math.Floor(position / 10.0));
+            var number = (position % 10).ToString();
+            return $"{letter}{number}";
+        }
     }
 }

@@ -30,6 +30,7 @@ namespace DiscordMoniesGame
             originalPlayerCount = players.Length;
             RegisterCommands();
             currentPlr = Players[Random.Shared.Next(Players.Length)];
+            Closing += (_, _) => boardRenderer.Dispose();
         }
 
 
@@ -53,7 +54,7 @@ namespace DiscordMoniesGame
 
             var embed = new EmbedBuilder()
             {
-                Title = "Balance",
+                Title = "First Round",
                 Description = $"The game has started! Every player has been given {board.StartingMoney.MoneyString()}\nThe first player is **{currentPlr.Username}**",
                 Color = Color.Green
             };
@@ -97,22 +98,10 @@ namespace DiscordMoniesGame
             {
                 Title = "Next Round",
                 Description = $"Current Round: {round}\nPlayer: **{currentPlr}** @ " +
-                (playerStates[currentPlr].JailStatus == -1 ? Board.PositionString(playerStates[currentPlr].Position) : "Jail"),
-                Color = Color.Green
+                (playerStates[currentPlr].JailStatus == -1 ? playerStates[currentPlr].Position.PositionString() : "Jail"),
+                Color = Color.Gold
             };
             await SendBoard(Users, embed);
-
-            if (playerStates[currentPlr].JailStatus != -1)
-            {
-                if (playerStates[currentPlr].JailStatus == 3)
-                {
-                    canRoll = false;
-                }
-                else
-                {
-                    // TODO: Handle this stuff!!!!!!!!!!!!!
-                }
-            }
         }
 
         async Task SendToJail(IUser player)
@@ -121,7 +110,8 @@ namespace DiscordMoniesGame
             var embed = new EmbedBuilder()
             {
                 Title = "Jail 🚔", //oncoming police car emoji
-                Description = $"{player.Username} has been sent to jail.",
+                Description = $"{player.Username} has been sent to jail.\n" +
+                $"They can try rolling doubles 3 times, pay a fine of {board.JailFine.MoneyString()}, or use a Get out of Jail Free card.",
                 Color = Color.Red
             }.Build();
 
@@ -149,6 +139,24 @@ namespace DiscordMoniesGame
                     await u.SendFileAsync(clone, "board.png");
                 }
             }
+        }
+
+        async Task<int> MovePlayerRelative(IUser player, int amount)
+        {
+            var position = (playerStates[player].Position + amount) % board.BoardSpaces.Length;
+            var playerMoney = playerStates[player].Money;
+            if (position < playerStates[player].Position)
+            {
+                playerMoney += board.PassGoValue;
+                var embed = new EmbedBuilder()
+                {
+                    Title = "Pass Go Bonus!",
+                    Description = $"{player.Username} has gotten {board.PassGoValue.MoneyString()} for passing GO!"
+                }.Build();
+                await this.Broadcast("", embed: embed);
+            }
+            playerStates[player] = playerStates[player] with { Position = position, Money = playerMoney};
+            return position;
         }
 
         void Close()

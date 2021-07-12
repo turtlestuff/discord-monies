@@ -18,7 +18,7 @@ namespace DiscordMoniesGame
         PropertySpace(Name, Value, Owner, Mortgaged, Bounds);
 
 
-    public record struct SpaceBounds(int X, int Y, int Width, int Height);
+    public readonly record struct SpaceBounds(int X, int Y, int Width, int Height);
 
     public enum CardType
     { 

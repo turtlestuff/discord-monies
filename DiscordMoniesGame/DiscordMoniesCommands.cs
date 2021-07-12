@@ -5,48 +5,55 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace DiscordMoniesGame
 {
     public sealed partial class DiscordMoniesGameInstance : GameInstance
     {
-        ImmutableArray<Command> commands = default!;
 
+        #region Commands
         void RegisterCommands()
         {
-            commands = new Command[]
+            commands = new[]
             {
-                new Command("bal", CanRun.Any, async (args, msg) =>
+                new Command("player", CanRun.Any, async (args, msg) =>
                 {
-                    IUser user;
+                    IUser player;
                     if (args == "")
                     {
                         if (Spectators.Contains(msg.Author, DiscordComparers.UserComparer))
                         {
-                            await this.BroadcastTo("As a spectator, you may only view other players' balances.");
+                            await this.BroadcastTo("As a spectator, you may only view other players' information.");
                             return;
                         }
-                        user = msg.Author;
+                        player = msg.Author;
                     }
                     else
                     {
-                        user = Utils.MatchClosest(args, Players);
+                        player = Utils.MatchClosest(args, Players);
                     }
 
-                    if (user is not null)
+                    if (player is not null)
                     {
+                        var playerState = playerStates[player];
                         var embed = new EmbedBuilder()
                         {
-                            Title = "Balance",
-                            Description = $"{user.Username}'s balance is {playerStates[user].Money.MoneyString()}.",
-                            Color = Color.Gold
+                            Title = player.Username,
+                            Fields = new()
+                            {
+                                new() { IsInline = true, Name = "Balance", Value = playerState.Money.MoneyString() },
+                                new() { IsInline = true, Name = "Position", Value = playerState.Position.PositionString() },
+                                new() { IsInline = true, Name = "Color", Value = playerState.Color.ToString()}
+                            },
+                            Color = new(playerState.Color.R, playerState.Color.G, playerState.Color.B)
                         }.Build();
                         await this.BroadcastTo("", embed: embed, players: msg.Author);
                         return;
                     }
                     await this.BroadcastTo($"Can't find player \"{args}\".");
                 }),
-                new Command("info", CanRun.Any, async (args, msg) =>
+                new Command("space", CanRun.Any, async (args, msg) =>
                 {
                     try
                     {
@@ -84,7 +91,7 @@ namespace DiscordMoniesGame
                         await this.BroadcastTo(ex.Message, players: msg.Author);
                     }
                 }),
-                new Command("titledeed", CanRun.Any, async (args, msg) => 
+                new Command("deed", CanRun.Any, async (args, msg) => 
                 {
                     try
                     {
@@ -147,23 +154,23 @@ namespace DiscordMoniesGame
                 new Command("roll", CanRun.CurrentPlayer, async (args, msg) =>
                 {
                     continuousRolls++;
-                    if (!canRoll)
+                    if (!canRoll) 
                     {
                         await this.BroadcastTo("Cannot roll right now!", players: msg.Author);
                         return;
                     }
                     if (playerStates[msg.Author].JailStatus == -1) 
-                    { 
+                    {
                         var roll1 = Random.Shared.Next(1,7);
                         var roll2 = Random.Shared.Next(1,7);
                         var doubles = roll1 == roll2;
                         var speedLimit = continuousRolls >= 3;
-                        var position = (playerStates[msg.Author].Position + roll1 + roll2) % board.BoardSpaces.Length;
+                        var position = await MovePlayerRelative(msg.Author, roll1 + roll2);
                         var embed = new EmbedBuilder()
                         {
-                            Title = "Roll �", //game die emoji
+                            Title = "Roll 🎲", //game die emoji
                             Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}`" +
-                            (!speedLimit ? $"and has gone to space `{Board.PositionString(position)}` ({board.BoardSpaces[position].Name})." : "") +
+                            (!speedLimit ? $"and has gone to space `{position.PositionString()}` ({board.BoardSpaces[position].Name})." : "") +
                             (doubles && !speedLimit ? "\nSince they have rolled doubles, they may roll another time!" : "") +
                             (speedLimit ? ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!" : ""),
                             Color = Color.Gold
@@ -177,8 +184,9 @@ namespace DiscordMoniesGame
                             await AdvanceRound();
                             return;
                         }
-                       
-                        playerStates[msg.Author] = playerStates[msg.Author] with { Position = position };
+
+                        if (doubles)
+                            return;
 
                         if (board.BoardSpaces[position] is PropertySpace ps)
                         {
@@ -197,15 +205,61 @@ namespace DiscordMoniesGame
 
                             // Handle rent
                         }
-                       
-                         
                     }
-                    // TODO: Handle jailed player
-                    await AdvanceRound(); // TODO: Don't do this
-
+                    else
+                    {
+                        var jailStatus = playerStates[msg.Author].JailStatus;
+                        if (jailStatus < 3) 
+                        {
+                            // player has another chance at rolling doubles
+                            var roll1 = Random.Shared.Next(1,7);
+                            var roll2 = Random.Shared.Next(1,7);
+                            if (roll1 == roll2)
+                            {
+                                var position = await MovePlayerRelative(msg.Author, roll1 + roll2);
+                                playerStates[msg.Author] = playerStates[msg.Author] with { JailStatus = -1 };
+                                var embed = new EmbedBuilder()
+                                {
+                                    Title = "Jail Roll",
+                                    Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}` and has been freed from jail!\n" +
+                                    $"They move to `{position.PositionString()}` ({board.BoardSpaces[position].Name})",
+                                    Color = Color.Green,
+                                    Footer = new(){ Text = "They do not get an extra turn for rolling doubles" }
+                                }.Build();
+                                await this.Broadcast("", embed: embed);
+                                await AdvanceRound();
+                                return;
+                            }
+                            else
+                            {
+                                playerStates[msg.Author] = playerStates[msg.Author] with { JailStatus = jailStatus + 1 };
+                                var embed = new EmbedBuilder()
+                                {
+                                    Title = "Jail Roll",
+                                    Description = $"{msg.Author.Username} has failed to roll doubles to get out of jail. They have {3 - (jailStatus + 1)} more attempt(s) to go.",
+                                    Color = Color.Red
+                                }.Build();
+                                await this.Broadcast("", embed: embed);
+                                await AdvanceRound();
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            canRoll = false;
+                            await this.BroadcastTo($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} or use a " +
+                                "Get out of Jail Free card in order to get out of jail.", players: msg.Author);
+                            return;
+                        }
+                    }
+                    await AdvanceRound(); //Something went wrong!
                 })
             }.ToImmutableArray();
         }
+        #endregion
+
+        #region Command Handler
+        ImmutableArray<Command> commands = default!;
 
         async Task<bool> TryHandleCommand(string msgContent, IUserMessage msg)
         {
@@ -218,7 +272,7 @@ namespace DiscordMoniesGame
             }
             else
             {
-                cmdStr = msgContent[..index].Trim();
+                cmdStr = msgContent[..index].Trim().ToLowerInvariant();
                 args = msgContent[index..].Trim();
             }
 
@@ -247,6 +301,7 @@ namespace DiscordMoniesGame
                     return true;
             }
             return false;
+        
         }
 
         record Command(string Name, CanRun CanRun, Func<string, IUserMessage, Task> CmdFunc);
@@ -257,5 +312,6 @@ namespace DiscordMoniesGame
             Player,
             CurrentPlayer
         }
+        #endregion
     }
 }
