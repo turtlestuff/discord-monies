@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Discord;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -136,6 +137,50 @@ namespace DiscordMoniesGame
             }
 
             return TitleDeeds.First(td => td.Position == loc);
+        }
+
+        public Color GroupColorOrDefault(Space space, Color? @default = null) =>
+            space is RoadSpace rs ? Colors.ColorOfName(GroupNames[rs.Group]).ToDiscordColor() : @default ?? Color.Default;
+
+        public IEnumerable<RoadSpace> FindSpacesOfGroup(int group) => BoardSpaces.Where(s => s is RoadSpace rs && rs.Group == group).Cast<RoadSpace>();
+
+        public bool IsEntireGroupOwned(int group, out IEnumerable<RoadSpace> spaces)
+        {
+            var ss = FindSpacesOfGroup(group);
+            spaces = ss;
+            return ss.Count() == ss.Count(s => s.Owner is not null);
+        }
+
+        public int CountOwnedBy<T>(IUser player) where T : PropertySpace => BoardSpaces.Count(s => s is T ps && ps.Owner?.Id == player.Id);
+
+        public int CalculateRentFor(int pos)
+        {
+            var deed = TitleDeedFor(pos);
+            var space = (PropertySpace) BoardSpaces[pos];
+
+            if (space.Owner is null || space.Mortgaged) // something has gone a little wrong
+                return 0;
+
+            if (space is RoadSpace rs)
+            {
+                return rs.Houses switch
+                {
+                    0 => deed.RentValues[0] * (IsEntireGroupOwned(rs.Group, out _) ? 2 : 1),
+                    var x => deed.RentValues[x]
+                };
+            }
+            if (space is TrainStationSpace)
+            {
+                var c = CountOwnedBy<TrainStationSpace>(space.Owner);
+                return deed.RentValues[0] * c;
+            }
+            if (space is UtilitySpace)
+            {
+                var c = CountOwnedBy<UtilitySpace>(space.Owner);
+                return c > 1 ? 10 : 4; // multiplication factor of dice roll
+            }
+            // something has gone wrong
+            return 0;
         }
     }
 }

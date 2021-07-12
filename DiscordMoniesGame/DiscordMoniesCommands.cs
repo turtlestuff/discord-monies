@@ -3,6 +3,7 @@ using Leisure;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -10,7 +11,6 @@ namespace DiscordMoniesGame
 {
     public sealed partial class DiscordMoniesGameInstance : GameInstance
     {
-
         #region Commands
         void RegisterCommands()
         {
@@ -35,7 +35,7 @@ namespace DiscordMoniesGame
 
                     if (player is not null)
                     {
-                        var playerState = playerStates[player];
+                        var playerState = pSt[player];
                         var embed = new EmbedBuilder()
                         {
                             Title = player.Username,
@@ -153,24 +153,23 @@ namespace DiscordMoniesGame
                 new Command("roll", CanRun.CurrentPlayer, async (args, msg) =>
                 {
                     continuousRolls++;
-                    if (!canRoll) 
+                    if (waiting != Waiting.ForNothing) 
                     {
                         await this.BroadcastTo("Cannot roll right now!", players: msg.Author);
                         return;
                     }
-                    if (playerStates[msg.Author].JailStatus == -1) 
+                    if (pSt[msg.Author].JailStatus == -1) 
                     {
                         var roll1 = Random.Shared.Next(1,7);
                         var roll2 = Random.Shared.Next(1,7);
                         var doubles = roll1 == roll2;
-                        var speedLimit = continuousRolls >= 3;
+                        var speedLimit = continuousRolls >= 3 && doubles;
                         var position = await MovePlayerRelative(msg.Author, roll1 + roll2);
                         var embed = new EmbedBuilder()
                         {
                             Title = "Roll 🎲", //game die emoji
-                            Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}`" +
+                            Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}` " +
                             (!speedLimit ? $"and has gone to space `{position.PositionString()}` ({board.BoardSpaces[position].Name})." : "") +
-                            (doubles && !speedLimit ? "\nSince they have rolled doubles, they may roll another time!" : "") +
                             (speedLimit ? ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!" : ""),
                             Color = PlayerColor(msg.Author)
                         }.Build();
@@ -185,7 +184,7 @@ namespace DiscordMoniesGame
                         }
 
                         if (doubles)
-                            return;
+                            doubleTurn = true;
 
                         if (board.BoardSpaces[position] is PropertySpace ps)
                         {
@@ -195,19 +194,33 @@ namespace DiscordMoniesGame
                                 return; // no need to pay rent!
                             }
 
-                            canRoll = false;
-
                             if (ps.Owner is null)
                             {
-                                // Handle buy or auction
+                                waiting = Waiting.ForAuctionOrBuyDecision;
+                                var era = new EmbedBuilder()
+                                {
+                                    Title = "Unowned Property",
+                                    Description = $"This property is not owned. You must choose between buying the property for its listed price ({ps.Value.MoneyString()})" +
+                                    $" with `buythis` or holding an auction with `auctionthis`.",
+                                    Color = board.GroupColorOrDefault(ps)
+                                }.Build();
+                                await this.BroadcastTo("", embed: era, players: msg.Author);
+                                return;
                             }
 
-                            // Handle rent
+                            waiting = Waiting.ForRentPay;
+                            var e = new EmbedBuilder()
+                            {
+                                Title = "Rent",
+                                Description = $"The rent for the square you have landed on is {board.CalculateRentFor(position).MoneyString()}. Please pay this with the `payrent` command.",
+                                Color = board.GroupColorOrDefault(ps)
+                            }.Build();
+                            await this.BroadcastTo("", embed: e, players: msg.Author);
                         }
                     }
                     else
                     {
-                        var jailStatus = playerStates[msg.Author].JailStatus;
+                        var jailStatus = pSt[msg.Author].JailStatus;
                         if (jailStatus < 3) 
                         {
                             // player has another chance at rolling doubles
@@ -216,7 +229,7 @@ namespace DiscordMoniesGame
                             if (roll1 == roll2)
                             {
                                 var position = await MovePlayerRelative(msg.Author, roll1 + roll2);
-                                playerStates[msg.Author] = playerStates[msg.Author] with { JailStatus = -1 };
+                                pSt[msg.Author] = pSt[msg.Author] with { JailStatus = -1 };
                                 var embed = new EmbedBuilder()
                                 {
                                     Title = "Jail Roll",
@@ -231,7 +244,7 @@ namespace DiscordMoniesGame
                             }
                             else
                             {
-                                playerStates[msg.Author] = playerStates[msg.Author] with { JailStatus = jailStatus + 1 };
+                                pSt[msg.Author] = pSt[msg.Author] with { JailStatus = jailStatus + 1 };
                                 var embed = new EmbedBuilder()
                                 {
                                     Title = "Jail Roll",
@@ -245,13 +258,27 @@ namespace DiscordMoniesGame
                         }
                         else
                         {
-                            canRoll = false;
+                            waiting = Waiting.ForOtherJailDecision;
                             await this.BroadcastTo($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} or use a " +
                                 "Get out of Jail Free card in order to get out of jail.", players: msg.Author);
                             return;
                         }
                     }
                     await AdvanceRound(); //Something went wrong!
+                }),
+                new Command("buythis", CanRun.CurrentPlayer, async (args, msg) => 
+                {
+                    if (waiting != Waiting.ForAuctionOrBuyDecision )
+                    {
+                        await this.BroadcastTo("You can't do this right now!", players: msg.Author);
+                        return;
+                    }
+                    var aSt = pSt[msg.Author];
+
+                    if (await TryBuyProperty(msg.Author, aSt.Position, ((PropertySpace) board.BoardSpaces[aSt.Position]).Value))
+                        await AdvanceRound();
+                   
+                    return;
                 })
             }.ToImmutableArray();
         }
