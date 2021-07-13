@@ -150,6 +150,11 @@ namespace DiscordMoniesGame
                 {
                     await SendBoard(new [] { msg.Author });
                 }),
+                new Command("nudge", CanRun.Any, async (args, msg) =>
+                {
+                    await this.BroadcastTo($"{msg.Author} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*", players: currentPlr);
+                    await msg.AddReactionAsync(new Emoji("☑️"));
+                }),
                 new Command("roll", CanRun.CurrentPlayer, async (args, msg) =>
                 {
                     continuousRolls++;
@@ -160,8 +165,9 @@ namespace DiscordMoniesGame
                     }
                     if (pSt[msg.Author].JailStatus == -1) 
                     {
-                        var roll1 = Random.Shared.Next(1,7);
-                        var roll2 = Random.Shared.Next(1,7);
+                        var roll1 = Random.Shared.Next(1, 7);
+                        var roll2 = Random.Shared.Next(1, 7);
+                        lastRoll = roll1 + roll2;
                         var doubles = roll1 == roll2;
                         var speedLimit = continuousRolls >= 3 && doubles;
                         var position = await MovePlayerRelative(msg.Author, roll1 + roll2);
@@ -186,37 +192,8 @@ namespace DiscordMoniesGame
                         if (doubles)
                             doubleTurn = true;
 
-                        if (board.BoardSpaces[position] is PropertySpace ps)
-                        {
-                            if (ps.Mortgaged || ps.Owner == currentPlr)
-                            {
-                                await AdvanceRound();
-                                return; // no need to pay rent!
-                            }
-
-                            if (ps.Owner is null)
-                            {
-                                waiting = Waiting.ForAuctionOrBuyDecision;
-                                var era = new EmbedBuilder()
-                                {
-                                    Title = "Unowned Property",
-                                    Description = $"This property is not owned. You must choose between buying the property for its listed price ({ps.Value.MoneyString()})" +
-                                    $" with `buythis` or holding an auction with `auctionthis`.",
-                                    Color = board.GroupColorOrDefault(ps)
-                                }.Build();
-                                await this.BroadcastTo("", embed: era, players: msg.Author);
-                                return;
-                            }
-
-                            waiting = Waiting.ForRentPay;
-                            var e = new EmbedBuilder()
-                            {
-                                Title = "Rent",
-                                Description = $"The rent for the square you have landed on is {board.CalculateRentFor(position).MoneyString()}. Please pay this with the `payrent` command.",
-                                Color = board.GroupColorOrDefault(ps)
-                            }.Build();
-                            await this.BroadcastTo("", embed: e, players: msg.Author);
-                        }
+                        await HandlePlayerLand(position);
+                        return;
                     }
                     else
                     {
@@ -226,6 +203,7 @@ namespace DiscordMoniesGame
                             // player has another chance at rolling doubles
                             var roll1 = Random.Shared.Next(1,7);
                             var roll2 = Random.Shared.Next(1,7);
+                            lastRoll = roll1 + roll2;
                             if (roll1 == roll2)
                             {
                                 var position = await MovePlayerRelative(msg.Author, roll1 + roll2);
@@ -239,7 +217,7 @@ namespace DiscordMoniesGame
                                     Footer = new(){ Text = "They do not get an extra turn for rolling doubles" }
                                 }.Build();
                                 await this.Broadcast("", embed: embed);
-                                await AdvanceRound();
+                                await HandlePlayerLand(position);
                                 return;
                             }
                             else
@@ -264,20 +242,61 @@ namespace DiscordMoniesGame
                             return;
                         }
                     }
-                    await AdvanceRound(); //Something went wrong!
                 }),
                 new Command("buythis", CanRun.CurrentPlayer, async (args, msg) => 
                 {
-                    if (waiting != Waiting.ForAuctionOrBuyDecision )
+                    if (waiting != Waiting.ForAuctionOrBuyDecision)
                     {
                         await this.BroadcastTo("You can't do this right now!", players: msg.Author);
                         return;
                     }
-                    var aSt = pSt[msg.Author];
 
-                    if (await TryBuyProperty(msg.Author, aSt.Position, ((PropertySpace) board.BoardSpaces[aSt.Position]).Value))
+                    var aSt = pSt[msg.Author];
+                    var space = (PropertySpace) board.BoardSpaces[aSt.Position];
+                    if (await TryBuyProperty(msg.Author, aSt.Position, space.Value))
                         await AdvanceRound();
                    
+                    return;
+                }),
+                new Command("paytax", CanRun.CurrentPlayer, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForTaxPay)
+                    {
+                        await this.BroadcastTo("You can't do this right now!", players: msg.Author);
+                        return;
+                    }
+
+                    var aSt = pSt[msg.Author];
+                    var space = (TaxSpace) board.BoardSpaces[aSt.Position];
+                    if (await TryTransfer(msg.Author, space.Value))
+                        await AdvanceRound();
+
+                    return;
+                }),
+                new Command("payrent", CanRun.CurrentPlayer, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForRentPay)
+                    {
+                        await this.BroadcastTo("You can't do this right now!", players: msg.Author);
+                        return;
+                    }
+
+                    var aSt = pSt[msg.Author];
+                    var space = (PropertySpace) board.BoardSpaces[aSt.Position];
+
+                    if (space.Owner is null || space.Mortgaged || space.Owner.Id == currentPlr.Id) //vroom vroom condition
+                    {
+                        await AdvanceRound();
+                        return;
+                    }
+
+                    var rent = board.CalculateRentFor(aSt.Position);
+                    if (space is UtilitySpace)
+                        rent *= lastRoll;
+
+                    if (await TryTransfer(msg.Author, rent, space.Owner))
+                        await AdvanceRound();
+
                     return;
                 })
             }.ToImmutableArray();

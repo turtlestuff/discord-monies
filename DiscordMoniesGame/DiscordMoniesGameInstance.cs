@@ -16,6 +16,7 @@ namespace DiscordMoniesGame
         {
             ForNothing,
             ForRentPay,
+            ForTaxPay,
             ForAuctionOrBuyDecision,
             ForAuctionToFinish,
             ForOtherJailDecision,
@@ -33,6 +34,7 @@ namespace DiscordMoniesGame
         readonly BoardRenderer boardRenderer = new();
         Waiting waiting = Waiting.ForNothing;
         bool doubleTurn = false;
+        int lastRoll;
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
             : base(id, client, players, spectators)
@@ -96,6 +98,54 @@ namespace DiscordMoniesGame
             {
                 await this.BroadcastTo($"Command failed: {ex.Message}", players: msg.Author);
                 Console.Error.WriteLine(ex);
+            }
+        }
+
+        async Task HandlePlayerLand(int position)
+        {
+            if (board.BoardSpaces[position] is TaxSpace ts)
+            {
+                waiting = Waiting.ForTaxPay;
+                var e = new EmbedBuilder()
+                {
+                    Title = "Tax",
+                    Description = $"{ts.Name} is {ts.Value.MoneyString()}. Please pay this with the `paytax` command.",
+                    Color = Color.Red
+                }.Build();
+                await this.BroadcastTo("", embed: e, players: currentPlr);
+                return;
+            }
+            if (board.BoardSpaces[position] is PropertySpace ps)
+            {
+                if (ps.Mortgaged || ps.Owner == currentPlr)
+                {
+                    await AdvanceRound();
+                    return; // no need to pay rent!
+                }
+
+                if (ps.Owner is null)
+                {
+                    waiting = Waiting.ForAuctionOrBuyDecision;
+                    var era = new EmbedBuilder()
+                    {
+                        Title = "Unowned Property",
+                        Description = $"This property is not owned. You must choose between buying the property for its listed price ({ps.Value.MoneyString()})" +
+                        $" with `buythis` or holding an auction with `auctionthis`.",
+                        Color = board.GroupColorOrDefault(ps, Color.Gold)
+                    }.Build();
+                    await this.BroadcastTo("", embed: era, players: currentPlr);
+                    return;
+                }
+
+                waiting = Waiting.ForRentPay;
+                var e = new EmbedBuilder()
+                {
+                    Title = "Rent",
+                    Description = $"The rent for the square you have landed on is {board.CalculateRentFor(position).MoneyString()}. Please pay this with the `payrent` command.",
+                    Color = board.GroupColorOrDefault(ps, Color.Red)
+                }.Build();
+                await this.BroadcastTo("", embed: e, players: currentPlr);
+                return;
             }
         }
 
@@ -197,7 +247,7 @@ namespace DiscordMoniesGame
             if (reciever is not null)
                 await GiveMoney(reciever, amount, payer.Username);
 
-            await this.BroadcastTo($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}", players: payer);
+            await this.BroadcastTo($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}.", players: payer);
             return true;
         }
 
@@ -205,7 +255,7 @@ namespace DiscordMoniesGame
         {
             pSt[reciever] = pSt[reciever] with { Money = pSt[reciever].Money + amount };
             if (giver is not null)
-                await this.BroadcastTo($"You have recieved {amount.MoneyString()} from {giver}. Your balance is now {pSt[reciever].Money.MoneyString()}", players: reciever);
+                await this.BroadcastTo($"You have recieved {amount.MoneyString()} from {giver}. Your balance is now {pSt[reciever].Money.MoneyString()}.", players: reciever);
         }
 
         async Task<bool> TryBuyProperty(IUser player, int pos, int amount)
@@ -227,7 +277,7 @@ namespace DiscordMoniesGame
                 var embed = new EmbedBuilder()
                 {
                     Title = "Property Obtained",
-                    Description = $"{ps.Name} ({pos.PositionString()}) has been obtained for {amount.MoneyString()}!",
+                    Description = $"{player.Username} has obtained {ps.Name} ({pos.PositionString()}) for {amount.MoneyString()}!",
                     Color = board.GroupColorOrDefault(ps, Color.Green)
                 }.Build();
                 await this.Broadcast("", embed: embed);

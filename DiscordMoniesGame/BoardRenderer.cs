@@ -52,23 +52,6 @@ namespace DiscordMoniesGame
         {
             var bmp = new Bitmap(baseBoard); // dont need to using because we are returning this
             using var gfx = Graphics.FromImage(bmp);
-            
-            foreach (var p in players)
-            {
-                var bounds = playerStates[p].JailStatus != -1
-                    ? board.JailBounds
-                    : board.BoardSpaces[playerStates[p].Position].Bounds;
-
-                var array = new BigInteger(p.Id).ToByteArray().Union(new BigInteger(bounds.GetHashCode()).ToByteArray()).ToArray();
-                var hash = MD5.Create().ComputeHash(array); 
-                var xOff = hash[0] / 255.0;
-                var yOff = hash[1] / 255.0;
-                var xPos = (int)(xOff * (bounds.Width - basePiece.Width) + (bounds.X + basePiece.Width / 2));
-                var yPos = (int)(yOff * (bounds.Height - basePiece.Height) + (bounds.Y + basePiece.Height / 2));
-                using var c = Colored(basePiece, playerStates[p].Color);
-
-                gfx.DrawImage(c, xPos - basePiece.Height / 2, yPos - basePiece.Width / 2);
-            }
 
             foreach (var s in board.BoardSpaces)
             {
@@ -102,6 +85,23 @@ namespace DiscordMoniesGame
 
                 using var colored = Colored(owned, playerColor);
                 gfx.DrawImage(colored, pos);
+            }
+
+            foreach (var p in players)
+            {
+                var bounds = playerStates[p].JailStatus != -1
+                    ? board.JailBounds
+                    : board.BoardSpaces[playerStates[p].Position].Bounds;
+
+                var array = new BigInteger(p.Id).ToByteArray().Union(new BigInteger(bounds.GetHashCode()).ToByteArray()).ToArray();
+                var hash = MD5.Create().ComputeHash(array); 
+                var xOff = hash[0] / 255.0;
+                var yOff = hash[1] / 255.0;
+                var xPos = (int)(xOff * (bounds.Width - basePiece.Width) + (bounds.X + basePiece.Width / 2));
+                var yPos = (int)(yOff * (bounds.Height - basePiece.Height) + (bounds.Y + basePiece.Height / 2));
+                using var c = Colored(basePiece, playerStates[p].Color);
+
+                gfx.DrawImage(c, xPos - basePiece.Height / 2, yPos - basePiece.Width / 2);
             }
 
             return bmp;
