@@ -1,6 +1,50 @@
 [
   {
-    "Description": "aa",
-    "Command": "aa"
+    "Description": "Pay {moneyValue 10} or take a Chance card",
+    "Command": "paychance"
+  },
+  {
+    "Description": "You have been elected Chairman of the board. Pay each player {moneyValue 50}",
+    "Command": "payall 50"
+  },
+  {
+    "Description": "You are assessed for street repairs. For each house, pay {moneyValue 40}. For each hotel, pay {moneyValue 150}",
+    "Command": "repairs 40 150"
+  },
+  {
+    "Description": "Get out of jail Free card!\nYou may keep this card and use it to bail for free.",
+    "Command": "jailfree chest"
+  },
+  {
+    "Description": "Your Discord Nitro has lapsed. Pay {moneyValue 100}",
+    "Command": "pay 100"
+  },
+  // {
+  //   "Description": "It's your birthday! Collect {moneyValue 10} from every player.",
+  //   "Command": "recvall 10"
+  // },
+  {
+    "Description": "You have won first prize in a music player contest.\nCollect {moneyValue 10}",
+    "Command": "give 10"
+  },
+  {
+    "Description": "Go to Jail.\nGo Directly to Jail.\nDo not pass GO.\nDo not collect {moneyValue goSpace}.",
+    "Command": "arrest"
+  },
+  // {
+  //   "Description": "Your mouse is broken. Every player chips in {moneyValue 20} for you to buy a new mouse.",
+  //   "Command": "recvall 20",
+  // },
+  {
+    "Description": "Bank error in your favour. Collect {moneyValue 200}",
+    "Command": "give 200"
+  },
+  {
+    "Description": "Pay school fees of {moneyValue 50}",
+    "Command": "pay 50"
+  },
+  {
+    "Description": "Advance to GO. Collect {moneyValue goValue}",
+    "Command": "warp 0"
   }
 ]

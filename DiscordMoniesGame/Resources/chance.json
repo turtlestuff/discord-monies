@@ -1,6 +1,50 @@
 [
   {
-    "Description": "aa",
-    "Command": "aa"
+    "Description": "Go to Jail.\nGo Directly to Jail.\nDo not pass GO.\nDo not collect {moneyValue goSpace}.",
+    "Command": "arrest"
+  },
+  {
+    "Description": "Make general repairs on your property. For each house, pay {moneyValue 50}. For each hotel, pay {moneyValue 300}",
+    "Command": "repairs 50 300"
+  },
+  {
+    "Description": "Advance to {boardSpace 39}",
+    "Command": "warp 39"
+  },
+  {
+    "Description": "Go back 3 spaces",
+    "Command": "warprel -3"
+  },
+  {
+    "Description": "Take a trip to {boardSpace 22}",
+    "Command": "warp 22"
+  },
+  {
+    "Description": "Advance to the next utility.\nPay the owner 10 times the amount showing on the die.\nYou may purchase the property if it is unowned.",
+    "Command": "advanceutility"
+  },
+  {
+    "Description": "Advance to the next train station.\nPay the owner twice what they are entitled to.\nYou may purchase the property if it is unowned.",
+    "Command": "advancestation"
+  },
+  {
+    "Description": "Advance to the next train station.\nPay the owner twice what they are entitled to.\nYou may purchase the property if it is unowned.",
+    "Command": "advancestation"
+  },
+  {
+    "Description": "Get out of jail Free card!\nYou may keep this card and use it to bail for free.",
+    "Command": "jailfree chance"
+  },
+  {
+    "Description": "Income tax refund of {moneyValue 200}",
+    "Command": "give 200"
+  },
+  {
+    "Description": "Take a trip to {boardSpace 5}. If you pass Go, collect {moneyValue goSpace}",
+    "Command": "warp 5"
+  },
+  {
+    "Description": "Advance to GO. Collect {moneyValue goValue}",
+    "Command": "warp 0"
   }
-]
+] 

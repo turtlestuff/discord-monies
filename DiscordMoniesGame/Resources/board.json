@@ -32,7 +32,7 @@
     },
     {
       "Type": "Road",
-      "Name": "A1 Road",
+      "Name": "Abbotsbury Road",
       "Value": 60,
       "Group": 0,
       "Bounds": {
@@ -56,7 +56,7 @@
     },
     {
       "Type": "Road",
-      "Name": "A3 Road",
+      "Name": "Cartwheel Street",
       "Value": 60,
       "Group": 0,
       "Bounds": {
@@ -80,7 +80,7 @@
     },
     {
       "Type": "TrainStation",
-      "Name": "A Station",
+      "Name": "South Pole Station",
       "Value": 200,
       "Group": null,
       "Bounds": {
@@ -92,7 +92,7 @@
     },
     {
       "Type": "Road",
-      "Name": "A6 Road",
+      "Name": "Sackboy Drive",
       "Value": 100,
       "Group": 1,
       "Bounds": {
@@ -116,7 +116,7 @@
     },
     {
       "Type": "Road",
-      "Name": "A8 Road",
+      "Name": "Anchovy Stadium",
       "Value": 100,
       "Group": 1,
       "Bounds": {
@@ -128,7 +128,7 @@
     },
     {
       "Type": "Road",
-      "Name": "A9 Road",
+      "Name": "Snow Coast Street",
       "Value": 120,
       "Group": 1,
       "Bounds": {
@@ -152,7 +152,7 @@
     },
     {
       "Type": "Road",
-      "Name": "B1 Road",
+      "Name": "Royse Road",
       "Value": 140,
       "Group": 2,
       "Bounds": {
@@ -176,7 +176,7 @@
     },
     {
       "Type": "Road",
-      "Name": "B3 Road",
+      "Name": "Urchin Bypass",
       "Value": 140,
       "Group": 2,
       "Bounds": {
@@ -188,7 +188,7 @@
     },
     {
       "Type": "Road",
-      "Name": "B4 Road",
+      "Name": "McDonald Driveway",
       "Value": 160,
       "Group": 2,
       "Bounds": {
@@ -200,7 +200,7 @@
     },
     {
       "Type": "TrainStation",
-      "Name": "B Station",
+      "Name": "Cupertino Station",
       "Value": 200,
       "Group": null,
       "Bounds": {
@@ -212,7 +212,7 @@
     },
     {
       "Type": "Road",
-      "Name": "B6 Road",
+      "Name": "Flashback Avenue",
       "Value": 180,
       "Group": 3,
       "Bounds": {
@@ -236,7 +236,7 @@
     },
     {
       "Type": "Road",
-      "Name": "B8 Road",
+      "Name": "Funky Stadium",
       "Value": 180,
       "Group": 3,
       "Bounds": {
@@ -248,7 +248,7 @@
     },
     {
       "Type": "Road",
-      "Name": "B9 Road",
+      "Name": "Orange Clover Street",
       "Value": 200,
       "Group": 3,
       "Bounds": {
@@ -272,7 +272,7 @@
     },
     {
       "Type": "Road",
-      "Name": "C1 Road",
+      "Name": "Walnut Way",
       "Value": 220,
       "Group": 4,
       "Bounds": {
@@ -296,7 +296,7 @@
     },
     {
       "Type": "Road",
-      "Name": "C3 Road",
+      "Name": "Coconut Mall",
       "Value": 220,
       "Group": 4,
       "Bounds": {
@@ -308,7 +308,7 @@
     },
     {
       "Type": "Road",
-      "Name": "C4 Road",
+      "Name": "Sand Coast Street",
       "Value": 240,
       "Group": 4,
       "Bounds": {
@@ -320,7 +320,7 @@
     },
     {
       "Type": "TrainStation",
-      "Name": "C Station",
+      "Name": "Undersea Station",
       "Value": 200,
       "Group": null,
       "Bounds": {
@@ -332,7 +332,7 @@
     },
     {
       "Type": "Road",
-      "Name": "C6 Road",
+      "Name": "Times Square",
       "Value": 260,
       "Group": 5,
       "Bounds": {
@@ -344,7 +344,7 @@
     },
     {
       "Type": "Road",
-      "Name": "C7 Road",
+      "Name": "Alacrity Avenue",
       "Value": 260,
       "Group": 5,
       "Bounds": {
@@ -368,7 +368,7 @@
     },
     {
       "Type": "Road",
-      "Name": "C9 Road",
+      "Name": "Wumpus Way",
       "Value": 280,
       "Group": 5,
       "Bounds": {
@@ -392,7 +392,7 @@
     },
     {
       "Type": "Road",
-      "Name": "D1 Road",
+      "Name": "Melted Cheese Drive",
       "Value": 300,
       "Group": 6,
       "Bounds": {
@@ -404,7 +404,7 @@
     },
     {
       "Type": "Road",
-      "Name": "D2 Road",
+      "Name": "Avid Drive",
       "Value": 300,
       "Group": 6,
       "Bounds": {
@@ -428,7 +428,7 @@
     },
     {
       "Type": "Road",
-      "Name": "D4 Road",
+      "Name": "Rainbow Road",
       "Value": 320,
       "Group": 6,
       "Bounds": {
@@ -440,7 +440,7 @@
     },
     {
       "Type": "TrainStation",
-      "Name": "D Station",
+      "Name": "Strathfield Station",
       "Value": 200,
       "Group": null,
       "Bounds": {
@@ -464,7 +464,7 @@
     },
     {
       "Type": "Road",
-      "Name": "D7 Road",
+      "Name": "Infinite Loop",
       "Value": 350,
       "Group": 7,
       "Bounds": {
@@ -488,7 +488,7 @@
     },
     {
       "Type": "Road",
-      "Name": "D9 Road",
+      "Name": "Red Potato Sauce Plaza",
       "Value": 400,
       "Group": 7,
       "Bounds": {
