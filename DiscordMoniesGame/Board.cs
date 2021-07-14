@@ -19,7 +19,7 @@ namespace DiscordMoniesGame
         public int JailFine { get; }
         public SpaceBounds JailBounds { get; }
         public ImmutableArray<string> GroupNames { get; }
-        public Space[] BoardSpaces { get; }
+        public Space[] Spaces { get; }
 
         public int AvailableHouses { get; set; } = 32;
         public int AvailableHotels { get; set; } = 12;
@@ -30,8 +30,8 @@ namespace DiscordMoniesGame
         public ConcurrentStack<LuckCard> ChestCards { get; }
         public ConcurrentBag<LuckCard> UsedChestCards { get; }  = new();
 
-        public int VisitingJailPosition => Array.FindIndex(BoardSpaces, s => s.Name == "Visiting Jail");
-        public int PassGoValue => ((GoSpace)Array.Find(BoardSpaces, s => s is GoSpace)!).Value;
+        public int VisitingJailPosition => Array.FindIndex(Spaces, s => s.Name == "Visiting Jail");
+        public int PassGoValue => ((GoSpace)Array.Find(Spaces, s => s is GoSpace)!).Value;
 
         Board(int sm, int jf, SpaceBounds jb, ImmutableArray<string> gn, Space[] bs, TitleDeed[] td, LuckCard[] chance, LuckCard[] chest)
         {
@@ -39,7 +39,7 @@ namespace DiscordMoniesGame
             JailFine = jf;
             JailBounds = jb;
             GroupNames = gn;
-            BoardSpaces = bs;
+            Spaces = bs;
             TitleDeeds = td;
             ChanceCards = new(chance);
             ChestCards = new(chest);
@@ -121,17 +121,17 @@ namespace DiscordMoniesGame
 
             var spacePos = Board.Position(loc.ToLowerInvariant());
 
-            if (spacePos < 0 || spacePos > BoardSpaces.Length)
+            if (spacePos < 0 || spacePos > Spaces.Length)
                 throw new ArgumentException("Out of bounds");
 
             return spacePos;
         }
 
-        public ref Space ParseBoardSpace(string loc) => ref BoardSpaces[ParseBoardSpaceInt(loc)];
+        public ref Space ParseBoardSpace(string loc) => ref Spaces[ParseBoardSpaceInt(loc)];
 
         public TitleDeed TitleDeedFor(int loc)
         {
-            if (BoardSpaces[loc] is not PropertySpace)
+            if (Spaces[loc] is not PropertySpace)
             {
                 throw new ArgumentException("That is not a property space!");
             }
@@ -142,7 +142,7 @@ namespace DiscordMoniesGame
         public Color GroupColorOrDefault(Space space, Color? @default = null) =>
             space is RoadSpace rs ? Colors.ColorOfName(GroupNames[rs.Group]).ToDiscordColor() : @default ?? Color.Default;
 
-        public IEnumerable<RoadSpace> FindSpacesOfGroup(int group) => BoardSpaces.Where(s => s is RoadSpace rs && rs.Group == group).Cast<RoadSpace>();
+        public IEnumerable<RoadSpace> FindSpacesOfGroup(int group) => Spaces.Where(s => s is RoadSpace rs && rs.Group == group).Cast<RoadSpace>();
 
         public bool IsEntireGroupOwned(int group, out IEnumerable<RoadSpace> spaces)
         {
@@ -151,12 +151,12 @@ namespace DiscordMoniesGame
             return ss.Count() == ss.Count(s => s.Owner is not null);
         }
 
-        public int CountOwnedBy<T>(IUser player) where T : PropertySpace => BoardSpaces.Count(s => s is T ps && ps.Owner?.Id == player.Id);
+        public int CountOwnedBy<T>(IUser player) where T : PropertySpace => Spaces.Count(s => s is T ps && ps.Owner?.Id == player.Id);
 
         public int CalculateRentFor(int pos)
         {
             var deed = TitleDeedFor(pos);
-            var space = (PropertySpace) BoardSpaces[pos];
+            var space = (PropertySpace) Spaces[pos];
 
             if (space.Owner is null || space.Mortgaged) // something has gone a little wrong
                 return 0;

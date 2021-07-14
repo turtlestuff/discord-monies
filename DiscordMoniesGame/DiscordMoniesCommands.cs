@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Leisure;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -52,6 +53,31 @@ namespace DiscordMoniesGame
                     }
                     await this.BroadcastTo($"Can't find player \"{args}\".");
                 }),
+                new Command("bal", CanRun.Any, async (args, msg) => 
+                {
+                    IUser player;
+                    if (args == "")
+                    {
+                        if (Spectators.Contains(msg.Author, DiscordComparers.UserComparer))
+                        {
+                            await this.BroadcastTo("As a spectator, you may only view other players' information.");
+                            return;
+                        }
+                        player = msg.Author;
+                    }
+                    else
+                    {
+                        player = Utils.MatchClosest(args, Players);
+                    }
+
+                    if (player is not null)
+                    {
+                        var playerState = pSt[player];
+                        await this.BroadcastTo($"{player.Username}'s balance: {playerState.Money.MoneyString()}");
+                        return;
+                    }
+                    await this.BroadcastTo($"Can't find player \"{args}\".");
+                }),
                 new Command("space", CanRun.Any, async (args, msg) =>
                 {
                     try
@@ -90,13 +116,13 @@ namespace DiscordMoniesGame
                         await this.BroadcastTo(ex.Message, players: msg.Author);
                     }
                 }),
-                new Command("deed", CanRun.Any, async (args, msg) => 
+                new Command("deed", CanRun.Any, async (args, msg) =>
                 {
                     try
                     {
                         var s = board.ParseBoardSpaceInt(args);
                         var deed = board.TitleDeedFor(s);
-                        var space = (PropertySpace) board.BoardSpaces[s]; //TitleDeedFor would have thrown if that isn't a property space :)
+                        var space = (PropertySpace) board.Spaces[s]; //TitleDeedFor would have thrown if that isn't a property space :)
 
                         var eb = new EmbedBuilder()
                         {
@@ -146,27 +172,43 @@ namespace DiscordMoniesGame
                         await this.BroadcastTo(ex.Message, players: msg.Author);
                     }
                 }),
+                new Command("status", CanRun.Any, async (args, msg) => 
+                {
+                    var embed = new EmbedBuilder()
+                    {
+                        Title = "GameStatus",
+                        Fields = new()
+                        {
+                            new() { IsInline = true, Name = "Playing Order", Value = PrettyOrderedPlayers(currentPlr, true, true, true) },
+                            new() { IsInline = true, Name = "Avaliable Houses", Value = board.AvailableHouses },
+                            new() { IsInline = true, Name = "Avaliable Hotels", Value = board.AvailableHotels }
+                        }
+                    }.Build();
+                    await this.BroadcastTo("", embed: embed, players: msg.Author);
+                }),
+
                 new Command("board", CanRun.Any, async (args, msg) =>
                 {
                     await SendBoard(new [] { msg.Author });
                 }),
                 new Command("nudge", CanRun.Any, async (args, msg) =>
                 {
-                    await this.BroadcastTo($"{msg.Author} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*", players: currentPlr);
-                    await msg.AddReactionAsync(new Emoji("☑️"));
+                    await this.BroadcastTo($"{msg.Author.Username} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*", players: currentPlr);
+                    await this.BroadcastTo($"I've nudged {currentPlr.Username}.", players: msg.Author);
                 }),
+
                 new Command("roll", CanRun.CurrentPlayer, async (args, msg) =>
                 {
                     continuousRolls++;
-                    if (waiting != Waiting.ForNothing) 
+                    if (waiting != Waiting.ForNothing)
                     {
                         await this.BroadcastTo("Cannot roll right now!", players: msg.Author);
                         return;
                     }
-                    if (pSt[msg.Author].JailStatus == -1) 
+                    if (pSt[msg.Author].JailStatus == -1)
                     {
-                        var roll1 = Random.Shared.Next(1, 7);
-                        var roll2 = Random.Shared.Next(1, 7);
+                        var roll1 = 1;
+                        var roll2 = 2;
                         lastRoll = roll1 + roll2;
                         var doubles = roll1 == roll2;
                         var speedLimit = continuousRolls >= 3 && doubles;
@@ -175,14 +217,14 @@ namespace DiscordMoniesGame
                         {
                             Title = "Roll 🎲", //game die emoji
                             Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}` " +
-                            (!speedLimit ? $"and has gone to space `{position.PositionString()}` ({board.BoardSpaces[position].Name})." : "") +
+                            (!speedLimit ? $"and has gone to space `{position.PositionString()}` ({board.Spaces[position].Name})." : "") +
                             (speedLimit ? ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!" : ""),
                             Color = PlayerColor(msg.Author)
                         }.Build();
 
                         await this.Broadcast("", embed: embed);
 
-                        if (speedLimit || board.BoardSpaces[position] is GoToJailSpace)
+                        if (speedLimit || board.Spaces[position] is GoToJailSpace)
                         {
                             await SendToJail(currentPlr);
                             await AdvanceRound();
@@ -198,7 +240,7 @@ namespace DiscordMoniesGame
                     else
                     {
                         var jailStatus = pSt[msg.Author].JailStatus;
-                        if (jailStatus < 3) 
+                        if (jailStatus < 3)
                         {
                             // player has another chance at rolling doubles
                             var roll1 = Random.Shared.Next(1,7);
@@ -212,7 +254,7 @@ namespace DiscordMoniesGame
                                 {
                                     Title = "Jail Roll",
                                     Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}` and has been freed from jail!\n" +
-                                    $"They move to `{position.PositionString()}` ({board.BoardSpaces[position].Name})",
+                                    $"They move to `{position.PositionString()}` ({board.Spaces[position].Name})",
                                     Color = Color.Green,
                                     Footer = new(){ Text = "They do not get an extra turn for rolling doubles" }
                                 }.Build();
@@ -243,7 +285,8 @@ namespace DiscordMoniesGame
                         }
                     }
                 }),
-                new Command("buythis", CanRun.CurrentPlayer, async (args, msg) => 
+
+                new Command("buythis", CanRun.CurrentPlayer, async (args, msg) =>
                 {
                     if (waiting != Waiting.ForAuctionOrBuyDecision)
                     {
@@ -252,12 +295,93 @@ namespace DiscordMoniesGame
                     }
 
                     var aSt = pSt[msg.Author];
-                    var space = (PropertySpace) board.BoardSpaces[aSt.Position];
+                    var space = (PropertySpace) board.Spaces[aSt.Position];
                     if (await TryBuyProperty(msg.Author, aSt.Position, space.Value))
                         await AdvanceRound();
-                   
+
                     return;
                 }),
+
+                new Command("auctionthis", CanRun.CurrentPlayer, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForAuctionOrBuyDecision)
+                    {
+                        await this.BroadcastTo("You can't do this right now!", players: msg.Author);
+                        return;
+                    }
+
+                    var aSt = pSt[msg.Author];
+                    var space = (PropertySpace) board.Spaces[aSt.Position];
+
+                    auctionSpace = aSt.Position;
+                    waiting = Waiting.ForAuctionToFinish;
+
+                    currentAuctionPlayer = NextPlayer(msg.Author);
+                    var sorted = OrderedPlayers(currentAuctionPlayer);
+                    auctionState = new(sorted.Select(p => KeyValuePair.Create<IUser, int?>(p, null)), DiscordComparers.UserComparer);
+                        
+                    var embed = new EmbedBuilder()
+                    {
+                        Title = "Auction 🧑‍⚖️", // judge emoji
+                        Description = $"**{msg.Author.Username}** has initiated an auction for **{space.Name}** ({aSt.Position.PositionString()}).\n" +
+                        $"The auction will start at {0.MoneyString()} with **{currentAuctionPlayer.Username}**, and will continue in playing order. You may use `bid [amount]` to bid or `skip` to skip. " +
+                        $"It will end when all players but one have skipped, and the last player not to skip gets the property. If all players skip, the property is returned to the bank.",
+                        Fields = new()
+                        {
+                            new() { IsInline = false, Name = "Order", Value = PrettyOrderedPlayers(currentAuctionPlayer, true, true, false)}
+                        },
+                        Color = board.GroupColorOrDefault(space)
+                    }.Build();
+                    await this.Broadcast("", embed: embed);
+                }),
+                new Command("skip", CanRun.Player, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForAuctionToFinish || currentAuctionPlayer?.Id != msg.Author.Id)
+                    {
+                        await this.BroadcastTo("You can't do this right now!", players: msg.Author);
+                        return;
+                    }
+
+                    if (auctionState is null)
+                    {
+                        await FinalizeAuction();
+                        return;
+                    }
+
+                    await NextBid(-1);
+                }),
+                new Command("bid", CanRun.Player, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForAuctionToFinish || currentAuctionPlayer?.Id != msg.Author.Id)
+                    {
+                        await this.BroadcastTo("You can't do this right now!", players: msg.Author);
+                        return;
+                    }
+
+                    if (auctionState is null)
+                    {
+                        await FinalizeAuction();
+                        return;
+                    }
+
+                    var value = int.Parse(args, NumberStyles.AllowThousands);
+                    var minBid = auctionState.Max(x => x.Value ?? 0);
+
+                    if (value <= minBid)
+                    {
+                        await this.BroadcastTo($"That bid is too low. The minimum bid is {(minBid + 1).MoneyString()}.", players: msg.Author);
+                        return;
+                    }
+
+                    if (value > pSt[msg.Author].Money)
+                    {
+                        await this.BroadcastTo($"You do not have enough money to bid that much. Your balance is {pSt[msg.Author].Money.MoneyString()}.", players: msg.Author);
+                        return;
+                    }
+
+                    await NextBid(value);
+                }),
+
                 new Command("paytax", CanRun.CurrentPlayer, async (args, msg) =>
                 {
                     if (waiting != Waiting.ForTaxPay)
@@ -267,7 +391,7 @@ namespace DiscordMoniesGame
                     }
 
                     var aSt = pSt[msg.Author];
-                    var space = (TaxSpace) board.BoardSpaces[aSt.Position];
+                    var space = (TaxSpace) board.Spaces[aSt.Position];
                     if (await TryTransfer(msg.Author, space.Value))
                         await AdvanceRound();
 
@@ -282,7 +406,7 @@ namespace DiscordMoniesGame
                     }
 
                     var aSt = pSt[msg.Author];
-                    var space = (PropertySpace) board.BoardSpaces[aSt.Position];
+                    var space = (PropertySpace) board.Spaces[aSt.Position];
 
                     if (space.Owner is null || space.Mortgaged || space.Owner.Id == currentPlr.Id) //vroom vroom condition
                     {
@@ -295,8 +419,10 @@ namespace DiscordMoniesGame
                         rent *= lastRoll;
 
                     if (await TryTransfer(msg.Author, rent, space.Owner))
+                    {
+                        await this.BroadcastTo($"{msg.Author} has paid you rent.");
                         await AdvanceRound();
-
+                    }
                     return;
                 })
             }.ToImmutableArray();

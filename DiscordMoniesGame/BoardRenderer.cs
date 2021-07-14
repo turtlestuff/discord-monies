@@ -53,7 +53,7 @@ namespace DiscordMoniesGame
             var bmp = new Bitmap(baseBoard); // dont need to using because we are returning this
             using var gfx = Graphics.FromImage(bmp);
 
-            foreach (var s in board.BoardSpaces)
+            foreach (var s in board.Spaces)
             {
                 if (s is not PropertySpace ps || ps.Owner is null)
                     continue;
@@ -91,7 +91,7 @@ namespace DiscordMoniesGame
             {
                 var bounds = playerStates[p].JailStatus != -1
                     ? board.JailBounds
-                    : board.BoardSpaces[playerStates[p].Position].Bounds;
+                    : board.Spaces[playerStates[p].Position].Bounds;
 
                 var array = new BigInteger(p.Id).ToByteArray().Union(new BigInteger(bounds.GetHashCode()).ToByteArray()).ToArray();
                 var hash = MD5.Create().ComputeHash(array); 

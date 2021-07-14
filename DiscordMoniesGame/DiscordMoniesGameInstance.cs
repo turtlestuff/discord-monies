@@ -29,12 +29,19 @@ namespace DiscordMoniesGame
         readonly ConcurrentDictionary<IUser, PlayerState> pSt = new(DiscordComparers.UserComparer);
         Board board = default!;
         IUser currentPlr;
+
         int round = 1;
         int continuousRolls;
-        readonly BoardRenderer boardRenderer = new();
-        Waiting waiting = Waiting.ForNothing;
         bool doubleTurn = false;
+
+        readonly BoardRenderer boardRenderer = new();
+
+        Waiting waiting = Waiting.ForNothing;
         int lastRoll;
+
+        ConcurrentDictionary<IUser, int?>? auctionState;
+        IUser? currentAuctionPlayer;
+        int? auctionSpace;
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
             : base(id, client, players, spectators)
@@ -69,7 +76,15 @@ namespace DiscordMoniesGame
             var embed = new EmbedBuilder()
             {
                 Title = "First Round",
-                Description = $"The game has started! Every player has been given {board.StartingMoney.MoneyString()}\nThe first player is **{currentPlr.Username}**",
+                Description = $"The game has started! Every player has been given {board.StartingMoney.MoneyString()}.",
+                Fields = new()
+                {
+                    new()
+                    {
+                        IsInline = false, Name = "Playing Order",
+                        Value = PrettyOrderedPlayers(currentPlr, true, true, true)
+                    }
+                },
                 Color = Color.Green
             };
             await SendBoard(Users, embed);
@@ -79,20 +94,23 @@ namespace DiscordMoniesGame
         {
             try
             {
-                var msgContent = msg.Content[pos..];
-
-                if (await TryHandleCommand(msgContent, msg))
-                    return;
-
-                //Message hasn't matched any commands, proceed to send as chat message...
-                var chatMessage =
-                    $"**{msg.Author.Username}{(Spectators.Contains(msg.Author, DiscordComparers.UserComparer) ? " (Spectator)" : "")}**: {msgContent}";
-                if (chatMessage.Length <= 2000)
+                using (msg.Channel.EnterTypingState())
                 {
-                    // ...except if it's too large!
-                    await this.BroadcastExcluding(chatMessage, exclude: msg.Author);
-                    await msg.AddReactionAsync(new Emoji("💬"));
-                }
+                    var msgContent = msg.Content[pos..];
+
+                    if (await TryHandleCommand(msgContent, msg))
+                        return;
+
+                    //Message hasn't matched any commands, proceed to send as chat message...
+                    var chatMessage =
+                        $"**{msg.Author.Username}{(Spectators.Contains(msg.Author, DiscordComparers.UserComparer) ? " (Spectator)" : "")}**: {msgContent}";
+                    if (chatMessage.Length <= 2000)
+                    {
+                        // ...except if it's too large!
+                        await this.BroadcastExcluding(chatMessage, exclude: msg.Author);
+                        await msg.AddReactionAsync(new Emoji("💬"));
+                    }
+                } 
             }
             catch (Exception ex)
             {
@@ -103,7 +121,7 @@ namespace DiscordMoniesGame
 
         async Task HandlePlayerLand(int position)
         {
-            if (board.BoardSpaces[position] is TaxSpace ts)
+            if (board.Spaces[position] is TaxSpace ts)
             {
                 waiting = Waiting.ForTaxPay;
                 var e = new EmbedBuilder()
@@ -115,7 +133,7 @@ namespace DiscordMoniesGame
                 await this.BroadcastTo("", embed: e, players: currentPlr);
                 return;
             }
-            if (board.BoardSpaces[position] is PropertySpace ps)
+            if (board.Spaces[position] is PropertySpace ps)
             {
                 if (ps.Mortgaged || ps.Owner == currentPlr)
                 {
@@ -149,6 +167,27 @@ namespace DiscordMoniesGame
             }
         }
 
+        IUser NextPlayer(IUser plr) => Players[(Players.IndexOf(plr, DiscordComparers.UserComparer) + 1) % Players.Length];
+
+        IUser[] OrderedPlayers(IUser start)
+        {
+            var index = Players.IndexOf(start, DiscordComparers.UserComparer);
+            var playersArray = Players.ToArray();
+            return playersArray[index..].Concat(playersArray[..index]).ToArray();
+        }
+
+        string PrettyOrderedPlayers(IUser start, bool index, bool bold, bool color)
+        {
+            string Do(IUser p, int x)
+            {
+                var i = index ? $"{x + 1}: " : "";
+                var b = bold && x == 0 ? "**" : "";
+                var c = color ? $" ({Colors.NameOfColor(pSt[p].Color)})" : "";
+                return b + i + p.Username + c + b;
+            }
+            return string.Join('\n', OrderedPlayers(start).Select(Do));
+        }
+
         async Task AdvanceRound()
         {
             waiting = Waiting.ForNothing;
@@ -166,12 +205,11 @@ namespace DiscordMoniesGame
             }
             continuousRolls = 0;
             round++;
-            var index = Players.IndexOf(currentPlr);
-            currentPlr = Players[(index + 1) % Players.Length];
+            currentPlr = NextPlayer(currentPlr);
             var embed = new EmbedBuilder()
             {
                 Title = "Next Round",
-                Description = $"Current Round: {round}\nPlayer: **{currentPlr}** @ " +
+                Description = $"Current Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
                 (pSt[currentPlr].JailStatus == -1 ? pSt[currentPlr].Position.PositionString() : "Jail"),
                 Color = Color.Gold
             };
@@ -217,7 +255,7 @@ namespace DiscordMoniesGame
 
         async Task<int> MovePlayerRelative(IUser player, int amount)
         {
-            var position = (pSt[player].Position + amount) % board.BoardSpaces.Length;
+            var position = (pSt[player].Position + amount) % board.Spaces.Length;
             if (position < pSt[player].Position)
             {
                 await GiveMoney(player, board.PassGoValue);
@@ -247,7 +285,9 @@ namespace DiscordMoniesGame
             if (reciever is not null)
                 await GiveMoney(reciever, amount, payer.Username);
 
-            await this.BroadcastTo($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}.", players: payer);
+            await this.
+                BroadcastTo($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}.", players: payer);
+            await this.Broadcast($"Transaction: {payer.Username} >> {amount.MoneyString()} >> {reciever?.Username ?? "Bank"}");
             return true;
         }
 
@@ -260,7 +300,7 @@ namespace DiscordMoniesGame
 
         async Task<bool> TryBuyProperty(IUser player, int pos, int amount)
         {
-            var space = board.BoardSpaces[pos];
+            var space = board.Spaces[pos];
             if (space is not PropertySpace ps)
             {
                 await this.BroadcastTo($"\"{space.Name}\" is not a property.", players: player);
@@ -273,7 +313,7 @@ namespace DiscordMoniesGame
             }
             if (await TryTransfer(player, amount))
             {
-                board.BoardSpaces[pos] = ps with { Owner = player };
+                board.Spaces[pos] = ps with { Owner = player };
                 var embed = new EmbedBuilder()
                 {
                     Title = "Property Obtained",
@@ -284,7 +324,88 @@ namespace DiscordMoniesGame
                 return true;
             }
             return false;
+        }
 
+        async Task NextBid(int bid)
+        {
+            if (auctionState is null || !auctionSpace.HasValue || currentAuctionPlayer is null)
+            {
+                await FinalizeAuction();
+                return;
+            }
+
+            auctionState[currentAuctionPlayer] = bid;
+
+            if (bid != -1)
+                await this.Broadcast($"{currentAuctionPlayer.Username} has bid {bid.MoneyString()}.");
+            else
+                await this.Broadcast($"{currentAuctionPlayer.Username} has skipped.");
+
+            if (!auctionState.Values.Contains(null) &&
+                auctionState.Values.Count(x => x == -1) + 1>= auctionState.Count)
+                // this checks if all, or 1 less than the total has skipped
+            {
+                await FinalizeAuction();
+                return;
+            }
+
+            var nextPlayer = NextPlayer(currentAuctionPlayer);
+            while (auctionState[nextPlayer] == -1)
+                nextPlayer = NextPlayer(nextPlayer);
+
+
+            if (nextPlayer.Id == currentAuctionPlayer.Id)
+            {
+                await FinalizeAuction();
+            }
+            else
+            {
+                await this.Broadcast($"{nextPlayer.Username} is the next to bid.");
+                currentAuctionPlayer = nextPlayer;
+
+            }
+
+        }
+        async Task FinalizeAuction()
+        {
+            if (auctionState is null || !auctionSpace.HasValue || currentAuctionPlayer is null)
+            {
+                await this.Broadcast("Something has gone wrong. Property has been sent back to the bank.");
+            }
+            else
+            {
+                var space = auctionSpace.Value;
+                var maxBid = auctionState.Values.Max();
+                if (maxBid.HasValue)
+                {
+                    if (maxBid == -1)
+                    {
+                        var e = new EmbedBuilder()
+                        {
+                            Title = "Auction",
+                            Description = "All players have skipped. Property has been sent back to the bank.",
+                            Color = board.GroupColorOrDefault(board.Spaces[space])
+                        }.Build();
+                        await this.Broadcast("", embed: e);
+                    }
+                    else
+                    {
+                        var maxBidPlayer = auctionState.First(x => x.Value == maxBid).Key;
+                        if (!await TryBuyProperty(maxBidPlayer, space, maxBid.Value))
+                        {
+                            await this.Broadcast("Something has gone wrong. Property has been sent back to the bank.");
+                        }
+                    }
+                }
+                else
+                {
+                    await this.Broadcast("Something has gone wrong. Property has been sent back to the bank.");
+                }
+            }
+            auctionState = null;
+            auctionSpace = null;
+            currentAuctionPlayer = null;
+            await AdvanceRound();
         }
 
         void Close()
