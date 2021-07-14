@@ -82,7 +82,7 @@ namespace DiscordMoniesGame
                     gfx.DrawImage(c, pos);
                     continue;
                 }
-
+  
                 using var colored = Colored(owned, playerColor);
                 gfx.DrawImage(colored, pos);
             }

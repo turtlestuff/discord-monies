@@ -22,8 +22,18 @@ namespace DiscordMoniesGame
             ForOtherJailDecision,
         }
 
-        public record PlayerState(int Money, int Position, int JailStatus, bool GetOutOfJailCard, System.Drawing.Color Color);
+        [Flags]
+        public enum JailCards
+        {
+            None = 0,
+            Chance = 1,
+            Chest = 2
+        }
+
+        public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color);
         // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
+
+
 
         readonly int originalPlayerCount;
         readonly ConcurrentDictionary<IUser, PlayerState> pSt = new(DiscordComparers.UserComparer);
@@ -69,7 +79,7 @@ namespace DiscordMoniesGame
             for (var i = 0; i < Players.Length; i++)
             {
                 if (!pSt.TryAdd(Players[i],
-                    new PlayerState(board.StartingMoney, 00, -1, false, shuffledColors[i].Value)))
+                    new PlayerState(board.StartingMoney, 00, -1, JailCards.None, shuffledColors[i].Value)))
                     throw new Exception("Something very wrong happened Initializing");
             }
 
@@ -122,6 +132,10 @@ namespace DiscordMoniesGame
 
         async Task HandlePlayerLand(int position)
         {
+            if (board.Spaces[position] is DrawCardSpace dcs)
+            {
+                
+            }
             if (board.Spaces[position] is TaxSpace ts)
             {
                 waiting = Waiting.ForTaxPay;
@@ -155,6 +169,8 @@ namespace DiscordMoniesGame
                     await currentPlr.SendMessageAsync("", embed: era);
                     return;
                 }
+
+                //TODO: Pay rent automatically where possible
 
                 waiting = Waiting.ForRentPay;
                 var e = new EmbedBuilder()
@@ -227,7 +243,7 @@ namespace DiscordMoniesGame
             {
                 Title = "Jail 🚔", //oncoming police car emoji
                 Description = $"**{player.Username}** has been sent to jail.\n" +
-                $"They can try rolling doubles up to 3 times, pay a fine of {board.JailFine.MoneyString()}, or use a Get out of Jail Free card.",
+                $"They can try rolling doubles up to 3 times, pay a fine of {board.JailFine.MoneyString()} with `bail`, or use a Get out of Jail Free card with `usejailcard`.",
                 Color = Color.Red
             }.Build();
 
@@ -343,10 +359,11 @@ namespace DiscordMoniesGame
 
             auctionState[currentAuctionPlayer] = bid;
 
+            string bidString;
             if (bid != -1)
-                await this.Broadcast($"**{currentAuctionPlayer.Username}** has bid {bid.MoneyString()}.");
+                bidString = $"**{currentAuctionPlayer.Username}** has bid {bid.MoneyString()}.";
             else
-                await this.Broadcast($"**{currentAuctionPlayer.Username}** has skipped.");
+                bidString = $"**{currentAuctionPlayer.Username}** has skipped.";
 
             if (!auctionState.Values.Contains(null) &&
                 auctionState.Values.Count(x => x == -1) + 1 >= auctionState.Count)
@@ -363,11 +380,24 @@ namespace DiscordMoniesGame
 
             if (nextPlayer.Id == currentAuctionPlayer.Id)
             {
+                var embed = new EmbedBuilder()
+                {
+                    Title = "Auction",
+                    Description = bidString,
+                    Color = board.GroupColorOrDefault(board.Spaces[auctionSpace.Value])
+                }.Build();
+                await this.Broadcast("", embed: embed);
                 await FinalizeAuction();
             }
             else
             {
-                await this.Broadcast($"**{nextPlayer.Username}** is the next to bid.");
+                var embed = new EmbedBuilder()
+                {
+                    Title = "Auction",
+                    Description = $"{bidString}\n**{currentAuctionPlayer.Username}** is next to bid",
+                    Color = board.GroupColorOrDefault(board.Spaces[auctionSpace.Value])
+                }.Build();
+                await this.Broadcast("", embed: embed);
                 currentAuctionPlayer = nextPlayer;
             }
 
@@ -412,6 +442,24 @@ namespace DiscordMoniesGame
             auctionSpace = null;
             currentAuctionPlayer = null;
             await AdvanceRound();
+        }
+
+        async Task<bool> TryDevelopSpace(IUser developer, int loc, bool demolish)
+        {
+            var space = board.Spaces[loc];
+            if (space is not RoadSpace rs || rs.Owner?.Id != developer.Id)
+            {
+                await developer.SendMessageAsync("You can't develop this property.");
+                return false;
+            }
+
+            if (board.IsEntireGroupOwned(rs.Group, out var otherSpaces))
+            {
+
+            }
+            
+            await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
+            return false;
         }
 
         void Close()

@@ -126,16 +126,17 @@ namespace DiscordMoniesGame
                         var eb = new EmbedBuilder()
                         {
                              Title = $"Title Deed for {space.Name}" + (space is RoadSpace rs ? $" ({board.GroupNames[rs.Group]}) " : ""),
+                             Description = $"Value: {space.Value.MoneyString()}",
                              Fields = new()
                         };
 
                         if (space is TrainStationSpace)
                         {
                             var rentVal = deed.RentValues[0];
-                            var text = $"If 1 R.R. is owned: {rentVal.MoneyString()}\n" +
-                            $"If 2 R.R. are owned: {(rentVal * 2).MoneyString()}\n" +
-                            $"If 3 R.R. are owned: {(rentVal * 3).MoneyString()}\n" +
-                            $"If 4 R.R. are owned: {(rentVal * 4).MoneyString()}";
+                            var text = $"If 1 T.S. is owned: {rentVal.MoneyString()}\n" +
+                            $"If 2 T.S. are owned: {(rentVal * 2).MoneyString()}\n" +
+                            $"If 3 T.S. are owned: {(rentVal * 3).MoneyString()}\n" +
+                            $"If 4 T.S. are owned: {(rentVal * 4).MoneyString()}";
                             eb.Fields.Add(new() { IsInline = false, Name = "Rent Values" , Value = text});
                         }
 
@@ -267,7 +268,7 @@ namespace DiscordMoniesGame
                                 var embed = new EmbedBuilder()
                                 {
                                     Title = "Jail Roll",
-                                    Description = $"{msg.Author.Username} has failed to roll doubles to get out of jail. They have {3 - (jailStatus + 1)} more attempt(s) to go.",
+                                    Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}`. They have {3 - (jailStatus + 1)} more attempt(s) to roll doubles left.",
                                     Color = Color.Red
                                 }.Build();
                                 await this.Broadcast("", embed: embed);
@@ -321,7 +322,7 @@ namespace DiscordMoniesGame
                     var embed = new EmbedBuilder()
                     {
                         Title = "Auction 🧑‍⚖️", // judge emoji
-                        Description = $"**{msg.Author.Username}** has initiated an auction for **{space.Name}** ({aSt.Position.PositionString()}).\n" +
+                        Description = $"**{msg.Author.Username}** is auctioning off **{space.Name}** ({aSt.Position.PositionString()}), normally worth {space.Value.MoneyString()}.\n" +
                         $"The auction will start at {1.MoneyString()} minimum with **{currentAuctionPlayer.Username}**, and will continue in the order below. " +
                         "You may use `bid [amount]` to bid or `skip` to skip. " +
                         "It will end when all players but one have skipped, and the last player not to skip gets the property. " +
@@ -426,7 +427,7 @@ namespace DiscordMoniesGame
                     return;
                 }),
 
-                new("payfine", CanRun.CurrentPlayer, async (args, msg) =>
+                new("bail", CanRun.CurrentPlayer, async (args, msg) =>
                 {
                     if (pSt[msg.Author].JailStatus == -1)
                     {
@@ -455,7 +456,7 @@ namespace DiscordMoniesGame
                     {
                         var loc = board.ParseBoardSpaceInt(args);
                         var space = board.Spaces[loc];
-                        if (space is not PropertySpace ps || ps.Owner != msg.Author)
+                        if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
                         {
                             await msg.Author.SendMessageAsync($"{space.Name} is not your property.");
                             return;
@@ -489,7 +490,7 @@ namespace DiscordMoniesGame
                     {
                     var loc = board.ParseBoardSpaceInt(args);
                     var space = board.Spaces[loc];
-                    if (space is not PropertySpace ps || ps.Owner != msg.Author)
+                    if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
                     {
                         await msg.Author.SendMessageAsync($"{space.Name} ({loc.PositionString()}) is not your property.");
                         return;
@@ -522,7 +523,7 @@ namespace DiscordMoniesGame
         ImmutableArray<Command> commands = default!;
 
         async Task<bool> TryHandleCommand(string msgContent, IUserMessage msg)
-        {
+        {  
             var index = msgContent.IndexOf(' ');
             string cmdStr, args;
             if (index == -1)
@@ -531,7 +532,7 @@ namespace DiscordMoniesGame
                 args = "";
             }
             else
-            {
+            {   
                 cmdStr = msgContent[..index].Trim().ToLowerInvariant();
                 args = msgContent[index..].Trim();
             }
