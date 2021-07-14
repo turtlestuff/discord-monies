@@ -75,7 +75,7 @@ namespace DiscordMoniesGame
 
             var embed = new EmbedBuilder()
             {
-                Title = "First Round",
+                Title = "Ðiscord Monies",
                 Description = $"The game has started! Every player has been given {board.StartingMoney.MoneyString()}.",
                 Fields = new()
                 {
@@ -197,7 +197,7 @@ namespace DiscordMoniesGame
                 var ie = new EmbedBuilder()
                 {
                     Title = "Doubles 🎲 🎲", // two dice emoji
-                    Description = $"Since {currentPlr.Username} had rolled doubles, they may roll another time!",
+                    Description = $"Since **{currentPlr.Username}** had rolled doubles, they may roll another time!",
                     Color = Color.Green
                 }.Build();
                 await this.Broadcast("", embed: ie);
@@ -209,7 +209,7 @@ namespace DiscordMoniesGame
             var embed = new EmbedBuilder()
             {
                 Title = "Next Round",
-                Description = $"Current Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
+                Description = $"Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
                 (pSt[currentPlr].JailStatus == -1 ? pSt[currentPlr].Position.PositionString() : "Jail"),
                 Color = Color.Gold
             };
@@ -222,7 +222,7 @@ namespace DiscordMoniesGame
             var embed = new EmbedBuilder()
             {
                 Title = "Jail 🚔", //oncoming police car emoji
-                Description = $"{player.Username} has been sent to jail.\n" +
+                Description = $"**{player.Username}** has been sent to jail.\n" +
                 $"They can try rolling doubles up to 3 times, pay a fine of {board.JailFine.MoneyString()}, or use a Get out of Jail Free card.",
                 Color = Color.Red
             }.Build();
@@ -262,7 +262,7 @@ namespace DiscordMoniesGame
                 var embed = new EmbedBuilder()
                 {
                     Title = "Pass Go Bonus!",
-                    Description = $"{player.Username} has gotten {board.PassGoValue.MoneyString()} for passing GO!"
+                    Description = $"**{player.Username}** has gotten {board.PassGoValue.MoneyString()} for passing GO!"
                 }.Build();
                 await this.Broadcast("", embed: embed);
             }
@@ -287,7 +287,7 @@ namespace DiscordMoniesGame
 
             await this.
                 BroadcastTo($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}.", players: payer);
-            await this.Broadcast($"Transaction: {payer.Username} >> {amount.MoneyString()} >> {reciever?.Username ?? "Bank"}");
+            await this.Broadcast($"💸 {amount.MoneyString()}: **{payer.Username}** ➡️ **{reciever?.Username ?? "Bank"}**");
             return true;
         }
 
@@ -295,7 +295,7 @@ namespace DiscordMoniesGame
         {
             pSt[reciever] = pSt[reciever] with { Money = pSt[reciever].Money + amount };
             if (giver is not null)
-                await this.BroadcastTo($"You have recieved {amount.MoneyString()} from {giver}. Your balance is now {pSt[reciever].Money.MoneyString()}.", players: reciever);
+                await this.BroadcastTo($"You have recieved {amount.MoneyString()} from **{giver}**. Your balance is now {pSt[reciever].Money.MoneyString()}.", players: reciever);
         }
 
         async Task<bool> TryBuyProperty(IUser player, int pos, int amount)
@@ -317,7 +317,7 @@ namespace DiscordMoniesGame
                 var embed = new EmbedBuilder()
                 {
                     Title = "Property Obtained",
-                    Description = $"{player.Username} has obtained {ps.Name} ({pos.PositionString()}) for {amount.MoneyString()}!",
+                    Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.PositionString()}) for {amount.MoneyString()}!",
                     Color = board.GroupColorOrDefault(ps, Color.Green)
                 }.Build();
                 await this.Broadcast("", embed: embed);
@@ -337,9 +337,9 @@ namespace DiscordMoniesGame
             auctionState[currentAuctionPlayer] = bid;
 
             if (bid != -1)
-                await this.Broadcast($"{currentAuctionPlayer.Username} has bid {bid.MoneyString()}.");
+                await this.Broadcast($"**{currentAuctionPlayer.Username}** has bid {bid.MoneyString()}.");
             else
-                await this.Broadcast($"{currentAuctionPlayer.Username} has skipped.");
+                await this.Broadcast($"**{currentAuctionPlayer.Username}** has skipped.");
 
             if (!auctionState.Values.Contains(null) &&
                 auctionState.Values.Count(x => x == -1) + 1>= auctionState.Count)
@@ -360,7 +360,7 @@ namespace DiscordMoniesGame
             }
             else
             {
-                await this.Broadcast($"{nextPlayer.Username} is the next to bid.");
+                await this.Broadcast($"**{nextPlayer.Username}** is the next to bid.");
                 currentAuctionPlayer = nextPlayer;
 
             }

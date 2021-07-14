@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Leisure;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -176,10 +175,11 @@ namespace DiscordMoniesGame
                 {
                     var embed = new EmbedBuilder()
                     {
-                        Title = "GameStatus",
+                        Title = "Game Status",
                         Fields = new()
                         {
-                            new() { IsInline = true, Name = "Playing Order", Value = PrettyOrderedPlayers(currentPlr, true, true, true) },
+                            new() { IsInline = true, Name = "Round", Value = round},
+                            new() { IsInline = true, Name = "Playing Order", Value = PrettyOrderedPlayers(currentPlr, false, true, true) },
                             new() { IsInline = true, Name = "Avaliable Houses", Value = board.AvailableHouses },
                             new() { IsInline = true, Name = "Avaliable Hotels", Value = board.AvailableHotels }
                         }
@@ -207,8 +207,8 @@ namespace DiscordMoniesGame
                     }
                     if (pSt[msg.Author].JailStatus == -1)
                     {
-                        var roll1 = 1;
-                        var roll2 = 2;
+                        var roll1 = Random.Shared.Next(1, 7);
+                        var roll2 = Random.Shared.Next(1, 7);
                         lastRoll = roll1 + roll2;
                         var doubles = roll1 == roll2;
                         var speedLimit = continuousRolls >= 3 && doubles;
@@ -216,7 +216,7 @@ namespace DiscordMoniesGame
                         var embed = new EmbedBuilder()
                         {
                             Title = "Roll 🎲", //game die emoji
-                            Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}` " +
+                            Description = $"**{msg.Author.Username}** has rolled `{roll1}` and `{roll2}` " +
                             (!speedLimit ? $"and has gone to space `{position.PositionString()}` ({board.Spaces[position].Name})." : "") +
                             (speedLimit ? ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!" : ""),
                             Color = PlayerColor(msg.Author)
@@ -253,7 +253,7 @@ namespace DiscordMoniesGame
                                 var embed = new EmbedBuilder()
                                 {
                                     Title = "Jail Roll",
-                                    Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}` and has been freed from jail!\n" +
+                                    Description = $"**{msg.Author.Username}** has rolled `{roll1}` and `{roll2}` and has been freed from jail!\n" +
                                     $"They move to `{position.PositionString()}` ({board.Spaces[position].Name})",
                                     Color = Color.Green,
                                     Footer = new(){ Text = "They do not get an extra turn for rolling doubles" }
@@ -420,7 +420,7 @@ namespace DiscordMoniesGame
 
                     if (await TryTransfer(msg.Author, rent, space.Owner))
                     {
-                        await this.BroadcastTo($"{msg.Author} has paid you rent.");
+                        await this.BroadcastTo($"**{msg.Author}** has paid you rent.");
                         await AdvanceRound();
                     }
                     return;
