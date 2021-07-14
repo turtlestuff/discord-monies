@@ -43,7 +43,7 @@ namespace DiscordMoniesGame
         IUser? currentAuctionPlayer;
         int? auctionSpace;
 
-        public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators) 
+        public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
         {
             originalPlayerCount = players.Length;
@@ -54,7 +54,7 @@ namespace DiscordMoniesGame
 
 
         public override async Task Initialize()
-        { 
+        {
             var asm = GetType().Assembly;
 
             using var boardStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.board.json")!;
@@ -66,9 +66,9 @@ namespace DiscordMoniesGame
 
             var shuffledColors = Colors.ColorList.OrderBy(_ => Random.Shared.Next()).ToArray();
 
-            for (var i = 0; i < Players.Length; i++) 
+            for (var i = 0; i < Players.Length; i++)
             {
-                if (!pSt.TryAdd(Players[i], 
+                if (!pSt.TryAdd(Players[i],
                     new PlayerState(board.StartingMoney, 00, -1, false, shuffledColors[i].Value)))
                     throw new Exception("Something very wrong happened Initializing");
             }
@@ -81,7 +81,8 @@ namespace DiscordMoniesGame
                 {
                     new()
                     {
-                        IsInline = false, Name = "Playing Order",
+                        IsInline = false,
+                        Name = "Playing Order",
                         Value = PrettyOrderedPlayers(currentPlr, true, true, true)
                     }
                 },
@@ -110,11 +111,11 @@ namespace DiscordMoniesGame
                         await this.BroadcastExcluding(chatMessage, exclude: msg.Author);
                         await msg.AddReactionAsync(new Emoji("💬"));
                     }
-                } 
+                }
             }
             catch (Exception ex)
             {
-                await this.BroadcastTo($"Command failed: {ex.Message}", players: msg.Author);
+                await msg.Author.SendMessageAsync($"Command failed: {ex.Message}");
                 Console.Error.WriteLine(ex);
             }
         }
@@ -130,7 +131,7 @@ namespace DiscordMoniesGame
                     Description = $"{ts.Name} is {ts.Value.MoneyString()}. Please pay this with the `paytax` command.",
                     Color = Color.Red
                 }.Build();
-                await this.BroadcastTo("", embed: e, players: currentPlr);
+                await currentPlr.SendMessageAsync("", embed: e);
                 return;
             }
             if (board.Spaces[position] is PropertySpace ps)
@@ -151,7 +152,7 @@ namespace DiscordMoniesGame
                         $" with `buythis` or holding an auction with `auctionthis`.",
                         Color = board.GroupColorOrDefault(ps, Color.Gold)
                     }.Build();
-                    await this.BroadcastTo("", embed: era, players: currentPlr);
+                    await currentPlr.SendMessageAsync("", embed: era);
                     return;
                 }
 
@@ -162,9 +163,11 @@ namespace DiscordMoniesGame
                     Description = $"The rent for the square you have landed on is {board.CalculateRentFor(position).MoneyString()}. Please pay this with the `payrent` command.",
                     Color = board.GroupColorOrDefault(ps, Color.Red)
                 }.Build();
-                await this.BroadcastTo("", embed: e, players: currentPlr);
+                await currentPlr.SendMessageAsync("", embed: e);
                 return;
             }
+            // nothing happens!
+            await AdvanceRound();
         }
 
         IUser NextPlayer(IUser plr) => Players[(Players.IndexOf(plr, DiscordComparers.UserComparer) + 1) % Players.Length];
@@ -199,8 +202,9 @@ namespace DiscordMoniesGame
                     Title = "Doubles 🎲 🎲", // two dice emoji
                     Description = $"Since **{currentPlr.Username}** had rolled doubles, they may roll another time!",
                     Color = Color.Green
-                }.Build();
-                await this.Broadcast("", embed: ie);
+                };
+
+                await SendBoard(Users, ie);
                 return;
             }
             continuousRolls = 0;
@@ -266,28 +270,31 @@ namespace DiscordMoniesGame
                 }.Build();
                 await this.Broadcast("", embed: embed);
             }
-            pSt[player] = pSt[player] with { Position = position};
+            pSt[player] = pSt[player] with { Position = position };
             return position;
         }
 
         Color PlayerColor(IUser player) => pSt[player].Color.ToDiscordColor();
 
-        async Task<bool> TryTransfer(IUser payer, int amount, IUser? reciever = null)
+        async Task<bool> TryTransfer(int amount, IUser? payer = null, IUser? reciever = null)
         {
-            if (amount > pSt[payer].Money)
+            if (payer is not null)
             {
-                await this.BroadcastTo($"You do not have enough money to make this transaction. (You have: {pSt[payer].Money.MoneyString()}. Required amount: {amount.MoneyString()})", 
-                    players: payer);
-                return false;
+                if (amount > pSt[payer].Money)
+                {
+                    await payer.SendMessageAsync($"You do not have enough money to make this transaction. (You have: {pSt[payer].Money.MoneyString()}. Required amount: {amount.MoneyString()})");
+                    return false;
+                }
+                pSt[payer] = pSt[payer] with { Money = pSt[payer].Money - amount };
+                await payer.
+                    SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}.");
             }
 
-            pSt[payer] = pSt[payer] with { Money = pSt[payer].Money - amount };
             if (reciever is not null)
-                await GiveMoney(reciever, amount, payer.Username);
+                await GiveMoney(reciever, amount, payer?.Username ?? "the bank");
 
-            await this.
-                BroadcastTo($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}.", players: payer);
-            await this.Broadcast($"💸 {amount.MoneyString()}: **{payer.Username}** ➡️ **{reciever?.Username ?? "Bank"}**");
+            await this.BroadcastExcluding($"💸 {amount.MoneyString()}: **{payer?.Username ?? "Bank"}** ➡️ **{reciever?.Username ?? "Bank"}**",
+                exclude: new[] { reciever, payer }.Where(x => x is not null).Cast<IUser>().ToArray());
             return true;
         }
 
@@ -295,7 +302,7 @@ namespace DiscordMoniesGame
         {
             pSt[reciever] = pSt[reciever] with { Money = pSt[reciever].Money + amount };
             if (giver is not null)
-                await this.BroadcastTo($"You have recieved {amount.MoneyString()} from **{giver}**. Your balance is now {pSt[reciever].Money.MoneyString()}.", players: reciever);
+                await reciever.SendMessageAsync($"You have recieved {amount.MoneyString()} from **{giver}**. Your balance is now {pSt[reciever].Money.MoneyString()}.");
         }
 
         async Task<bool> TryBuyProperty(IUser player, int pos, int amount)
@@ -303,15 +310,15 @@ namespace DiscordMoniesGame
             var space = board.Spaces[pos];
             if (space is not PropertySpace ps)
             {
-                await this.BroadcastTo($"\"{space.Name}\" is not a property.", players: player);
+                await player.SendMessageAsync($"\"{space.Name}\" is not a property.");
                 return false;
             }
             if (ps.Owner is not null)
             {
-                await this.BroadcastTo($"\"{space.Name}\" is already owned by a player.", players: player);
+                await player.SendMessageAsync($"\"{space.Name}\" is already owned by a player.");
                 return false;
             }
-            if (await TryTransfer(player, amount))
+            if (await TryTransfer(amount, player))
             {
                 board.Spaces[pos] = ps with { Owner = player };
                 var embed = new EmbedBuilder()
@@ -342,8 +349,8 @@ namespace DiscordMoniesGame
                 await this.Broadcast($"**{currentAuctionPlayer.Username}** has skipped.");
 
             if (!auctionState.Values.Contains(null) &&
-                auctionState.Values.Count(x => x == -1) + 1>= auctionState.Count)
-                // this checks if all, or 1 less than the total has skipped
+                auctionState.Values.Count(x => x == -1) + 1 >= auctionState.Count)
+            // this checks if all, or 1 less than the total has skipped
             {
                 await FinalizeAuction();
                 return;
@@ -362,7 +369,6 @@ namespace DiscordMoniesGame
             {
                 await this.Broadcast($"**{nextPlayer.Username}** is the next to bid.");
                 currentAuctionPlayer = nextPlayer;
-
             }
 
         }
@@ -412,7 +418,7 @@ namespace DiscordMoniesGame
         {
             OnClosing();
         }
-        
+
         void DropPlayer(IUser player)
         {
             OnDroppingUser(player);
