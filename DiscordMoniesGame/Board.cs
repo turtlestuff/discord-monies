@@ -172,7 +172,7 @@ namespace DiscordMoniesGame
             if (space is TrainStationSpace)
             {
                 var c = CountOwnedBy<TrainStationSpace>(space.Owner);
-                return deed.RentValues[0] * c;
+                return deed.RentValues[0] * (int) Math.Pow(2, c - 1);
             }
             if (space is UtilitySpace)
             {
@@ -181,6 +181,61 @@ namespace DiscordMoniesGame
             }
             // something has gone wrong
             return 0;
+        }
+
+        public Embed CreateTitleDeedEmbed(int loc)
+        {
+            var deed = TitleDeedFor(loc);
+            var space = (PropertySpace) Spaces[loc]; //TitleDeedFor would have thrown if that isn't a property space :)
+
+            var eb = new EmbedBuilder()
+            {
+                Title = $"Title Deed for {space.Name}" + (space is RoadSpace rs ? $" ({GroupNames[rs.Group]}) " : ""),
+                Description = $"Value: {space.Value.MoneyString()}",
+                Fields = new()
+            };
+
+            if (space is TrainStationSpace)
+            {
+                var rentVal = deed.RentValues[0];
+                var text = $"If 1 T.S. is owned: {rentVal.MoneyString()}\n" +
+                $"If 2 T.S. are owned: {(rentVal * 2).MoneyString()}\n" +
+                $"If 3 T.S. are owned: {(rentVal * 4).MoneyString()}\n" +
+                $"If 4 T.S. are owned: {(rentVal * 8).MoneyString()}";
+                eb.Fields.Add(new() { IsInline = false, Name = "Rent Values", Value = text });
+            }
+
+            if (space is UtilitySpace)
+            {
+                eb.Fields.Add(new()
+                {
+                    IsInline = false,
+                    Name = "Rent Values",
+                    Value =
+                    "If one utility is owned, the rent is **4x** the value on the dice.\nIf both are owned, it is **10x** the value on the dice."
+                });
+            }
+
+            if (space is RoadSpace r)
+            {
+                var text = "";
+                for (var i = 0; i < deed.RentValues.Length; i++)
+                {
+                    var value = deed.RentValues[i];
+                    if (i == 0)
+                        text += $"**RENT**: {value.MoneyString()}\n*Rent doubled when entire group is owned*\n";
+                    else
+                        text += $"With **{i.BuildingsAsString()}**: {value.MoneyString()}\n";
+                }
+                eb.Fields.Add(new() { IsInline = false, Name = "Rent Values", Value = text });
+                eb.Fields.Add(new() { IsInline = true, Name = "House Cost", Value = deed.HouseCost.MoneyString() });
+                eb.Fields.Add(new() { IsInline = true, Name = "Hotel Cost", Value = deed.HotelCost.MoneyString() });
+                eb.Color = Colors.ColorOfName(GroupNames[r.Group]).ToDiscordColor();
+            }
+
+            eb.Fields.Add(new() { IsInline = true, Name = "Mortgage Value", Value = deed.MortgageValue.MoneyString() });
+
+            return eb.Build();
         }
 
         public LuckCard DrawLuckCard(CardType type)
@@ -193,6 +248,7 @@ namespace DiscordMoniesGame
                 {
                     ChanceCards = new(UsedChanceCards.OrderBy(_ => Random.Shared.Next()));
                 }
+                UsedChanceCards.Add(card);
             }
             else
             {
@@ -200,6 +256,7 @@ namespace DiscordMoniesGame
                 {
                     ChestCards = new(UsedChestCards.OrderBy(_ => Random.Shared.Next()));
                 }
+                UsedChestCards.Add(card);
             }
 
             return card;

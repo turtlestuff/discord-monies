@@ -54,6 +54,8 @@ namespace DiscordMoniesGame
         IUser? currentAuctionPlayer;
         int? auctionSpace;
 
+        IUser? ChanceJailFreeCardOwner, CommunityChestJailFreeCardOwner;
+
         int? cardOwe;
         int? repairsOwe;
 
@@ -139,6 +141,19 @@ namespace DiscordMoniesGame
             if (board.Spaces[position] is DrawCardSpace dcs)
             {
                 var card = board.DrawLuckCard(dcs.Type);
+                var parts = card.Command.Split(' ');
+                if (parts[0] == "jailfree")
+                {
+
+                    if ((parts[1] == "chance" && ChanceJailFreeCardOwner is not null) ||
+                        (parts[1] == "chest" && CommunityChestJailFreeCardOwner is not null))
+                    {
+                        //Draw a new card and try again!
+                        await HandlePlayerLand(position);
+                        return;
+                    }
+                }
+
                 var humanReadableDescription = Regex.Replace(card.Description, "{(moneyValue|boardSpace) ([^}]+)}", match =>
                 {
                     var type = match.Groups[1].Value;
@@ -153,7 +168,8 @@ namespace DiscordMoniesGame
                         }
                         else
                         {
-                            return "TODO!!!!" + value;
+                            if (value == "goSpace") return board.PassGoValue.MoneyString();
+                            return value;
                         }
                     }
                     else
@@ -167,7 +183,7 @@ namespace DiscordMoniesGame
                 var e = new EmbedBuilder()
                 {
                     Title = cardType,
-                    Description = $"You drew a {cardType} card and it goes as follows...",
+                    Description = $"**{currentPlr.Username}** draw a {cardType} card, and it goes as follows...",
                     Color = Color.Gold,
                     Fields = new()
                     {
@@ -181,7 +197,6 @@ namespace DiscordMoniesGame
                 }.Build();
                 await this.Broadcast("", embed: e);
 
-                var parts = card.Command.Split(' ');
                 switch (parts[0])
                 {
                     case "arrest":
@@ -251,7 +266,17 @@ namespace DiscordMoniesGame
                     case "warprel":
                         var move1 = await MovePlayerRelative(currentPlr, int.Parse(parts[1]), false);
                         await HandlePlayerLand(move1); 
-                        return; 
+                        return;
+                    case "jailfree":
+                        if (parts[1] == "chance")
+                        {
+                            ChanceJailFreeCardOwner = currentPlr;
+                        }
+                        else
+                        {
+                            CommunityChestJailFreeCardOwner = currentPlr;
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -271,12 +296,6 @@ namespace DiscordMoniesGame
             }
             if (board.Spaces[position] is PropertySpace ps)
             {
-                if (ps.Mortgaged || ps.Owner == currentPlr)
-                {
-                    await AdvanceRound();
-                    return; // no need to pay rent!
-                }
-
                 if (ps.Owner is null)
                 {
                     waiting = Waiting.ForAuctionOrBuyDecision;
@@ -288,6 +307,26 @@ namespace DiscordMoniesGame
                         Color = board.GroupColorOrDefault(ps, Color.Gold)
                     }.Build();
                     await currentPlr.SendMessageAsync("", embed: era);
+                    await currentPlr.SendMessageAsync("", embed: board.CreateTitleDeedEmbed(position));
+                    return;
+                }
+
+                if (ps.Owner.Id == currentPlr.Id)
+                {
+                    await AdvanceRound();
+                    return; // no need to pay rent!
+                }
+
+                if (ps.Mortgaged)
+                {
+                    var e1 = new EmbedBuilder()
+                    {
+                        Title = "Rent",
+                        Description = $"You landed on a mortgaged property, therefore no rent is payable this time.",
+                        Color = board.GroupColorOrDefault(ps, Color.Red)
+                    }.Build();
+                    await currentPlr.SendMessageAsync("", embed: e1);
+                    //await AdvanceRound();
                     return;
                 }
 
@@ -359,6 +398,7 @@ namespace DiscordMoniesGame
 
         async Task SendToJail(IUser player)
         {
+            rollAgain = false;
             pSt[player] = pSt[player] with { JailStatus = 0, Position = board.VisitingJailPosition };
             var embed = new EmbedBuilder()
             {
@@ -472,6 +512,22 @@ namespace DiscordMoniesGame
                 await this.Broadcast("", embed: embed);
                 return true;
             }
+            return false;
+        }
+
+        async Task<bool> TryTakeJailFreeCard(IUser player)
+        {
+            if (ChanceJailFreeCardOwner?.Id == player.Id)
+            {
+                ChanceJailFreeCardOwner = null;
+                return true;
+            }
+            if (CommunityChestJailFreeCardOwner?.Id == player.Id)
+            {
+                CommunityChestJailFreeCardOwner = null;
+                return true;
+            }
+            await player.SendMessageAsync($"You do not have a Get Out of Jail Free card.");
             return false;
         }
 

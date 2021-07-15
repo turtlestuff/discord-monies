@@ -120,52 +120,7 @@ namespace DiscordMoniesGame
                     try
                     {
                         var s = board.ParseBoardSpaceInt(args);
-                        var deed = board.TitleDeedFor(s);
-                        var space = (PropertySpace) board.Spaces[s]; //TitleDeedFor would have thrown if that isn't a property space :)
-
-                        var eb = new EmbedBuilder()
-                        {
-                             Title = $"Title Deed for {space.Name}" + (space is RoadSpace rs ? $" ({board.GroupNames[rs.Group]}) " : ""),
-                             Description = $"Value: {space.Value.MoneyString()}",
-                             Fields = new()
-                        };
-
-                        if (space is TrainStationSpace)
-                        {
-                            var rentVal = deed.RentValues[0];
-                            var text = $"If 1 T.S. is owned: {rentVal.MoneyString()}\n" +
-                            $"If 2 T.S. are owned: {(rentVal * 2).MoneyString()}\n" +
-                            $"If 3 T.S. are owned: {(rentVal * 3).MoneyString()}\n" +
-                            $"If 4 T.S. are owned: {(rentVal * 4).MoneyString()}";
-                            eb.Fields.Add(new() { IsInline = false, Name = "Rent Values" , Value = text});
-                        }
-
-                        if (space is UtilitySpace)
-                        {
-                            eb.Fields.Add(new() { IsInline = false, Name = "Rent Values" , Value =
-                                "If one utility is owned, the rent is **4x** the value on the dice.\nIf both are owned, it is **10x** the value on the dice."});
-                        }
-
-                        if (space is RoadSpace r)
-                        {
-                            var text = "";
-                            for (var i = 0; i < deed.RentValues.Length; i++)
-                            {
-                                var value = deed.RentValues[i];
-                                if (i == 0)
-                                    text += $"**RENT**: {value.MoneyString()}\n*Rent doubled when entire group is owned*\n";
-                                else
-                                    text += $"With **{i.BuildingsAsString()}**: {value.MoneyString()}\n";
-                            }
-                            eb.Fields.Add(new() { IsInline = false, Name = "Rent Values", Value = text });
-                            eb.Fields.Add(new() { IsInline = true, Name = "House Cost", Value = deed.HouseCost.MoneyString() });
-                            eb.Fields.Add(new() { IsInline = true, Name = "Hotel Cost", Value = deed.HotelCost.MoneyString() });
-                            eb.Color = Colors.ColorOfName(board.GroupNames[r.Group]).ToDiscordColor();
-                        }
-
-                        eb.Fields.Add(new() { IsInline = true, Name = "Mortgage Value", Value = deed.MortgageValue.MoneyString() });
-
-                        await this.BroadcastTo("", embed: eb.Build(), players: msg.Author);
+                        await this.BroadcastTo("", embed: board.CreateTitleDeedEmbed(s), players: msg.Author);
                     }
                     catch (ArgumentException e)
                     {
@@ -485,14 +440,36 @@ namespace DiscordMoniesGame
                         var embed = new EmbedBuilder()
                         {
                             Title = "Jail Fine",
-                            Description = $"**{msg.Author.Username}** has paid the fine of {board.JailFine.MoneyString()} and has gotten out of Jail",
+                            Description = $"**{msg.Author.Username}** has paid the fine of {board.JailFine.MoneyString()} and has been released from Jail",
                             Color = PlayerColor(msg.Author)
                         }.Build();
                         await this.Broadcast("", embed: embed);
-                        await AdvanceRound();
+                        
+                        //TODO: Check if this is the third roll and advance the player accordingly
+                        waiting = Waiting.ForNothing;
                     }
                 }),
-                new("usejailcard", CanRun.CurrentPlayer, async (args, msg) => { }),
+                new("usejailcard", CanRun.CurrentPlayer, async (args, msg) => {
+                    if (pSt[msg.Author].JailStatus == -1)
+                    {
+                        await msg.Author.SendMessageAsync("You can't do this right now!");
+                        return;
+                    }
+
+                    if (await TryTakeJailFreeCard(msg.Author)) {
+                        pSt[msg.Author] = pSt[msg.Author] with { JailStatus = -1 };
+                        var embed = new EmbedBuilder()
+                        {
+                            Title = "Jail Fine",
+                            Description = $"**{msg.Author.Username}** has used a Get Out of Jail Free card and has been released from Jail",
+                            Color = PlayerColor(msg.Author)
+                        }.Build();
+                        await this.Broadcast("", embed: embed);
+
+                        //TODO: Check if this is the third roll and advance the player accordingly
+                        waiting = Waiting.ForNothing;
+                    }
+                }),
 
                 new("mortgage", CanRun.Player, async (args, msg) =>
                 {
