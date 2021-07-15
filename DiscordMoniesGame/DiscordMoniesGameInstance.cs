@@ -36,6 +36,8 @@ namespace DiscordMoniesGame
         public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color);
         // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
 
+        int jailRoll;
+
         readonly int originalPlayerCount;
         readonly ConcurrentDictionary<IUser, PlayerState> pSt = new(DiscordComparers.UserComparer);
         Board board = default!;
@@ -54,7 +56,8 @@ namespace DiscordMoniesGame
         IUser? currentAuctionPlayer;
         int? auctionSpace;
 
-        IUser? ChanceJailFreeCardOwner, CommunityChestJailFreeCardOwner;
+        IUser? chanceJailFreeCardOwner;
+        IUser? chestJailFreeCardOwner;
 
         int? cardOwe;
         int? repairsOwe;
@@ -145,8 +148,8 @@ namespace DiscordMoniesGame
                 if (parts[0] == "jailfree")
                 {
 
-                    if ((parts[1] == "chance" && ChanceJailFreeCardOwner is not null) ||
-                        (parts[1] == "chest" && CommunityChestJailFreeCardOwner is not null))
+                    if ((parts[1] == "chance" && chanceJailFreeCardOwner is not null) ||
+                        (parts[1] == "chest" && chestJailFreeCardOwner is not null))
                     {
                         //Draw a new card and try again!
                         await HandlePlayerLand(position);
@@ -183,7 +186,7 @@ namespace DiscordMoniesGame
                 var e = new EmbedBuilder()
                 {
                     Title = cardType,
-                    Description = $"**{currentPlr.Username}** draw a {cardType} card, and it goes as follows...",
+                    Description = $"**{currentPlr.Username}** draws a {cardType} card, and it goes as follows...",
                     Color = Color.Gold,
                     Fields = new()
                     {
@@ -270,11 +273,11 @@ namespace DiscordMoniesGame
                     case "jailfree":
                         if (parts[1] == "chance")
                         {
-                            ChanceJailFreeCardOwner = currentPlr;
+                            chanceJailFreeCardOwner = currentPlr;
                         }
                         else
                         {
-                            CommunityChestJailFreeCardOwner = currentPlr;
+                            chestJailFreeCardOwner = currentPlr;
                         }
                         break;
                     default:
@@ -298,6 +301,7 @@ namespace DiscordMoniesGame
             {
                 if (ps.Owner is null)
                 {
+                    await currentPlr.SendMessageAsync("", embed: board.CreateTitleDeedEmbed(position));
                     waiting = Waiting.ForAuctionOrBuyDecision;
                     var era = new EmbedBuilder()
                     {
@@ -307,7 +311,6 @@ namespace DiscordMoniesGame
                         Color = board.GroupColorOrDefault(ps, Color.Gold)
                     }.Build();
                     await currentPlr.SendMessageAsync("", embed: era);
-                    await currentPlr.SendMessageAsync("", embed: board.CreateTitleDeedEmbed(position));
                     return;
                 }
 
@@ -322,7 +325,7 @@ namespace DiscordMoniesGame
                     var e1 = new EmbedBuilder()
                     {
                         Title = "Rent",
-                        Description = $"You landed on a mortgaged property, therefore no rent is payable this time.",
+                        Description = $"You landed on a mortgaged property, therefore you do not need to pay any rent.",
                         Color = board.GroupColorOrDefault(ps, Color.Red)
                     }.Build();
                     await currentPlr.SendMessageAsync("", embed: e1);
@@ -331,12 +334,15 @@ namespace DiscordMoniesGame
                 }
 
                 //TODO: Pay rent automatically where possible
+                var rent = board.CalculateRentFor(position);
+                if (board.Spaces[position] is UtilitySpace)
+                    rent *= lastRoll;
 
                 waiting = Waiting.ForRentPay;
                 var e = new EmbedBuilder()
                 {
                     Title = "Rent",
-                    Description = $"The rent for the square you have landed on is {board.CalculateRentFor(position).MoneyString()}. Please pay this with the `payrent` command.",
+                    Description = $"The rent for the square you have landed on is {rent.MoneyString()}. Please pay this with the `payrent` command.",
                     Color = board.GroupColorOrDefault(ps, Color.Red)
                 }.Build();
                 await currentPlr.SendMessageAsync("", embed: e);
@@ -390,7 +396,7 @@ namespace DiscordMoniesGame
             {
                 Title = "Next Round",
                 Description = $"Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
-                (pSt[currentPlr].JailStatus == -1 ? pSt[currentPlr].Position.LocString() : "Jail"),
+                (pSt[currentPlr].JailStatus == -1 ? $"{board.Spaces[pSt[currentPlr].Position].Name} ({pSt[currentPlr].Position.LocString()})" : "Jail"),
                 Color = Color.Gold
             };
             await SendBoard(Users, embed);
@@ -413,24 +419,32 @@ namespace DiscordMoniesGame
 
         async Task SendBoard(IEnumerable<IUser> users, EmbedBuilder? embed = null)
         {
-            using var bmp = boardRenderer.Render(Players, pSt, board);
-            using var memStr = new MemoryStream();
-            bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
-            foreach (var u in users)
+            try
             {
-                memStr.Position = 0;
-                using var clone = new MemoryStream();
-                await memStr.CopyToAsync(clone);
-                clone.Position = 0;
-                if (embed is not null)
+                using var bmp = boardRenderer.Render(Players, pSt, board);
+                using var memStr = new MemoryStream();
+                bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
+                foreach (var u in users)
                 {
-                    embed.ImageUrl = "attachment://board.png";
-                    await u.SendFileAsync(clone, "board.png", embed: embed.Build());
+                    using var clone = new MemoryStream();
+                    memStr.Position = 0;
+                    await memStr.CopyToAsync(clone);
+                    clone.Position = 0;
+                    if (embed is not null)
+                    {
+                        embed.ImageUrl = "attachment://board.png";
+                        await u.SendFileAsync(clone, "board.png", embed: embed.Build());
+                    }
+                    else
+                    {
+                        await u.SendFileAsync(clone, "board.png");
+                    }
                 }
-                else
-                {
-                    await u.SendFileAsync(clone, "board.png");
-                }
+            }
+            catch (ObjectDisposedException e)
+            {
+                await this.Broadcast("Something went wrong trying to send the board. Don't worry! The turn has gone forward! Use `board` to get a new board image and `status` to see the current player.");
+                Console.Error.WriteLine(e);
             }
         }
 
@@ -517,14 +531,14 @@ namespace DiscordMoniesGame
 
         async Task<bool> TryTakeJailFreeCard(IUser player)
         {
-            if (ChanceJailFreeCardOwner?.Id == player.Id)
+            if (chanceJailFreeCardOwner?.Id == player.Id)
             {
-                ChanceJailFreeCardOwner = null;
+                chanceJailFreeCardOwner = null;
                 return true;
             }
-            if (CommunityChestJailFreeCardOwner?.Id == player.Id)
+            if (chestJailFreeCardOwner?.Id == player.Id)
             {
-                CommunityChestJailFreeCardOwner = null;
+                chestJailFreeCardOwner = null;
                 return true;
             }
             await player.SendMessageAsync($"You do not have a Get Out of Jail Free card.");
@@ -551,6 +565,13 @@ namespace DiscordMoniesGame
                 auctionState.Values.Count(x => x == -1) + 1 >= auctionState.Count)
             // this checks if all, or 1 less than the total has skipped
             {
+                var embed = new EmbedBuilder()
+                {
+                    Title = "Auction",
+                    Description = bidString,
+                    Color = board.GroupColorOrDefault(board.Spaces[auctionSpace.Value])
+                }.Build();
+                await this.Broadcast("", embed: embed);
                 await FinalizeAuction();
                 return;
             }
@@ -715,7 +736,7 @@ namespace DiscordMoniesGame
 
                                 var embed = new EmbedBuilder()
                                 {
-                                    Title = "Hotel Built",
+                                    Title = "House Built",
                                     Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new house being built, " +
                                     $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
                                     Color = board.GroupColorOrDefault(rs)
