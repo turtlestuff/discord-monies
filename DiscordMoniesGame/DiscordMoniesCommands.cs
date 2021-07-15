@@ -227,7 +227,7 @@ namespace DiscordMoniesGame
                                     Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}`.",
                                     Color = Color.Red
                                 }.Build();
-                                /*await*/ this.Broadcast("", embed: embed);
+                                await this.Broadcast("", embed: embed);
 
                                 waiting = Waiting.ForOtherJailDecision;
                                 await msg.Author.SendMessageAsync($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} using `bail` or use a " + 

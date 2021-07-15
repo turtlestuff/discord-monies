@@ -686,7 +686,7 @@ namespace DiscordMoniesGame
                 {
                     if (demolish)
                     {
-                        if (rs.Houses == 5)
+                        if (rs.Houses == 5) // need to demolish hotel
                         {
                             if (!board.CanTakeHouse(4))
                             {
@@ -695,7 +695,6 @@ namespace DiscordMoniesGame
                             }
 
                             await TryTransfer(deed.HotelCost / 2, null, developer);
-                            board.ReturnHotel();
                             board.Spaces[loc] = rs with { Houses = 4 };
 
                             var embed1 = new EmbedBuilder()
@@ -707,8 +706,8 @@ namespace DiscordMoniesGame
                             await this.Broadcast("", embed: embed1);
                             return true;
                         }
+                        // demolishing house
                         await TryTransfer(deed.HouseCost / 2, null, developer);
-                        board.ReturnHouse();
                         board.Spaces[loc] = rs with { Houses = rs.Houses - 1 };
 
                         var embed = new EmbedBuilder()
@@ -723,7 +722,7 @@ namespace DiscordMoniesGame
                     }
                     else // building
                     {
-                        if (rs.Houses != 4)
+                        if (rs.Houses != 4) //not building a hotel
                         {
                             if (!board.CanTakeHouse())
                             {
@@ -744,33 +743,28 @@ namespace DiscordMoniesGame
                                 await this.Broadcast("", embed: embed);
                                 return true;
                             }
-                            board.ReturnHouse();
                             return false;
                         }
-                        else if (rs.Houses == 4)
+                        // building a hotel
+                        if (!board.CanTakeHotel())
                         {
-                            if (!board.CanTakeHotel())
-                            {
-                                await developer.SendMessageAsync("You can't develop this property because there are no more hotels to purchase.");
-                                return false;
-                            }
-                            if (await TryTransfer(deed.HotelCost, developer, null))
-                            {
-                                board.ReturnHouse(4);
-                                board.Spaces[loc] = rs with { Houses = 5 };
-
-                                var embed = new EmbedBuilder()
-                                {
-                                    Title = "Hotel Built",
-                                    Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
-                                    Color = board.GroupColorOrDefault(rs)
-                                }.Build();
-                                await this.Broadcast("", embed: embed);
-                                return true;
-                            }
-                            board.ReturnHotel();
+                            await developer.SendMessageAsync("You can't develop this property because there are no more hotels to purchase.");
                             return false;
                         }
+                        if (await TryTransfer(deed.HotelCost, developer, null))
+                        {
+                            board.Spaces[loc] = rs with { Houses = 5 };
+
+                            var embed = new EmbedBuilder()
+                            {
+                                Title = "Hotel Built",
+                                Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
+                                Color = board.GroupColorOrDefault(rs)
+                            }.Build();
+                            await this.Broadcast("", embed: embed);
+                            return true;
+                        }
+                        return false;
                     }
                 }
                 else

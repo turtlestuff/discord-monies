@@ -265,17 +265,8 @@ namespace DiscordMoniesGame
         public int AvailableHouses => InitialHouses - Spaces.Sum(x => x is RoadSpace rs && rs.Houses != 5 ? rs.Houses : 0);
         public int AvailableHotels => InitialHotels - Spaces.Sum(x => x is RoadSpace rs && rs.Houses == 5 ? 1 : 0);
 
-        public bool CanTakeHouse(int number = 1)
-        {
-            if (AvailableHouses - number < 0)
-                return false;
-            return true;
-        }
+        public bool CanTakeHouse(int number = 1) => AvailableHouses - number >= 0;
 
-        public bool CanTakeHotel()
-        {
-            if (AvailableHotels == 0) return false;
-            return true;
-        }
+        public bool CanTakeHotel(int number = 1) => AvailableHotels - number >= 0;
     }
 }
