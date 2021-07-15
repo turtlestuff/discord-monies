@@ -32,7 +32,7 @@
     "Command": "pay 50"
   },
   {
-    "Description": "Advance to GO. Collect {moneyValue goValue}",
+    "Description": "Advance to GO. Collect {moneyValue goSpace}",
     "Command": "warp 0"
   }
 ]

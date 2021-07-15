@@ -475,38 +475,41 @@ namespace DiscordMoniesGame
                 {
                     try
                     {
-                        var loc = board.ParseBoardSpaceInt(args);
-                        var space = board.Spaces[loc];
-                        if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
+                        foreach (var spaceArg in args.Split(" "))
                         {
-                            await msg.Author.SendMessageAsync($"{space.Name} is not your property.");
-                            return;
-                        }
-                        if (ps.Mortgaged)
-                        {
-                            await msg.Author.SendMessageAsync($"{space.Name} is already mortgaged. Use `demortgage` to de-mortgage.");
-                            return;
-                        }
-
-                        if (ps is RoadSpace rs)
-                        {
-
-                            if (board.IsEntireGroupOwned(rs.Group, out var spaces))
+                            var loc = board.ParseBoardSpaceInt(spaceArg);
+                            var space = board.Spaces[loc];
+                            if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
                             {
-                                //Ensure the entire group consists of undeveloped properties
-                                if (spaces.Any(space => space.Houses > 0))
+                                await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not your property.");
+                                continue;
+                            }
+                            if (ps.Mortgaged)
+                            {
+                                await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is already mortgaged. Use `demortgage` to de-mortgage.");
+                                continue;
+                            }
+
+                            if (ps is RoadSpace rs)
+                            {
+
+                                if (board.IsEntireGroupOwned(rs.Group, out var spaces))
                                 {
-                                    await msg.Author.SendMessageAsync("You may only mortgage a property which has no buildings.");
-                                    return;
+                                    //Ensure the entire group consists of undeveloped properties
+                                    if (spaces.Any(space => space.Houses > 0))
+                                    {
+                                        await msg.Author.SendMessageAsync($"You cannot mortgage {space.Name} ({loc.LocString()}) right now as buildings currently exist on other properties in this set.");
+                                        continue;
+                                    }
                                 }
                             }
-                        }
 
-                        var amt = board.TitleDeedFor(loc).MortgageValue;
-                        if(await TryTransfer(amt, null, msg.Author))
-                        {
-                            board.Spaces[loc] = ps with { Mortgaged = true };
-                            await this.Broadcast($"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.");
+                            var amt = board.TitleDeedFor(loc).MortgageValue;
+                            if (await TryTransfer(amt, null, msg.Author))
+                            {
+                                board.Spaces[loc] = ps with { Mortgaged = true };
+                                await this.Broadcast($"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.");
+                            }
                         }
                     }
                     catch (ArgumentException e)

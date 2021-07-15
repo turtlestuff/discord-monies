@@ -326,7 +326,7 @@ namespace DiscordMoniesGame
                         Color = board.GroupColorOrDefault(ps, Color.Red)
                     }.Build();
                     await currentPlr.SendMessageAsync("", embed: e1);
-                    //await AdvanceRound();
+                    await AdvanceRound();
                     return;
                 }
 
@@ -639,6 +639,12 @@ namespace DiscordMoniesGame
 
             if (board.IsEntireGroupOwned(rs.Group, out var spaces))
             {
+                if (spaces.Any(space => space.Mortgaged))
+                {
+                    await developer.SendMessageAsync("You can't develop this property right now because other properties in this set are mortgaged.");
+                    return false;
+                }
+
                 if (rs.Houses + diff > 5 || rs.Houses + diff < 0)
                 {
                     if (demolish)
