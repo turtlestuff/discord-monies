@@ -510,10 +510,19 @@ namespace DiscordMoniesGame
                             await msg.Author.SendMessageAsync($"{space.Name} is already mortgaged. Use `demortgage` to de-mortgage.");
                             return;
                         }
-                        if (ps is RoadSpace rs && rs.Houses != 0)
+
+                        if (ps is RoadSpace rs)
                         {
-                            await msg.Author.SendMessageAsync("You may only mortgage a property which has no buildings.");
-                            return;
+
+                            if (board.IsEntireGroupOwned(rs.Group, out var spaces))
+                            {
+                                //Ensure the entire group consists of undeveloped properties
+                                if (spaces.Any(space => space.Houses > 0))
+                                {
+                                    await msg.Author.SendMessageAsync("You may only mortgage a property which has no buildings.");
+                                    return;
+                                }
+                            }
                         }
 
                         var amt = board.TitleDeedFor(loc).MortgageValue;
