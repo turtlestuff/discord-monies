@@ -30,7 +30,7 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        player = Utils.MatchClosest(args, Players);
+                        player = Utils.MatchClosest(args, Players, u => u.Username);
                     }
 
                     if (player is not null)
@@ -66,7 +66,7 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        player = Utils.MatchClosest(args, Players);
+                        player = Utils.MatchClosest(args, Players, u => u.Username);
                     }
 
                     if (player is not null)
@@ -461,6 +461,8 @@ namespace DiscordMoniesGame
                             await HandlePlayerLand(await MovePlayerRelative(msg.Author, jailRoll));
                             return;
                         }
+
+                        await msg.Author.SendMessageAsync("You may `roll` again.");
                         waiting = Waiting.ForNothing;
                     }
                 }),
@@ -487,6 +489,8 @@ namespace DiscordMoniesGame
                             await HandlePlayerLand(await MovePlayerRelative(msg.Author, jailRoll));
                             return;
                         }
+                        
+                        await msg.Author.SendMessageAsync("You may `roll` again.");
                         waiting = Waiting.ForNothing;
                     }
                 }),
@@ -528,7 +532,13 @@ namespace DiscordMoniesGame
                             if (await TryTransfer(amt, null, msg.Author))
                             {
                                 board.Spaces[loc] = ps with { Mortgaged = true };
-                                await this.Broadcast($"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.");
+                                var embed = new EmbedBuilder()
+                                {
+                                    Title = "Mortgage",
+                                    Description = $"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                                    Color = board.GroupColorOrDefault(ps, Color.Gold)
+                                }.Build();
+                                await this.Broadcast(", ");
                             }
                         }
                     }
@@ -541,26 +551,33 @@ namespace DiscordMoniesGame
                 {
                     try
                     {
-                    var loc = board.ParseBoardSpaceInt(args);
-                    var space = board.Spaces[loc];
-                    if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
-                    {
-                        await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not your property.");
-                        return;
-                    }
-                    if (!ps.Mortgaged)
-                    {
-                        await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not mortgaged.");
-                        return;
-                    }
-                    var mortgage = board.TitleDeedFor(loc).MortgageValue;
-                    var amt = (int) (mortgage * 1.10); // mortgage value + 10%
+                        var loc = board.ParseBoardSpaceInt(args);
+                        var space = board.Spaces[loc];
+                        if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
+                        {
+                            await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not your property.");
+                            return;
+                        }
+                        if (!ps.Mortgaged)
+                        {
+                            await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not mortgaged.");
+                            return;
+                        }
+                        var mortgage = board.TitleDeedFor(loc).MortgageValue;
+                        var amt = (int) (mortgage * 1.10); // mortgage value + 10%
                     
-                    if (await TryTransfer(amt, msg.Author))
-                    {
-                        board.Spaces[loc] = ps with { Mortgaged = false };
-                        await this.Broadcast($"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}).");
-                    }
+                        if (await TryTransfer(amt, msg.Author))
+                        {
+                            board.Spaces[loc] = ps with { Mortgaged = false };
+                            var embed = new EmbedBuilder()
+                            {
+                                Title = "Mortgage",
+                                Description = $"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                                Color = board.GroupColorOrDefault(ps, Color.Gold)
+                            }.Build();
+                            await this.Broadcast(", ");
+
+                        }
                     }
                     catch (ArgumentException e)
                     {
@@ -601,7 +618,7 @@ namespace DiscordMoniesGame
                     if (i == -1)
                         return;
                     var amt = int.Parse(args[..i]);
-                    var plr = Utils.MatchClosest(args[(i + 1)..], Players);
+                    var plr = Utils.MatchClosest(args[(i + 1)..], Players, u => u.Username);
                     await GiveMoney(plr, amt);
                     await msg.Author.SendMessageAsync($"Gave {plr.Username} {amt.MoneyString()}");
                 })
@@ -630,8 +647,12 @@ namespace DiscordMoniesGame
             var commandObj = commands.FirstOrDefault(c => c.Name == cmdStr);
 
             if (commandObj is null)
+            {
+                var closest = Utils.MatchClosest(cmdStr, commands, c => c.Name).Name;
+                if (Utils.Distance(closest, cmdStr) <= 2) 
+                    await msg.Author.SendMessageAsync($"Did you mean: `{closest}`?");
                 return false;
-
+            }
             switch (commandObj.CanRun)
             {
                 case CanRun.Any:
@@ -646,7 +667,7 @@ namespace DiscordMoniesGame
                     if (currentPlr.Id != msg.Author.Id)
                     {
                         await this.BroadcastTo("Only the current player can run this!", players: msg.Author);
-                        return true; //don't chat that!
+                        return false; 
                     }
                     await commandObj.CmdFunc(args, msg);
                     return true;

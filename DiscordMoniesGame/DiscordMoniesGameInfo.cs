@@ -8,7 +8,7 @@ namespace DiscordMoniesGame
     {
         public override string Name => "Discord Monies";
         public override string Description => "Mono of the POly";
-        public override string Author => "Vrbt, refletstronits, Swuif HGrull and Victah";
+        public override string Author => "AAHUUUREEEN, Vrbt, refletstronits, Swuif HGrull and Victah";
         public override string Prefix => "dm";
         public override string IconUrl => "https://cdn.discordapp.com/avatars/614127017666936835/3290f301318a46c34e8a4d0671abeff4.png?size=2048";
         public override string PlayerCountDescription => "2\u20116"; // non breaking hyphen
