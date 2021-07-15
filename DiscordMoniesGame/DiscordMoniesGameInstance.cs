@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Leisure;
@@ -20,6 +21,8 @@ namespace DiscordMoniesGame
             ForAuctionOrBuyDecision,
             ForAuctionToFinish,
             ForOtherJailDecision,
+            ForCardPay,
+            ForRepairsPay
         }
 
         [Flags]
@@ -33,8 +36,6 @@ namespace DiscordMoniesGame
         public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color);
         // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
 
-
-
         readonly int originalPlayerCount;
         readonly ConcurrentDictionary<IUser, PlayerState> pSt = new(DiscordComparers.UserComparer);
         Board board = default!;
@@ -42,7 +43,7 @@ namespace DiscordMoniesGame
 
         int round = 1;
         int continuousRolls;
-        bool doubleTurn = false;
+        bool rollAgain = false;
 
         readonly BoardRenderer boardRenderer = new();
 
@@ -52,6 +53,9 @@ namespace DiscordMoniesGame
         ConcurrentDictionary<IUser, int?>? auctionState;
         IUser? currentAuctionPlayer;
         int? auctionSpace;
+
+        int? cardOwe;
+        int? repairsOwe;
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
@@ -134,8 +138,125 @@ namespace DiscordMoniesGame
         {
             if (board.Spaces[position] is DrawCardSpace dcs)
             {
-                
+                var card = board.DrawLuckCard(dcs.Type);
+                var humanReadableDescription = Regex.Replace(card.Description, "{(moneyValue|boardSpace) ([^}]+)}", match =>
+                {
+                    var type = match.Groups[1].Value;
+                    var value = match.Groups[2].Value;
+                    bool isInt = int.TryParse(value, out var val);
+
+                    if (type == "moneyValue")
+                    {
+                        if (isInt)
+                        {
+                            return val.MoneyString();
+                        }
+                        else
+                        {
+                            return "TODO!!!!" + value;
+                        }
+                    }
+                    else
+                    {
+                        return $"{board.Spaces[val].Name} ({val.LocString()})";
+                    }
+                } );
+
+                var cardType = dcs.Type == CardType.Chance ? "Gamble" : "Dubious Treasure";
+
+                var e = new EmbedBuilder()
+                {
+                    Title = cardType,
+                    Description = $"You drew a {cardType} card and it goes as follows...",
+                    Color = Color.Gold,
+                    Fields = new()
+                    {
+                        new()
+                        {
+                            IsInline = true,
+                            Name = $"{cardType} card",
+                            Value = humanReadableDescription
+                        }
+                    }
+                }.Build();
+                await this.Broadcast("", embed: e);
+
+                var parts = card.Command.Split(' ');
+                switch (parts[0])
+                {
+                    case "arrest":
+                        await SendToJail(currentPlr);
+                        break;
+                    case "give":
+                        await TryTransfer(int.Parse(parts[1]), null, currentPlr);
+                        break;
+                    case "pay":
+                        if (!await TryTransfer(int.Parse(parts[1]), currentPlr, null))
+                        {
+                            cardOwe = int.Parse(parts[1]);
+                            waiting = Waiting.ForCardPay;
+
+                            var e1 = new EmbedBuilder()
+                            {
+                                Title = "You are in arrears!",
+                                Description = $"Use `paycard` once you have raised enough funds to contine.",
+                                Color = Color.Red
+                            }.Build();
+                            await currentPlr.SendMessageAsync("", embed: e1);
+
+                            return;
+                        }
+                        break;
+                    case "repairs":
+                        {
+                            var houseValue = int.Parse(parts[1]);
+                            var hotelValue = int.Parse(parts[2]);
+
+                            var total = board.Spaces.Aggregate(0, (currentTotal, space) =>
+                            {
+                                if (space is RoadSpace rs)
+                                {
+                                    if (rs.Owner?.Id != currentPlr.Id) return currentTotal;
+                                    if (rs.Houses == 5) return currentTotal + hotelValue;
+                                    return currentTotal + rs.Houses * houseValue;
+                                }
+                                else
+                                {
+                                    return currentTotal;
+                                }
+                            });
+
+                            if (!await TryTransfer(total, currentPlr, null))
+                            {
+                                repairsOwe = total;
+                                waiting = Waiting.ForCardPay;
+
+                                var e1 = new EmbedBuilder()
+                                {
+                                    Title = "You are in arrears!",
+                                    Description = $"Use `payrepairs` once you have raised enough funds to contine.",
+                                    Color = Color.Red
+                                }.Build();
+                                await currentPlr.SendMessageAsync("", embed: e1);
+
+                                return;
+                            }
+
+                            break;
+                        }
+                    case "warp":
+                        var move = await MovePlayer(currentPlr, int.Parse(parts[1]));
+                        await HandlePlayerLand(move); 
+                        return;
+                    case "warprel":
+                        var move1 = await MovePlayerRelative(currentPlr, int.Parse(parts[1]), false);
+                        await HandlePlayerLand(move1); 
+                        return; 
+                    default:
+                        break;
+                }
             }
+
             if (board.Spaces[position] is TaxSpace ts)
             {
                 waiting = Waiting.ForTaxPay;
@@ -210,9 +331,9 @@ namespace DiscordMoniesGame
         async Task AdvanceRound()
         {
             waiting = Waiting.ForNothing;
-            if (doubleTurn)
+            if (rollAgain)
             {
-                doubleTurn = false;
+                rollAgain = false;
                 var ie = new EmbedBuilder()
                 {
                     Title = "Doubles 🎲 🎲", // two dice emoji
@@ -230,7 +351,7 @@ namespace DiscordMoniesGame
             {
                 Title = "Next Round",
                 Description = $"Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
-                (pSt[currentPlr].JailStatus == -1 ? pSt[currentPlr].Position.PositionString() : "Jail"),
+                (pSt[currentPlr].JailStatus == -1 ? pSt[currentPlr].Position.LocString() : "Jail"),
                 Color = Color.Gold
             };
             await SendBoard(Users, embed);
@@ -273,10 +394,9 @@ namespace DiscordMoniesGame
             }
         }
 
-        async Task<int> MovePlayerRelative(IUser player, int amount)
+        async Task<int> MovePlayer(IUser player, int position, bool passGoBonus = true)
         {
-            var position = (pSt[player].Position + amount) % board.Spaces.Length;
-            if (position < pSt[player].Position)
+            if (position < pSt[player].Position && passGoBonus)
             {
                 await GiveMoney(player, board.PassGoValue);
                 var embed = new EmbedBuilder()
@@ -288,6 +408,12 @@ namespace DiscordMoniesGame
             }
             pSt[player] = pSt[player] with { Position = position };
             return position;
+        }
+
+        async Task<int> MovePlayerRelative(IUser player, int amount, bool passGoBonus = true)
+        {
+            var position = (pSt[player].Position + amount) % board.Spaces.Length;
+            return await MovePlayer(player, position, passGoBonus);
         }
 
         Color PlayerColor(IUser player) => pSt[player].Color.ToDiscordColor();
@@ -340,7 +466,7 @@ namespace DiscordMoniesGame
                 var embed = new EmbedBuilder()
                 {
                     Title = "Property Obtained",
-                    Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.PositionString()}) for {amount.MoneyString()}!",
+                    Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.LocString()}) for {amount.MoneyString()}!",
                     Color = board.GroupColorOrDefault(ps, Color.Green)
                 }.Build();
                 await this.Broadcast("", embed: embed);
@@ -394,7 +520,7 @@ namespace DiscordMoniesGame
                 var embed = new EmbedBuilder()
                 {
                     Title = "Auction",
-                    Description = $"{bidString}\n**{currentAuctionPlayer.Username}** is next to bid",
+                    Description = $"{bidString}\n**{nextPlayer.Username}** is next to bid.",
                     Color = board.GroupColorOrDefault(board.Spaces[auctionSpace.Value])
                 }.Build();
                 await this.Broadcast("", embed: embed);
@@ -447,17 +573,130 @@ namespace DiscordMoniesGame
         async Task<bool> TryDevelopSpace(IUser developer, int loc, bool demolish)
         {
             var space = board.Spaces[loc];
+            var diff = demolish ? -1 : 1;
+            var deed = board.TitleDeedFor(loc);
             if (space is not RoadSpace rs || rs.Owner?.Id != developer.Id)
             {
                 await developer.SendMessageAsync("You can't develop this property.");
                 return false;
             }
 
-            if (board.IsEntireGroupOwned(rs.Group, out var otherSpaces))
+            if (board.IsEntireGroupOwned(rs.Group, out var spaces))
             {
+                if (rs.Houses + diff > 5 || rs.Houses + diff < 0)
+                {
+                    if (demolish)
+                    {
+                        await developer.SendMessageAsync("You can't demolish anything here because there are no more houses to demolish.");
+                    }
+                    else
+                    {
+                        await developer.SendMessageAsync("You can't develop this property further because there is already a hotel on this property.");
+                    }
+                    return false;
+                }
 
+                //Checking whether new configuration will be valid
+                int compareValue = demolish ? spaces.Max(x => x.Houses) : spaces.Min(x => x.Houses);
+
+                if (rs.Houses == compareValue)
+                {
+                    if (demolish)
+                    {
+                        if (rs.Houses == 5)
+                        {
+                            if (!board.TryTakeHouse(4))
+                            {
+                                await developer.SendMessageAsync("You can't demolish this hotel because there are no more houses to purchase.");
+                                return false;
+                            }
+
+                            await TryTransfer(deed.HotelCost / 2, null, developer);
+                            board.ReturnHotel();
+                            board.Spaces[loc] = rs with { Houses = 4 };
+
+                            var embed1 = new EmbedBuilder()
+                            {
+                                Title = "Hotel Demolished",
+                                Description = $"The hotel on **{rs.Name}** ({loc.LocString()}) has been demolished, leaving 4 houses there.",
+                                Color = board.GroupColorOrDefault(rs)
+                            }.Build();
+                            await this.Broadcast("", embed: embed1);
+                            return true;
+                        }
+                        await TryTransfer(deed.HouseCost / 2, null, developer);
+                        board.ReturnHouse();
+                        board.Spaces[loc] = rs with { Houses = rs.Houses - 1 };
+
+                        var embed = new EmbedBuilder()
+                        {
+                            Title = "House Demolished",
+                            Description = $"A house on **{rs.Name}** ({loc.LocString()}) has been demolished, leaving {rs.Houses} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
+                            Color = board.GroupColorOrDefault(rs)
+                        }.Build();
+                        await this.Broadcast("", embed: embed);
+
+                        return true;
+                    }
+                    else // building
+                    {
+                        if (rs.Houses != 4)
+                        {
+                            if (!board.TryTakeHouse())
+                            {
+                                await developer.SendMessageAsync("You can't develop this property because there are no more houses to purchase.");
+                                return false;
+                            }
+                            if (await TryTransfer(deed.HouseCost, developer, null))
+                            {
+                                board.Spaces[loc] = rs with { Houses = rs.Houses + 1 };
+
+                                var embed = new EmbedBuilder()
+                                {
+                                    Title = "Hotel Built",
+                                    Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new house being built, " +
+                                    $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
+                                    Color = board.GroupColorOrDefault(rs)
+                                }.Build();
+                                await this.Broadcast("", embed: embed);
+                                return true;
+                            }
+                            board.ReturnHouse();
+                            return false;
+                        }
+                        else if (rs.Houses == 4)
+                        {
+                            if (!board.TryTakeHotel())
+                            {
+                                await developer.SendMessageAsync("You can't develop this property because there are no more hotels to purchase.");
+                                return false;
+                            }
+                            if (await TryTransfer(deed.HotelCost, developer, null))
+                            {
+                                board.ReturnHouse(4);
+                                board.Spaces[loc] = rs with { Houses = 5 };
+
+                                var embed = new EmbedBuilder()
+                                {
+                                    Title = "Hotel Built",
+                                    Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
+                                    Color = board.GroupColorOrDefault(rs)
+                                }.Build();
+                                await this.Broadcast("", embed: embed);
+                                return true;
+                            }
+                            board.ReturnHotel();
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    await developer.SendMessageAsync("You can't develop this property because developing it would cause the color set to be developed unevenly.");
+                    return false;
+                }
             }
-            
+
             await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
             return false;
         }

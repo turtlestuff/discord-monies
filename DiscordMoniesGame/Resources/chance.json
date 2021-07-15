@@ -16,8 +16,8 @@
     "Command": "warprel -3"
   },
   {
-    "Description": "Take a trip to {boardSpace 22}",
-    "Command": "warp 22"
+    "Description": "Take a trip to {boardSpace 23}",
+    "Command": "warp 23"
   },
   {
     "Description": "Advance to the next utility.\nPay the owner 10 times the amount showing on the die.\nYou may purchase the property if it is unowned.",

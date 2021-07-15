@@ -44,7 +44,7 @@
     },
     {
       "Type": "Chest",
-      "Name": "A Community Chest",
+      "Name": "Dubious Treasure",
       "Value": null,
       "Group": null,
       "Bounds": {
@@ -104,7 +104,7 @@
     },
     {
       "Type": "Chance",
-      "Name": "A Chance",
+      "Name": "Gamble",
       "Value": null,
       "Group": null,
       "Bounds": {
@@ -224,7 +224,7 @@
     },
     {
       "Type": "Chest",
-      "Name": "B Community Chest",
+      "Name": "Dubious Treasure",
       "Value": null,
       "Group": null,
       "Bounds": {
@@ -284,7 +284,7 @@
     },
     {
       "Type": "Chance",
-      "Name": "C Chance",
+      "Name": "Gamble",
       "Value": null,
       "Group": null,
       "Bounds": {
@@ -416,7 +416,7 @@
     },
     {
       "Type": "Chest",
-      "Name": "D Community Chest",
+      "Name": "Dubious Treasure",
       "Value": null,
       "Group": null,
       "Bounds": {
@@ -452,7 +452,7 @@
     },
     {
       "Type": "Chance",
-      "Name": "D Chance",
+      "Name": "Gamble",
       "Value": null,
       "Group": null,
       "Bounds": {

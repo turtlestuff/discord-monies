@@ -42,7 +42,7 @@ namespace DiscordMoniesGame
                             Fields = new()
                             {
                                 new() { IsInline = true, Name = "Balance", Value = playerState.Money.MoneyString() },
-                                new() { IsInline = true, Name = "Position", Value = playerState.Position.PositionString() },
+                                new() { IsInline = true, Name = "Position", Value = playerState.Position.LocString() },
                                 new() { IsInline = true, Name = "Color", Value = Colors.NameOfColor(playerState.Color) }
                             },
                             Color = PlayerColor(player)
@@ -217,7 +217,7 @@ namespace DiscordMoniesGame
                         {
                             Title = "Roll 🎲", //game die emoji
                             Description = $"**{msg.Author.Username}** has rolled `{roll1}` and `{roll2}` " +
-                            (!speedLimit ? $"and has gone to space `{position.PositionString()}` ({board.Spaces[position].Name})." : "") +
+                            (!speedLimit ? $"and has gone to space `{position.LocString()}` ({board.Spaces[position].Name})." : "") +
                             (speedLimit ? ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!" : ""),
                             Color = PlayerColor(msg.Author)
                         }.Build();
@@ -232,7 +232,7 @@ namespace DiscordMoniesGame
                         }
 
                         if (doubles)
-                            doubleTurn = true;
+                            rollAgain = true;
 
                         await HandlePlayerLand(position);
                         return;
@@ -254,7 +254,7 @@ namespace DiscordMoniesGame
                                 {
                                     Title = "Jail Roll",
                                     Description = $"**{msg.Author.Username}** has rolled `{roll1}` and `{roll2}` and has been freed from jail!\n" +
-                                    $"They move to `{position.PositionString()}` ({board.Spaces[position].Name})",
+                                    $"They move to `{position.LocString()}` ({board.Spaces[position].Name})",
                                     Color = Color.Green,
                                     Footer = new(){ Text = "They do not get an extra turn for rolling doubles" }
                                 }.Build();
@@ -322,7 +322,7 @@ namespace DiscordMoniesGame
                     var embed = new EmbedBuilder()
                     {
                         Title = "Auction 🧑‍⚖️", // judge emoji
-                        Description = $"**{msg.Author.Username}** is auctioning off **{space.Name}** ({aSt.Position.PositionString()}), normally worth {space.Value.MoneyString()}.\n" +
+                        Description = $"**{msg.Author.Username}** is auctioning off **{space.Name}** ({aSt.Position.LocString()}), normally worth {space.Value.MoneyString()}.\n" +
                         $"The auction will start at {1.MoneyString()} minimum with **{currentAuctionPlayer.Username}**, and will continue in the order below. " +
                         "You may use `bid [amount]` to bid or `skip` to skip. " +
                         "It will end when all players but one have skipped, and the last player not to skip gets the property. " +
@@ -426,6 +426,50 @@ namespace DiscordMoniesGame
                     }
                     return;
                 }),
+                new("paycard", CanRun.CurrentPlayer, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForCardPay)
+                    {
+                        await msg.Author.SendMessageAsync("You can't do this right now!");
+                        return;
+                    }
+
+                    if (!cardOwe.HasValue)
+                    {
+                        await AdvanceRound();
+                        return;
+                    }
+
+                    if (await TryTransfer(cardOwe.Value, currentPlr, null))
+                    {
+                        cardOwe = null;
+                        await AdvanceRound();
+                        return;
+                    }
+                        
+                }),
+                new("payrepairs", CanRun.CurrentPlayer, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForRepairsPay)
+                    {
+                        await msg.Author.SendMessageAsync("You can't do this right now!");
+                        return;
+                    }
+
+                    if (!repairsOwe.HasValue)
+                    {
+                        await AdvanceRound();
+                        return;
+                    }
+
+                    if (await TryTransfer(repairsOwe.Value, currentPlr, null))
+                    {
+                        repairsOwe = null;
+                        await AdvanceRound();
+                        return;
+                    }
+
+                }),
 
                 new("bail", CanRun.CurrentPlayer, async (args, msg) =>
                 {
@@ -476,7 +520,7 @@ namespace DiscordMoniesGame
                         if(await TryTransfer(amt, null, msg.Author))
                         {
                             board.Spaces[loc] = ps with { Mortgaged = true };
-                            await this.Broadcast($"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.PositionString()}) for {amt.MoneyString()}.");
+                            await this.Broadcast($"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.");
                         }
                     }
                     catch (ArgumentException e)
@@ -492,12 +536,12 @@ namespace DiscordMoniesGame
                     var space = board.Spaces[loc];
                     if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
                     {
-                        await msg.Author.SendMessageAsync($"{space.Name} ({loc.PositionString()}) is not your property.");
+                        await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not your property.");
                         return;
                     }
                     if (!ps.Mortgaged)
                     {
-                        await msg.Author.SendMessageAsync($"{space.Name} ({loc.PositionString()}) is not mortgaged.");
+                        await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not mortgaged.");
                         return;
                     }
                     var mortgage = board.TitleDeedFor(loc).MortgageValue;
@@ -506,8 +550,32 @@ namespace DiscordMoniesGame
                     if (await TryTransfer(amt, msg.Author))
                     {
                         board.Spaces[loc] = ps with { Mortgaged = false };
-                        await this.Broadcast($"**{msg.Author.Username}** has unmortgaged **{space.Name}** ({loc.PositionString()}).");
+                        await this.Broadcast($"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}).");
                     }
+                    }
+                    catch (ArgumentException e)
+                    {
+                        await msg.Author.SendMessageAsync(e.Message);
+                    }
+                }),
+                new("develop", CanRun.Player, async (args, msg) =>
+                {
+                    try
+                    {
+                        var loc = board.ParseBoardSpaceInt(args);
+                        await TryDevelopSpace(msg.Author, loc, false);
+                    }
+                    catch (ArgumentException e)
+                    {
+                        await msg.Author.SendMessageAsync(e.Message);
+                    }
+                }),
+                new("demolish", CanRun.Player, async (args, msg) =>
+                {
+                    try
+                    {
+                        var loc = board.ParseBoardSpaceInt(args);
+                        await TryDevelopSpace(msg.Author, loc, true);
                     }
                     catch (ArgumentException e)
                     {

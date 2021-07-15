@@ -1,11 +1,7 @@
 [
   {
-    "Description": "Pay {moneyValue 10} or take a Chance card",
+    "Description": "Pay {moneyValue 10} or take a Gamble card",
     "Command": "paychance"
-  },
-  {
-    "Description": "You have been elected Chairman of the board. Pay each player {moneyValue 50}",
-    "Command": "payall 50"
   },
   {
     "Description": "You are assessed for street repairs. For each house, pay {moneyValue 40}. For each hotel, pay {moneyValue 150}",

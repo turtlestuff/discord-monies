@@ -1,4 +1,4 @@
-﻿using Discord;
+﻿    using Discord;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -21,13 +21,13 @@ namespace DiscordMoniesGame
         public ImmutableArray<string> GroupNames { get; }
         public Space[] Spaces { get; }
 
-        public int AvailableHouses { get; set; } = 32;
-        public int AvailableHotels { get; set; } = 12;
+        public int AvailableHouses { get; private set; } = 32;
+        public int AvailableHotels { get; private set; } = 12;
 
         public TitleDeed[] TitleDeeds { get; }
-        public ConcurrentStack<LuckCard> ChanceCards { get; }
+        public ConcurrentStack<LuckCard> ChanceCards { get; private set; }
         public ConcurrentBag<LuckCard> UsedChanceCards { get; } = new();
-        public ConcurrentStack<LuckCard> ChestCards { get; }
+        public ConcurrentStack<LuckCard> ChestCards { get; private set; }
         public ConcurrentBag<LuckCard> UsedChestCards { get; }  = new();
 
         public int VisitingJailPosition => Array.FindIndex(Spaces, s => s.Name == "Visiting Jail");
@@ -105,10 +105,10 @@ namespace DiscordMoniesGame
             }
 
             var titleDeeds = await JsonSerializer.DeserializeAsync<TitleDeed[]>(titleDeedStream);
-            var chanceCards = await JsonSerializer.DeserializeAsync<LuckCard[]>(chanceStream);
-            var chestCards = await JsonSerializer.DeserializeAsync<LuckCard[]>(chestStream);
+            var chanceCards = (await JsonSerializer.DeserializeAsync<LuckCard[]>(chanceStream))!.OrderBy(_ => Random.Shared.Next()).ToArray();
+            var chestCards = (await JsonSerializer.DeserializeAsync<LuckCard[]>(chestStream))!.OrderBy(_ => Random.Shared.Next()).ToArray();
 
-            return new Board(startingMoney, jailFine, jailBounds, groupNames, spaces.ToArray(), titleDeeds!, chanceCards!, chestCards!);
+            return new Board(startingMoney, jailFine, jailBounds, groupNames, spaces.ToArray(), titleDeeds!, chanceCards, chestCards);
         }
 
         static int Position(string positionString) =>
@@ -182,5 +182,46 @@ namespace DiscordMoniesGame
             // something has gone wrong
             return 0;
         }
+
+        public LuckCard DrawLuckCard(CardType type)
+        {
+            LuckCard card;
+
+            if (type == CardType.Chance)
+            {
+                while (!ChanceCards.TryPop(out card))
+                {
+                    ChanceCards = new(UsedChanceCards.OrderBy(_ => Random.Shared.Next()));
+                }
+            }
+            else
+            {
+                while (!ChestCards.TryPop(out card))
+                {
+                    ChestCards = new(UsedChestCards.OrderBy(_ => Random.Shared.Next()));
+                }
+            }
+
+            return card;
+        }
+
+        public bool TryTakeHouse(int number = 1)
+        {
+            if (AvailableHouses - number < 0)
+                return false;
+            AvailableHouses -= number;
+            return true;
+        }
+
+        public bool TryTakeHotel()
+        {
+            if (AvailableHotels == 0) return false;
+            AvailableHotels--;
+            return true;
+        }
+
+        public void ReturnHouse(int number = 1) => AvailableHotels += number;
+        
+        public void ReturnHotel() => AvailableHotels++;
     }
 }
