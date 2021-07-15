@@ -21,9 +21,6 @@ namespace DiscordMoniesGame
         public ImmutableArray<string> GroupNames { get; }
         public Space[] Spaces { get; }
 
-        public int AvailableHouses { get; private set; } = 32;
-        public int AvailableHotels { get; private set; } = 12;
-
         public TitleDeed[] TitleDeeds { get; }
         public ConcurrentStack<LuckCard> ChanceCards { get; private set; }
         public ConcurrentBag<LuckCard> UsedChanceCards { get; } = new();
@@ -262,23 +259,23 @@ namespace DiscordMoniesGame
             return card;
         }
 
-        public bool TryTakeHouse(int number = 1)
+        const int InitialHouses = 32;
+        const int InitialHotels = 12;
+
+        public int AvailableHouses => InitialHouses - Spaces.Sum(x => x is RoadSpace rs && rs.Houses != 5 ? rs.Houses : 0);
+        public int AvailableHotels => InitialHotels - Spaces.Sum(x => x is RoadSpace rs && rs.Houses == 5 ? 1 : 0);
+
+        public bool CanTakeHouse(int number = 1)
         {
             if (AvailableHouses - number < 0)
                 return false;
-            AvailableHouses -= number;
             return true;
         }
 
-        public bool TryTakeHotel()
+        public bool CanTakeHotel()
         {
             if (AvailableHotels == 0) return false;
-            AvailableHotels--;
             return true;
         }
-
-        public void ReturnHouse(int number = 1) => AvailableHotels += number;
-        
-        public void ReturnHotel() => AvailableHotels++;
     }
 }

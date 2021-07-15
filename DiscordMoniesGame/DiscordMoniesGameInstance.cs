@@ -688,7 +688,7 @@ namespace DiscordMoniesGame
                     {
                         if (rs.Houses == 5)
                         {
-                            if (!board.TryTakeHouse(4))
+                            if (!board.CanTakeHouse(4))
                             {
                                 await developer.SendMessageAsync("You can't demolish this hotel because there are no more houses to purchase.");
                                 return false;
@@ -725,7 +725,7 @@ namespace DiscordMoniesGame
                     {
                         if (rs.Houses != 4)
                         {
-                            if (!board.TryTakeHouse())
+                            if (!board.CanTakeHouse())
                             {
                                 await developer.SendMessageAsync("You can't develop this property because there are no more houses to purchase.");
                                 return false;
@@ -749,7 +749,7 @@ namespace DiscordMoniesGame
                         }
                         else if (rs.Houses == 4)
                         {
-                            if (!board.TryTakeHotel())
+                            if (!board.CanTakeHotel())
                             {
                                 await developer.SendMessageAsync("You can't develop this property because there are no more hotels to purchase.");
                                 return false;
