@@ -1,3 +1,5 @@
+using Discord;
+using Leisure;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,8 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Discord;
-using Leisure;
 
 namespace DiscordMoniesGame
 {
@@ -108,6 +108,15 @@ namespace DiscordMoniesGame
                 Color = Color.Green
             };
             await SendBoard(Users, embed);
+
+            var firstEmbed = new EmbedBuilder()
+            {
+                Title = "Your Turn!",
+                Description = "You're up first! Use `roll` to roll the dice and move around the board! Your piece is the " +
+                    $"{Colors.NameOfColor(pSt[currentPlr].Color)} one.",
+                Color = pSt[currentPlr].Color.ToDiscordColor()
+            }.Build();
+            await currentPlr.SendMessageAsync(embed: firstEmbed);
         }
 
         public override async Task OnMessage(IUserMessage msg, int pos)
@@ -179,7 +188,7 @@ namespace DiscordMoniesGame
                     {
                         return $"{board.Spaces[val].Name} ({val.LocString()})";
                     }
-                } );
+                });
 
                 var cardType = dcs.Type == CardType.Chance ? "Gamble" : "Dubious Treasure";
 
@@ -397,9 +406,23 @@ namespace DiscordMoniesGame
                 Title = "Next Round",
                 Description = $"Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
                 (pSt[currentPlr].JailStatus == -1 ? $"{board.Spaces[pSt[currentPlr].Position].Name} ({pSt[currentPlr].Position.LocString()})" : "Jail"),
-                Color = Color.Gold
+                Color = pSt[currentPlr].Color.ToDiscordColor()
             };
             await SendBoard(Users, embed);
+            var playerEmbed = new EmbedBuilder().WithTitle("Your Turn!");
+            if (pSt[currentPlr].JailStatus == -1)
+            {
+                playerEmbed.WithDescription("It's your turn! You can use `roll` to roll the dice and move around the board! Your piece is the " +
+                    $"{Colors.NameOfColor(pSt[currentPlr].Color)} one.")
+                    .WithColor(pSt[currentPlr].Color.ToDiscordColor());
+            }
+            else
+            {
+                playerEmbed.WithDescription("It's your turn, but unfortunately you in jail. You can try rolling doubles with `roll`, " +
+                    $"bailing and paying the {board.JailFine.MoneyString()} fine with `bail`, or using a Get out of Jail Free card, with `usejailcard`, if you have one.")
+                    .WithColor(Color.Red);
+            }
+            await currentPlr.SendMessageAsync(embed: playerEmbed.Build());
         }
 
         async Task SendToJail(IUser player)
