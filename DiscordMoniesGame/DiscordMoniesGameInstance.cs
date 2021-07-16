@@ -33,13 +33,13 @@ namespace DiscordMoniesGame
             Chest = 2
         }
 
-        public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color);
+        public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color, TradeTable? TradeTable);
         // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
 
         int jailRoll;
 
         readonly int originalPlayerCount;
-        readonly ConcurrentDictionary<IUser, PlayerState> pSt = new(DiscordComparers.UserComparer);
+        readonly ConcurrentDictionary<IUser, PlayerState> plrStates = new(DiscordComparers.UserComparer);
         Board board = default!;
         IUser currentPlr;
 
@@ -87,8 +87,8 @@ namespace DiscordMoniesGame
 
             for (var i = 0; i < Players.Length; i++)
             {
-                if (!pSt.TryAdd(Players[i],
-                    new PlayerState(board.StartingMoney, 00, -1, JailCards.None, shuffledColors[i].Value)))
+                if (!plrStates.TryAdd(Players[i],
+                    new PlayerState(board.StartingMoney, 00, -1, JailCards.None, shuffledColors[i].Value, null)))
                     throw new Exception("Something very wrong happened Initializing");
             }
 
@@ -113,8 +113,8 @@ namespace DiscordMoniesGame
             {
                 Title = "Your Turn!",
                 Description = "You're up first! Use `roll` to roll the dice and move around the board! Your piece is the " +
-                    $"{Colors.NameOfColor(pSt[currentPlr].Color)} one.",
-                Color = pSt[currentPlr].Color.ToDiscordColor()
+                    $"{Colors.NameOfColor(plrStates[currentPlr].Color)} one.",
+                Color = plrStates[currentPlr].Color.ToDiscordColor()
             }.Build();
             await currentPlr.SendMessageAsync(embed: firstEmbed);
         }
@@ -376,7 +376,7 @@ namespace DiscordMoniesGame
             {
                 var i = index ? $"{x + 1}: " : "";
                 var b = bold && x == 0 ? "**" : "";
-                var c = color ? $" ({Colors.NameOfColor(pSt[p].Color)})" : "";
+                var c = color ? $" ({Colors.NameOfColor(plrStates[p].Color)})" : "";
                 return b + i + p.Username + c + b;
             }
             return string.Join('\n', OrderedPlayers(start).Select(Do));
@@ -405,16 +405,16 @@ namespace DiscordMoniesGame
             {
                 Title = "Next Round",
                 Description = $"Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
-                (pSt[currentPlr].JailStatus == -1 ? $"{board.Spaces[pSt[currentPlr].Position].Name} ({pSt[currentPlr].Position.LocString()})" : "Jail"),
-                Color = pSt[currentPlr].Color.ToDiscordColor()
+                (plrStates[currentPlr].JailStatus == -1 ? $"{board.Spaces[plrStates[currentPlr].Position].Name} ({plrStates[currentPlr].Position.LocString()})" : "Jail"),
+                Color = plrStates[currentPlr].Color.ToDiscordColor()
             };
             await SendBoard(Users, embed);
             var playerEmbed = new EmbedBuilder().WithTitle("Your Turn!");
-            if (pSt[currentPlr].JailStatus == -1)
+            if (plrStates[currentPlr].JailStatus == -1)
             {
                 playerEmbed.WithDescription("It's your turn! You can use `roll` to roll the dice and move around the board! Your piece is the " +
-                    $"{Colors.NameOfColor(pSt[currentPlr].Color)} one.")
-                    .WithColor(pSt[currentPlr].Color.ToDiscordColor());
+                    $"{Colors.NameOfColor(plrStates[currentPlr].Color)} one.")
+                    .WithColor(plrStates[currentPlr].Color.ToDiscordColor());
             }
             else
             {
@@ -428,7 +428,7 @@ namespace DiscordMoniesGame
         async Task SendToJail(IUser player)
         {
             rollAgain = false;
-            pSt[player] = pSt[player] with { JailStatus = 0, Position = board.VisitingJailPosition };
+            plrStates[player] = plrStates[player] with { JailStatus = 0, Position = board.VisitingJailPosition };
             var embed = new EmbedBuilder()
             {
                 Title = "Jail 🚔", //oncoming police car emoji
@@ -444,7 +444,7 @@ namespace DiscordMoniesGame
         {
             try
             {
-                using var bmp = boardRenderer.Render(Players, pSt, board);
+                using var bmp = boardRenderer.Render(Players, plrStates, board);
                 using var memStr = new MemoryStream();
                 bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
                 foreach (var u in users)
@@ -473,7 +473,7 @@ namespace DiscordMoniesGame
 
         async Task<int> MovePlayer(IUser player, int position, bool passGoBonus = true)
         {
-            if (position < pSt[player].Position && passGoBonus)
+            if (position < plrStates[player].Position && passGoBonus)
             {
                 await GiveMoney(player, board.PassGoValue);
                 var embed = new EmbedBuilder()
@@ -483,30 +483,30 @@ namespace DiscordMoniesGame
                 }.Build();
                 await this.Broadcast("", embed: embed);
             }
-            pSt[player] = pSt[player] with { Position = position };
+            plrStates[player] = plrStates[player] with { Position = position };
             return position;
         }
 
         async Task<int> MovePlayerRelative(IUser player, int amount, bool passGoBonus = true)
         {
-            var position = (pSt[player].Position + amount) % board.Spaces.Length;
+            var position = (plrStates[player].Position + amount) % board.Spaces.Length;
             return await MovePlayer(player, position, passGoBonus);
         }
 
-        Color PlayerColor(IUser player) => pSt[player].Color.ToDiscordColor();
+        Color PlayerColor(IUser player) => plrStates[player].Color.ToDiscordColor();
 
         async Task<bool> TryTransfer(int amount, IUser? payer = null, IUser? reciever = null)
         {
             if (payer is not null)
             {
-                if (amount > pSt[payer].Money)
+                if (amount > plrStates[payer].Money)
                 {
-                    await payer.SendMessageAsync($"You do not have enough money to make this transaction. (You have: {pSt[payer].Money.MoneyString()}. Required amount: {amount.MoneyString()})");
+                    await payer.SendMessageAsync($"You do not have enough money to make this transaction. (You have: {plrStates[payer].Money.MoneyString()}. Required amount: {amount.MoneyString()})");
                     return false;
                 }
-                pSt[payer] = pSt[payer] with { Money = pSt[payer].Money - amount };
+                plrStates[payer] = plrStates[payer] with { Money = plrStates[payer].Money - amount };
                 await payer.
-                    SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {pSt[payer].Money.MoneyString()}.");
+                    SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}.");
             }
 
             if (reciever is not null)
@@ -519,9 +519,9 @@ namespace DiscordMoniesGame
 
         async Task GiveMoney(IUser reciever, int amount, string? giver = null)
         {
-            pSt[reciever] = pSt[reciever] with { Money = pSt[reciever].Money + amount };
+            plrStates[reciever] = plrStates[reciever] with { Money = plrStates[reciever].Money + amount };
             if (giver is not null)
-                await reciever.SendMessageAsync($"You have recieved {amount.MoneyString()} from **{giver}**. Your balance is now {pSt[reciever].Money.MoneyString()}.");
+                await reciever.SendMessageAsync($"You have recieved {amount.MoneyString()} from **{giver}**. Your balance is now {plrStates[reciever].Money.MoneyString()}.");
         }
 
         async Task<bool> TryBuyProperty(IUser player, int pos, int amount)

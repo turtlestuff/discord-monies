@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -122,6 +123,20 @@ namespace DiscordMoniesGame
                 throw new ArgumentException("Out of bounds");
 
             return spacePos;
+        }
+
+        public bool TryParseBoardSpaceInt(string loc, [MaybeNullWhen(false)] out int value)
+        {
+            try
+            {
+                value = ParseBoardSpaceInt(loc);
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                value = 0;
+                return false;
+            }
         }
 
         public ref Space ParseBoardSpace(string loc) => ref Spaces[ParseBoardSpaceInt(loc)];

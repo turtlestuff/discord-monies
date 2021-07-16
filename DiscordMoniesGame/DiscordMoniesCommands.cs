@@ -35,7 +35,7 @@ namespace DiscordMoniesGame
 
                     if (player is not null)
                     {
-                        var playerState = pSt[player];
+                        var playerState = plrStates[player];
                         var embed = new EmbedBuilder()
                         {
                             Title = player.Username,
@@ -71,7 +71,7 @@ namespace DiscordMoniesGame
 
                     if (player is not null)
                     {
-                        var playerState = pSt[player];
+                        var playerState = plrStates[player];
                         await msg.Author.SendMessageAsync($"{player.Username}'s balance: {playerState.Money.MoneyString()}");
                         return;
                     }
@@ -160,7 +160,7 @@ namespace DiscordMoniesGame
                         return;
                     }
                     continuousRolls++;
-                    if (pSt[msg.Author].JailStatus == -1)
+                    if (plrStates[msg.Author].JailStatus == -1)
                     {
                         var roll1 = Random.Shared.Next(6) + 1;
                         var roll2 = Random.Shared.Next(6) + 1;
@@ -194,7 +194,7 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        var jailStatus = pSt[msg.Author].JailStatus;
+                        var jailStatus = plrStates[msg.Author].JailStatus;
 
                         // player has another chance at rolling doubles
                         var roll1 = Random.Shared.Next(6) + 1;
@@ -203,7 +203,7 @@ namespace DiscordMoniesGame
                         if (roll1 == roll2)
                         {
                             var position = await MovePlayerRelative(msg.Author, roll1 + roll2);
-                            pSt[msg.Author] = pSt[msg.Author] with { JailStatus = -1 };
+                            plrStates[msg.Author] = plrStates[msg.Author] with { JailStatus = -1 };
                             var embed = new EmbedBuilder()
                             {
                                 Title = "Jail Roll",
@@ -218,7 +218,7 @@ namespace DiscordMoniesGame
                         }
                         else
                         {
-                            pSt[msg.Author] = pSt[msg.Author] with { JailStatus = jailStatus + 1 };
+                            plrStates[msg.Author] = plrStates[msg.Author] with { JailStatus = jailStatus + 1 };
                             if (jailStatus + 1 == 3)
                             {
                                 var embed = new EmbedBuilder()
@@ -258,7 +258,7 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    var aSt = pSt[msg.Author];
+                    var aSt = plrStates[msg.Author];
                     var space = (PropertySpace) board.Spaces[aSt.Position];
                     if (await TryBuyProperty(msg.Author, aSt.Position, space.Value))
                         await AdvanceRound();
@@ -274,7 +274,7 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    var aSt = pSt[msg.Author];
+                    var aSt = plrStates[msg.Author];
                     var space = (PropertySpace) board.Spaces[aSt.Position];
 
                     auctionSpace = aSt.Position;
@@ -339,9 +339,9 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    if (value > pSt[msg.Author].Money)
+                    if (value > plrStates[msg.Author].Money)
                     {
-                        await msg.Author.SendMessageAsync($"You do not have enough money to bid that much. Your balance is {pSt[msg.Author].Money.MoneyString()}.");
+                        await msg.Author.SendMessageAsync($"You do not have enough money to bid that much. Your balance is {plrStates[msg.Author].Money.MoneyString()}.");
                         return;
                     }
 
@@ -356,7 +356,7 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    var aSt = pSt[msg.Author];
+                    var aSt = plrStates[msg.Author];
                     var space = (TaxSpace) board.Spaces[aSt.Position];
                     if (await TryTransfer(space.Value, msg.Author))
                         await AdvanceRound();
@@ -371,7 +371,7 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    var aSt = pSt[msg.Author];
+                    var aSt = plrStates[msg.Author];
                     var space = (PropertySpace) board.Spaces[aSt.Position];
 
                     if (space.Owner is null || space.Mortgaged || space.Owner.Id == currentPlr.Id) //vroom vroom condition
@@ -438,7 +438,7 @@ namespace DiscordMoniesGame
 
                 new("bail", CanRun.CurrentPlayer, async (args, msg) =>
                 {
-                    if (pSt[msg.Author].JailStatus == -1)
+                    if (plrStates[msg.Author].JailStatus == -1)
                     {
                         await msg.Author.SendMessageAsync("You can't do this right now!");
                         return;
@@ -446,8 +446,8 @@ namespace DiscordMoniesGame
 
                     if (await TryTransfer(board.JailFine, msg.Author))
                     {
-                        var isJail3 = pSt[msg.Author].JailStatus == 3;
-                        pSt[msg.Author] = pSt[msg.Author] with { JailStatus = -1 };
+                        var isJail3 = plrStates[msg.Author].JailStatus == 3;
+                        plrStates[msg.Author] = plrStates[msg.Author] with { JailStatus = -1 };
                         var embed = new EmbedBuilder()
                         {
                             Title = "Jail Fine",
@@ -467,15 +467,15 @@ namespace DiscordMoniesGame
                     }
                 }),
                 new("usejailcard", CanRun.CurrentPlayer, async (args, msg) => {
-                    if (pSt[msg.Author].JailStatus == -1)
+                    if (plrStates[msg.Author].JailStatus == -1)
                     {
                         await msg.Author.SendMessageAsync("You can't do this right now!");
                         return;
                     }
 
                     if (await TryTakeJailFreeCard(msg.Author)) {
-                        var isJail3 = pSt[msg.Author].JailStatus == 3;
-                        pSt[msg.Author] = pSt[msg.Author] with { JailStatus = -1 };
+                        var isJail3 = plrStates[msg.Author].JailStatus == 3;
+                        plrStates[msg.Author] = plrStates[msg.Author] with { JailStatus = -1 };
                         var embed = new EmbedBuilder()
                         {
                             Title = "Jail Fine",
@@ -609,6 +609,7 @@ namespace DiscordMoniesGame
                     }
                 }),
 
+                new("trade", CanRun.Player, HandleTradeCommand),
 
                 //TODO: DEBUG COMMANDS! PLEASE REMOVE THESE WHEN FINISHED
                 //HACK: Debig commands!
@@ -649,7 +650,7 @@ namespace DiscordMoniesGame
             if (commandObj is null)
             {
                 var closest = Utils.MatchClosest(cmdStr, commands, c => c.Name).Name;
-                if (Utils.Distance(closest, cmdStr) <= 2) 
+               if (Utils.Distance(closest, cmdStr) <= 2 && Math.Abs(cmdStr.Length - closest.Length) < 1) 
                     await msg.Author.SendMessageAsync($"Did you mean: `{closest}`?");
                 return false;
             }
