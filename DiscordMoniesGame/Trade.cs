@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Leisure;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -139,7 +138,7 @@ namespace DiscordMoniesGame
                     return;
 
                 case "offer": //"request"
-                   if (aSt.TradeTable is null)
+                    if (aSt.TradeTable is null)
                         break;
 
                     try
@@ -161,6 +160,8 @@ namespace DiscordMoniesGame
                         aSt.TradeTable.State = TradeTable.TradeTableState.Offered;
                         trades.Add(aSt.TradeTable);
                         await SendTradeTable(aSt.TradeTable, p.First(), true);
+                        await p.First().SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
+                            $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
                     }
                     catch (ArgumentException)
                     {
@@ -172,15 +173,31 @@ namespace DiscordMoniesGame
                 case "viewoffer":
                     if (TryGetTradeTable(args, out var table))
                         await SendTradeTable(table, msg.Author, table.Recipient?.Id == msg.Author.Id);
-                    else  //i am sorry in advance for my formatting
+                    else
                         await msg.Author.SendMessageAsync("That trade table is not available.");
-                    
                     return;
+
                 case "accept":
-                    return;
-                case "copy":
+                    if (TryGetTradeTable(args, out var table1) && table1.Recipient?.Id == msg.Author.Id)
+                    {
+
+                    }
+                    else
+                    {
+                        await msg.Author.SendMessageAsync("That trade table is not available.");
+                    }
                     return;
                 case "reject":
+                    if (TryGetTradeTable(args, out var table2) && table2.Recipient?.Id == msg.Author.Id)
+                    {
+                        trades.Remove(table2);
+                        await table2.Sender.SendMessageAsync($"**{msg.Author.Username}** has rejected your trade offer.");
+                        await msg.Author.SendMessageAsync($"You have rejected **{table2.Sender?.Username}**'s trade offer.");
+                    }
+                    else
+                    {
+                        await msg.Author.SendMessageAsync("That trade table is not available.");
+                    }
                     return;
                 default:
                     await msg.Author.SendMessageAsync("Invalid command for trade");
@@ -278,14 +295,14 @@ namespace DiscordMoniesGame
             var x => x.ToString()
         };
 
-        bool TryGetTradeTable(string args, [MaybeNullWhen(false)] out TradeTable table) 
+        bool TryGetTradeTable(string args, [MaybeNullWhen(false)] out TradeTable table)
         {
             //maybe we should default to a sane trade table (the first one where they are the recipient?)
             table = default!;
-            if (!int.TryParse(args, out var intResult)) 
+            if (!int.TryParse(args, out var intResult))
                 return false;
 
-            if (intResult >= trades.Count) 
+            if (intResult >= trades.Count)
                 return false;
 
             table = trades[intResult];
@@ -321,7 +338,7 @@ namespace DiscordMoniesGame
                     }
                 }
             }
-            
+
             item = default!;
             return false;
         }

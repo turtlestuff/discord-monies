@@ -538,7 +538,7 @@ namespace DiscordMoniesGame
                                     Description = $"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
                                     Color = board.GroupColorOrDefault(ps, Color.Gold)
                                 }.Build();
-                                await this.Broadcast(", ");
+                                await this.Broadcast("", embed: embed);
                             }
                         }
                     }
@@ -572,10 +572,10 @@ namespace DiscordMoniesGame
                             var embed = new EmbedBuilder()
                             {
                                 Title = "Mortgage",
-                                Description = $"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                                Description = $"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
                                 Color = board.GroupColorOrDefault(ps, Color.Gold)
                             }.Build();
-                            await this.Broadcast(", ");
+                            await this.Broadcast("", embed: embed);
 
                         }
                     }
