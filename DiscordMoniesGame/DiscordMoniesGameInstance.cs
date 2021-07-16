@@ -497,6 +497,9 @@ namespace DiscordMoniesGame
 
         async Task<bool> TryTransfer(int amount, IUser? payer = null, IUser? reciever = null)
         {
+            if (amount == 0)
+                return true;
+
             if (payer is not null)
             {
                 if (amount > plrStates[payer].Money)

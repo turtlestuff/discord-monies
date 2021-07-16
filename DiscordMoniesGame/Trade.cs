@@ -46,7 +46,7 @@ namespace DiscordMoniesGame
             var aSt = plrStates[msg.Author];
             switch (command.ToLowerInvariant())
             {
-                case "start":
+                case "new":
                     if (aSt.TradeTable is not null)
                     {
                         await msg.Author.SendMessageAsync("You have already laid out a trade. Use `trade close` to get rid of that one.");
@@ -59,6 +59,7 @@ namespace DiscordMoniesGame
                 case "close":
                     if (aSt.TradeTable is null)
                         break;
+                    trades.Remove(aSt.TradeTable);
                     plrStates[msg.Author] = aSt with { TradeTable = null };
                     await msg.Author.SendMessageAsync("You have chucked your old trade away.");
                     return;
@@ -146,7 +147,7 @@ namespace DiscordMoniesGame
                         var p = aSt.TradeTable.Take.Select(DetermineTradeTableParties).Distinct().Where(x => x is not null).Cast<IUser>();
 
                         if (p.Count() != 1)
-                            throw new ArgumentException("Ambiguous Trade Offer");
+                            throw new TradeException("Ambiguous Trade Offer");
 
                         aSt.TradeTable.Sender = msg.Author;
                         aSt.TradeTable.Recipient = p.First();
@@ -163,7 +164,7 @@ namespace DiscordMoniesGame
                         await p.First().SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
                             $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
                     }
-                    catch (ArgumentException)
+                    catch (TradeException)
                     {
                         await msg.Author.SendMessageAsync("The trade table is ambiguous or invalid. Ensure that the trade table consists of " +
                             "properties where you are trading between yourself and exactly one other player.");
@@ -203,7 +204,18 @@ namespace DiscordMoniesGame
                     await msg.Author.SendMessageAsync("Invalid command for trade");
                     return;
             }
-            await msg.Author.SendMessageAsync("You don't have a trade laid out. Please use `trade start` to lay out a new one!");
+            await msg.Author.SendMessageAsync("You don't have a trade laid out. Please use `trade new` to lay out a new one!");
+        }
+
+        async Task<bool> TryConcludeTrade(TradeTable table)
+        {
+            if (table.Recipient is null || table.Sender is null)
+                return false;
+
+            if (!EnsureItemsTradable(table))
+                return false;
+
+            return false;
         }
 
         IUser? DetermineTradeTableParties(TradeItem item)
@@ -211,54 +223,73 @@ namespace DiscordMoniesGame
             if (item is PropertyItem pi)
             {
                 var space = (PropertySpace)board.Spaces[pi.Location];
-                if (space.Owner is null) throw new ArgumentException("No one owns this property");
+                if (space.Owner is null) throw new TradeException("No one owns this property");
                 return space.Owner;
             }
             else if (item is JailCardItem)
             {
-                //for now just return the chance card
-                return chanceJailFreeCardOwner ?? chestJailFreeCardOwner ??
-                throw new ArgumentException("No one owns a GOOJFC"); //abort the trade right now
+                return chanceJailFreeCardOwner
+                       ?? chestJailFreeCardOwner
+                       ?? throw new TradeException("No one owns a GOOJFC"); //abort the trade right now
             }
             return null;
         }
 
         bool EnsureItemsTradable(TradeTable table)
         {
+            // TODO: This is a really weird way to do things! 
             try
             {
                 var p = table.Take.Select(DetermineTradeTableParties).Distinct().Where(x => x is not null).Cast<IUser>();
 
                 if (p.Count() > 1)
-                    throw new ArgumentException("Ambiguous Trade Offer");
+                    throw new TradeException("Ambiguous Trade Offer");
 
-                if (p.Count() == 1 && p.First().Id != table.Recipient?.Id) return false;
+                if (p.Count() == 1 && p.First().Id != table.Recipient?.Id) 
+                    return false;
 
                 var q = table.Give.Select(DetermineTradeTableParties).Distinct().Where(x => x is not null).Cast<IUser>();
 
                 if (q.Count() > 1)
-                    throw new ArgumentException("Ambiguous Trade Offer");
+                    throw new TradeException("Ambiguous Trade Offer");
 
                 if (q.Count() == 1 && q.First().Id != table.Sender?.Id)
                     return false;
 
-                if (table.GivingMoney > 0)
-                {
-                    return plrStates[table.Sender!].Money > table.GivingMoney;
-                }
-                else if (table.GivingMoney < 0)
-                {
-                    //help we need to make sure the people have enough money
-                    return plrStates[table.Recipient!].Money > -table.GivingMoney;
-                }
-
-                return true;
+                return (plrStates[table.Sender!].Money >= TotalGivingAmount(table)) &&
+                    (plrStates[table.Recipient!].Money >= TotalTakingAmount(table));
             }
-            catch (ArgumentException)
+            catch (TradeException)
             {
                 return false;
             }
         }
+
+        int TotalGivingAmount(TradeTable table) =>
+            GivingAmount(table) + MortgageAmount(table.Take);
+
+        int TotalTakingAmount(TradeTable table) => 
+            TakingAmount(table) + MortgageAmount(table.Give);
+
+        static int GivingAmount(TradeTable table) => Math.Max(0, table.GivingMoney);
+        static int TakingAmount(TradeTable table) => Math.Max(0, -table.GivingMoney);
+
+        int MortgageAmount(IEnumerable<TradeItem> items) =>
+            items.Sum(i =>
+            {
+                if (i is not PropertyItem pi)
+                    return 0; // not property item
+
+                if (!((PropertySpace)board.Spaces[pi.Location]).Mortgaged)
+                    return 0; // not mortgaged
+
+                var deed = board.TitleDeedFor(pi.Location);
+                // mortgaged. check if keeping or unmortgaging
+
+                                          // keeping: pay 10% to the bank     // unmortgaging: pay 110% to the bank 
+                return pi.KeepMortgaged ? (int) (deed.MortgageValue * 0.10) : (int) (deed.MortgageValue * 1.10);
+            });
+
 
         async Task SendTradeTable(TradeTable table, IUser sendTo, bool reverse)
         {
@@ -267,16 +298,23 @@ namespace DiscordMoniesGame
                 Title = "Trade 🔀",
                 Color = Color.Purple
             };
+
+            var giveMortgageMoney = MortgageAmount(table.Give);
             var giveString = string.Join('\n', table.Give.Select(i => ItemName(i))) +
-                (table.GivingMoney > 0 ? $"\n{table.GivingMoney.MoneyString()}" : "");
+                (table.GivingMoney > 0 ? $"\n{GivingAmount(table).MoneyString()}" : "") +
+                (giveMortgageMoney != 0 ? $"\n**To bank**: {giveMortgageMoney.MoneyString()}" : "");
             var giveField = new EmbedFieldBuilder()
             {
                 Name = !reverse ? "You give:" : "You take:",
                 IsInline = true,
                 Value = giveString == "" ? "Empty" : giveString
             };
+
+            var takeMortgageMoney = MortgageAmount(table.Take);
             var takeString = string.Join('\n', table.Take.Select(i => ItemName(i))) +
-                (table.GivingMoney < 0 ? $"\n{(-table.GivingMoney).MoneyString()}" : "");
+                (table.GivingMoney < 0 ? $"\n{TakingAmount(table).MoneyString()}" : "") +
+                (takeMortgageMoney != 0 ? $"\n**To bank**: {takeMortgageMoney.MoneyString()}" : "");
+            
             var takeField = new EmbedFieldBuilder()
             {
                 Name = !reverse ? "You take:" : "You give:",
@@ -307,9 +345,9 @@ namespace DiscordMoniesGame
 
             table = trades[intResult];
             return true;
-        }// AWFEJNAWEFJAWEFLAWEFANWLJEF
+        }
 
-        bool TryParseItem(string args, out TradeItem item)
+        bool TryParseItem(string args, [MaybeNullWhen(false)] out TradeItem item)
         {
             if (int.TryParse(args, NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var intResult))
             {
@@ -321,19 +359,19 @@ namespace DiscordMoniesGame
                 item = new JailCardItem();
                 return true;
             }
-            var split = args.Split(' ');
-            if (split.Length == 2)
+            var split = args.Split(' ').Append("").ToArray();
+            if (split.Length > 2)
             {
                 if (board.TryParseBoardSpaceInt(split[0], out var loc) && board.Spaces[loc] is PropertySpace)
                 {
-                    if (split[1] == "keep")
-                    {
-                        item = new PropertyItem(loc, true);
-                        return true;
-                    }
                     if (split[1] == "demortgage")
                     {
                         item = new PropertyItem(loc, false);
+                        return true;
+                    }
+                    else
+                    {
+                        item = new PropertyItem(loc, true);
                         return true;
                     }
                 }
@@ -342,5 +380,10 @@ namespace DiscordMoniesGame
             item = default!;
             return false;
         }
+    }
+
+    class TradeException : Exception 
+    {
+        public TradeException(string message) : base(message) { }
     }
 }
