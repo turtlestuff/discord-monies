@@ -144,13 +144,13 @@ namespace DiscordMoniesGame
 
                     try
                     {
-                        var p = aSt.TradeTable.Take.Select(DetermineTradeTableParties).Distinct().Where(x => x is not null).Cast<IUser>();
+                        var p = DetermineTradeTableParties(aSt.TradeTable.Take);
 
-                        if (p.Count() != 1)
+                        if (p is null)
                             throw new TradeException("Ambiguous Trade Offer");
 
                         aSt.TradeTable.Sender = msg.Author;
-                        aSt.TradeTable.Recipient = p.First();
+                        aSt.TradeTable.Recipient = p;
 
                         if (!EnsureItemsTradable(aSt.TradeTable))
                         {
@@ -160,8 +160,8 @@ namespace DiscordMoniesGame
 
                         aSt.TradeTable.State = TradeTable.TradeTableState.Offered;
                         trades.Add(aSt.TradeTable);
-                        await SendTradeTable(aSt.TradeTable, p.First(), true);
-                        await p.First().SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
+                        await SendTradeTable(aSt.TradeTable, p, true);
+                        await p.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
                             $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
                     }
                     catch (TradeException)
@@ -214,25 +214,47 @@ namespace DiscordMoniesGame
 
             if (!EnsureItemsTradable(table))
                 return false;
+            // Money amounts are confirmed to be valid
+
+            
+
 
             return false;
         }
 
-        IUser? DetermineTradeTableParties(TradeItem item)
+        async Task TransferProperty(int loc, IUser toUser, bool keepMortgaged)
         {
-            if (item is PropertyItem pi)
+            var space = (PropertySpace) board.Spaces[loc];
+
+        }
+
+        IUser? DetermineTradeTableParties(IEnumerable<TradeItem> items)
+        {
+            var reduced = items.Select(item => 
             {
-                var space = (PropertySpace)board.Spaces[pi.Location];
-                if (space.Owner is null) throw new TradeException("No one owns this property");
-                return space.Owner;
-            }
-            else if (item is JailCardItem)
+                if (item is PropertyItem pi)
+                {
+                    var space = (PropertySpace) board.Spaces[pi.Location];
+                    if (space.Owner is null) throw new TradeException("No one owns this property");
+                    return space.Owner;
+                }
+                return null;
+            }).Distinct().Where(x => x is not null).Cast<IUser>();
+
+            if (reduced.Count() > 1)
+                return null;
+
+            var plr = reduced.First();
+
+            if (items.Any(x => x is JailCardItem))
             {
-                return chanceJailFreeCardOwner
-                       ?? chestJailFreeCardOwner
-                       ?? throw new TradeException("No one owns a GOOJFC"); //abort the trade right now
+                if (plr.Id == chanceJailFreeCardOwner?.Id || plr.Id == chestJailFreeCardOwner?.Id)
+                    return plr;
+                else
+                    return null;
             }
-            return null;
+
+            return plr;
         }
 
         bool EnsureItemsTradable(TradeTable table)
@@ -240,20 +262,20 @@ namespace DiscordMoniesGame
             // TODO: This is a really weird way to do things! 
             try
             {
-                var p = table.Take.Select(DetermineTradeTableParties).Distinct().Where(x => x is not null).Cast<IUser>();
+                var p = DetermineTradeTableParties(table.Take);
 
-                if (p.Count() > 1)
+                if (p is null)
                     throw new TradeException("Ambiguous Trade Offer");
 
-                if (p.Count() == 1 && p.First().Id != table.Recipient?.Id) 
+                if (p.Id != table.Recipient?.Id) 
                     return false;
 
-                var q = table.Give.Select(DetermineTradeTableParties).Distinct().Where(x => x is not null).Cast<IUser>();
+                var q = DetermineTradeTableParties(table.Give);
 
-                if (q.Count() > 1)
+                if (q is null)
                     throw new TradeException("Ambiguous Trade Offer");
 
-                if (q.Count() == 1 && q.First().Id != table.Sender?.Id)
+                if (q.Id != table.Sender?.Id)
                     return false;
 
                 return (plrStates[table.Sender!].Money >= TotalGivingAmount(table)) &&
