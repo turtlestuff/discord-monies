@@ -33,7 +33,7 @@ namespace DiscordMoniesGame
             Chest = 2
         }
 
-        public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color, TradeTable? TradeTable);
+        public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color, TradeTable? TradeTable, IUser? BankruptcyTarget);
         // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
 
         int jailRoll;
@@ -42,6 +42,7 @@ namespace DiscordMoniesGame
         readonly ConcurrentDictionary<IUser, PlayerState> plrStates = new(DiscordComparers.UserComparer);
         Board board = default!;
         IUser currentPlr;
+        List<IUser> BankruptedPlayers = new List<IUser>();
 
         int round = 1;
         int continuousRolls;
@@ -88,7 +89,7 @@ namespace DiscordMoniesGame
             for (var i = 0; i < Players.Length; i++)
             {
                 if (!plrStates.TryAdd(Players[i],
-                    new PlayerState(board.StartingMoney, 00, -1, JailCards.None, shuffledColors[i].Value, null)))
+                    new PlayerState(board.StartingMoney, 00, -1, JailCards.None, shuffledColors[i].Value, null, null)))
                     throw new Exception("Something very wrong happened Initializing");
             }
 
@@ -273,11 +274,11 @@ namespace DiscordMoniesGame
                         }
                     case "warp":
                         var move = await MovePlayer(currentPlr, int.Parse(parts[1]));
-                        await HandlePlayerLand(move); 
+                        await HandlePlayerLand(move);
                         return;
                     case "warprel":
                         var move1 = await MovePlayerRelative(currentPlr, int.Parse(parts[1]), false);
-                        await HandlePlayerLand(move1); 
+                        await HandlePlayerLand(move1);
                         return;
                     case "jailfree":
                         if (parts[1] == "chance")
@@ -361,7 +362,15 @@ namespace DiscordMoniesGame
             await AdvanceRound();
         }
 
-        IUser NextPlayer(IUser plr) => Players[(Players.IndexOf(plr, DiscordComparers.UserComparer) + 1) % Players.Length];
+        IUser NextPlayer(IUser plr) {
+            IUser? candidate = null;
+            do
+            {
+                candidate = Players[(Players.IndexOf(plr, DiscordComparers.UserComparer) + 1) % Players.Length];
+                if (BankruptedPlayers.Contains(candidate)) candidate = null;
+            } while (candidate == null);
+            return candidate;
+        }
 
         IUser[] OrderedPlayers(IUser start)
         {
@@ -497,14 +506,17 @@ namespace DiscordMoniesGame
 
         async Task<bool> TryTransfer(int amount, IUser? payer = null, IUser? reciever = null)
         {
-            if (amount == 0)
+            if (amount == 0) {
+                if (payer is not null) plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
                 return true;
+            }
 
             if (payer is not null)
             {
                 if (amount > plrStates[payer].Money)
                 {
                     await payer.SendMessageAsync($"You do not have enough money to make this transaction. (You have: {plrStates[payer].Money.MoneyString()}. Required amount: {amount.MoneyString()})");
+                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = reciever };
                     return false;
                 }
                 plrStates[payer] = plrStates[payer] with { Money = plrStates[payer].Money - amount };
@@ -517,6 +529,8 @@ namespace DiscordMoniesGame
 
             await this.BroadcastExcluding($"💸 {amount.MoneyString()}: **{payer?.Username ?? "Bank"}** ➡️ **{reciever?.Username ?? "Bank"}**",
                 exclude: new[] { reciever, payer }.Where(x => x is not null).Cast<IUser>().ToArray());
+
+            if (payer is not null) plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
             return true;
         }
 
@@ -802,6 +816,92 @@ namespace DiscordMoniesGame
 
             await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
             return false;
+        }
+
+        async Task HandleBankruptcy(IUser player)
+        {
+            IUser? target = plrStates[player].BankruptcyTarget;
+            PlayerState state = plrStates[player];
+            var bankruptTarget = target?.Username ?? "the bank";
+
+            var actions = new List<string>();
+
+            //Transfer funds
+            //TODO: maybe transfer this outside of the TryTansfer function to avoid a message being sent?
+            await TryTransfer(state.Money, player, target);
+            actions.Add($"{state.Money.MoneyString()} ➡️ **{bankruptTarget}**");
+
+            //Transfer GOOJFCs
+            if (chanceJailFreeCardOwner?.Id == player.Id)
+            {
+                chanceJailFreeCardOwner = target;
+                actions.Add($"**{player.Username}'s** Get out of Jail Free Card ➡️ **{bankruptTarget}**");
+            }
+            if (chestJailFreeCardOwner?.Id == player.Id)
+            {
+                chestJailFreeCardOwner = target;
+                actions.Add($"**{player.Username}'s** Get out of Jail Free Card ➡️ **{bankruptTarget}**");
+            }
+
+            //Transfer properties
+            for (var i = 0; i < board.Spaces.Length; i++)
+            {
+                if (board.Spaces[i] is PropertySpace ps)
+                {
+                    if (ps.Owner?.Id == player.Id)
+                    {
+                        //Transfer this property
+                        //TODO: Ask the user if they want to keep the property mortgaged or not
+                        if (target is null)
+                        {
+                            board.Spaces[i] = ps with
+                            {
+                                Owner = null,
+                                Mortgaged = false
+                            };
+                        }
+                        else
+                        {
+                            TransferProperty(i, target, true);
+                        }
+                        actions.Add($"**{ps.Name}** ({i.LocString()}) ➡️ **{bankruptTarget}**");
+                    }
+                }
+            }
+
+            var embed = new EmbedBuilder()
+            {
+                Title = "Bankruptcy!",
+                Description = $"**{player.Username}** has been declared bankrupt, and has been removed from the game. All of their assets will be transferred to **{bankruptTarget}**.",
+                Color = Color.Red,
+                Fields = new()
+                {
+                    new()
+                    {
+                        IsInline = false,
+                        Name = "Transferred Assets",
+                        Value = string.Join("\n", actions)
+                    }
+                },
+            }.Build();
+            await this.Broadcast("", embed: embed);
+
+            //Remove the player from the game
+            BankruptedPlayers.Add(player);
+
+            if (Players.Length == BankruptedPlayers.Count + 1)
+            {
+                //TODO: Declare victory
+                IUser winner = Players.Where(player => !BankruptedPlayers.Contains(player)).First();
+
+                var embed1 = new EmbedBuilder()
+                {
+                    Title = "Victory!",
+                    Description = $"The game has ended in a victory for **{winner.Username}**!",
+                    Color = Color.Green
+                }.Build();
+                await this.Broadcast("", embed: embed1);
+            }
         }
 
         void Close()

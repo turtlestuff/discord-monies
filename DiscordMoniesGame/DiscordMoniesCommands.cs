@@ -230,7 +230,7 @@ namespace DiscordMoniesGame
                                 await this.Broadcast("", embed: embed);
 
                                 waiting = Waiting.ForOtherJailDecision;
-                                await msg.Author.SendMessageAsync($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} using `bail` or use a " + 
+                                await msg.Author.SendMessageAsync($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} using `bail` or use a " +
                                     "Get out of Jail Free card (`usejailcard`) in order to get out of jail.");
                                 jailRoll = roll1 + roll2;
                             }
@@ -411,7 +411,7 @@ namespace DiscordMoniesGame
                         await AdvanceRound();
                         return;
                     }
-                        
+
                 }),
                 new("payrepairs", CanRun.CurrentPlayer, async (args, msg) =>
                 {
@@ -455,7 +455,7 @@ namespace DiscordMoniesGame
                             Color = PlayerColor(msg.Author)
                         }.Build();
                         await this.Broadcast("", embed: embed);
-                                                
+
                         if (isJail3)
                         {
                             await HandlePlayerLand(await MovePlayerRelative(msg.Author, jailRoll));
@@ -489,7 +489,7 @@ namespace DiscordMoniesGame
                             await HandlePlayerLand(await MovePlayerRelative(msg.Author, jailRoll));
                             return;
                         }
-                        
+
                         await msg.Author.SendMessageAsync("You may `roll` again.");
                         waiting = Waiting.ForNothing;
                     }
@@ -547,7 +547,7 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync(e.Message);
                     }
                 }),
-                new("demortgage", CanRun.Player, async (args, msg) => 
+                new("demortgage", CanRun.Player, async (args, msg) =>
                 {
                     try
                     {
@@ -610,6 +610,13 @@ namespace DiscordMoniesGame
                 }),
 
                 new("trade", CanRun.Player, HandleTradeCommand),
+
+                new("bankrupt", CanRun.Player, async (args, msg) => {
+                    //TODO: Confirm that the player wishes to declare bankruptcy
+
+                    await HandleBankruptcy(msg.Author);
+                }),
+                //TODO: drop command
 
                 //TODO: DEBUG COMMANDS! PLEASE REMOVE THESE WHEN FINISHED
                 //HACK: Debig commands!

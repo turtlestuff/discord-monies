@@ -312,10 +312,30 @@ namespace DiscordMoniesGame
             if (reduced.Count() > 1)
                 return null;
 
-            var plr = reduced.First();
+            var plr = reduced.FirstOrDefault();
 
             if (items.Any(x => x is JailCardItem))
             {
+                if (plr is null)
+                {
+                    //Determine the player from the GOOJFC
+                    return (chanceJailFreeCardOwner, chestJailFreeCardOwner) switch
+                    {
+                        //No one owns a GOOJFC
+                        (null, null) => null, 
+
+                        //One GOOJFC is owned by any player
+                        (null, not null) => chestJailFreeCardOwner,
+                        (not null, null) => chanceJailFreeCardOwner,
+
+                        //The same person owns both GOOJFCs
+                        (not null, not null) when chanceJailFreeCardOwner.Id == chestJailFreeCardOwner.Id => chanceJailFreeCardOwner,
+
+                        //A different person owns each GOOJFC
+                        _ => null 
+                    };
+                }
+
                 if (plr.Id == chanceJailFreeCardOwner?.Id || plr.Id == chestJailFreeCardOwner?.Id)
                     return plr;
                 else
@@ -330,21 +350,27 @@ namespace DiscordMoniesGame
             // TODO: This is a really weird way to do things! 
             try
             {
-                var p = DetermineTradeTableParties(table.Take);
+                if (table.Take.Count != 0)
+                {
+                    var p = DetermineTradeTableParties(table.Take);
 
-                if (p is null)
-                    throw new TradeException("Ambiguous Trade Offer");
+                    if (p is null)
+                        throw new TradeException("Ambiguous Trade Offer");
 
-                if (p.Id != table.Recipient?.Id)
-                    return false;
+                    if (p.Id != table.Recipient?.Id)
+                        return false;
+                }
 
-                var q = DetermineTradeTableParties(table.Give);
+                if (table.Give.Count != 0)
+                {
+                    var q = DetermineTradeTableParties(table.Give);
 
-                if (q is null)
-                    throw new TradeException("Ambiguous Trade Offer");
+                    if (q is null)
+                        throw new TradeException("Ambiguous Trade Offer");
 
-                if (q.Id != table.Sender?.Id)
-                    return false;
+                    if (q.Id != table.Sender?.Id)
+                        return false;
+                }
 
                 return (plrStates[table.Sender!].Money >= TotalSenderAmount(table)) &&
                     (plrStates[table.Recipient!].Money >= TotalRecipientAmount(table));
