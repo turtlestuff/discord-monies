@@ -181,7 +181,10 @@ namespace DiscordMoniesGame
                 case "accept":
                     if (TryGetTradeTable(args, out var table1) && table1.Recipient?.Id == msg.Author.Id)
                     {
-
+                        if (!await TryConcludeTrade(table1))
+                        {
+                            await msg.Author.SendMessageAsync("This trade is invalid. Ensure that each user has the required assets to perform this trade.");
+                        }
                     }
                     else
                     {
@@ -214,27 +217,92 @@ namespace DiscordMoniesGame
 
             if (!EnsureItemsTradable(table))
                 return false;
-            // Money amounts are confirmed to be valid
 
-            
+            var senderMortgage = MortgageAmount(table.Take);
+            var recipientMortgage = MortgageAmount(table.Give);
+            var senderGivingMoney = SenderAmount(table);
+            var recipientGivingMoney = RecipientAmount(table);
 
+            if (!(await TryTransfer(senderMortgage, table.Sender, null) ||
+                  await TryTransfer(recipientMortgage, table.Recipient, null) ||
+                  await TryTransfer(senderGivingMoney, table.Sender, table.Recipient) ||
+                  await TryTransfer(recipientGivingMoney, table.Recipient, table.Sender)))
+            {
+                throw new TradeException("Money failed");
+            }
 
-            return false;
+            var actions = new List<string>();
+
+            foreach (var giveItem in table.Give)
+            {
+                if (giveItem is JailCardItem)
+                {
+                    JailCardThatPlayerOwns(table.Sender) = table.Recipient;
+                    actions.Add($"**{table.Sender.Username}'s** Get out of Jail Free Card ➡️ **{table.Recipient.Username}**");
+                    continue;
+                }
+                if (giveItem is PropertyItem pi)
+                {
+                    var space = (PropertySpace)board.Spaces[pi.Location];
+                    TransferProperty(pi.Location, table.Recipient, pi.KeepMortgaged);
+                    actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Recipient.Username}**" +
+                        (space.Mortgaged ? (pi.KeepMortgaged ? "(Kept Mortgaged)" : "(De-mortgaged)") : ""));
+                }
+            }
+
+            foreach (var takeItem in table.Take)
+            {
+                if (takeItem is JailCardItem)
+                {
+                    JailCardThatPlayerOwns(table.Recipient) = table.Sender;
+                    actions.Add($"**{table.Recipient.Username}'s** Get out of Jail Free Card ➡️ **{table.Sender.Username}**");
+                    continue;
+                }
+                if (takeItem is PropertyItem pi)
+                {
+                    var space = (PropertySpace)board.Spaces[pi.Location];
+                    TransferProperty(pi.Location, table.Sender, pi.KeepMortgaged);
+                    actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Sender.Username}**" +
+                        (space.Mortgaged ? (pi.KeepMortgaged ? "(Kept Mortgaged)" : "(De-mortgaged)") : ""));
+                }
+            }
+
+            var embed = new EmbedBuilder()
+            {
+                Title = "Trade 🔀",
+                Description = string.Join('\n', actions),
+                Color = Color.Purple
+            }.Build();
+
+            await this.Broadcast("", embed: embed);
+
+            return true;
         }
 
-        async Task TransferProperty(int loc, IUser toUser, bool keepMortgaged)
+        ref IUser? JailCardThatPlayerOwns(IUser plr)
         {
-            var space = (PropertySpace) board.Spaces[loc];
+            if (plr.Id == chanceJailFreeCardOwner?.Id)
+                return ref chanceJailFreeCardOwner;
+            else if (plr.Id == chestJailFreeCardOwner?.Id)
+                return ref chestJailFreeCardOwner;
+            throw new ArgumentException($"Player {plr.Username} does not own any jail card");
+        }
 
+        void TransferProperty(int loc, IUser toUser, bool keepMortgaged)
+        {
+            var space = (PropertySpace)board.Spaces[loc];
+            board.Spaces[loc] = space with { Owner = toUser, Mortgaged = keepMortgaged & space.Mortgaged };
+            // property should be mortgaged if it is already and if
+            // keep mortgage is true
         }
 
         IUser? DetermineTradeTableParties(IEnumerable<TradeItem> items)
         {
-            var reduced = items.Select(item => 
+            var reduced = items.Select(item =>
             {
                 if (item is PropertyItem pi)
                 {
-                    var space = (PropertySpace) board.Spaces[pi.Location];
+                    var space = (PropertySpace)board.Spaces[pi.Location];
                     if (space.Owner is null) throw new TradeException("No one owns this property");
                     return space.Owner;
                 }
@@ -267,7 +335,7 @@ namespace DiscordMoniesGame
                 if (p is null)
                     throw new TradeException("Ambiguous Trade Offer");
 
-                if (p.Id != table.Recipient?.Id) 
+                if (p.Id != table.Recipient?.Id)
                     return false;
 
                 var q = DetermineTradeTableParties(table.Give);
@@ -278,8 +346,8 @@ namespace DiscordMoniesGame
                 if (q.Id != table.Sender?.Id)
                     return false;
 
-                return (plrStates[table.Sender!].Money >= TotalGivingAmount(table)) &&
-                    (plrStates[table.Recipient!].Money >= TotalTakingAmount(table));
+                return (plrStates[table.Sender!].Money >= TotalSenderAmount(table)) &&
+                    (plrStates[table.Recipient!].Money >= TotalRecipientAmount(table));
             }
             catch (TradeException)
             {
@@ -287,14 +355,14 @@ namespace DiscordMoniesGame
             }
         }
 
-        int TotalGivingAmount(TradeTable table) =>
-            GivingAmount(table) + MortgageAmount(table.Take);
+        int TotalSenderAmount(TradeTable table) =>
+            SenderAmount(table) + MortgageAmount(table.Take);
 
-        int TotalTakingAmount(TradeTable table) => 
-            TakingAmount(table) + MortgageAmount(table.Give);
+        int TotalRecipientAmount(TradeTable table) =>
+            RecipientAmount(table) + MortgageAmount(table.Give);
 
-        static int GivingAmount(TradeTable table) => Math.Max(0, table.GivingMoney);
-        static int TakingAmount(TradeTable table) => Math.Max(0, -table.GivingMoney);
+        static int SenderAmount(TradeTable table) => Math.Max(0, table.GivingMoney);
+        static int RecipientAmount(TradeTable table) => Math.Max(0, -table.GivingMoney);
 
         int MortgageAmount(IEnumerable<TradeItem> items) =>
             items.Sum(i =>
@@ -308,8 +376,8 @@ namespace DiscordMoniesGame
                 var deed = board.TitleDeedFor(pi.Location);
                 // mortgaged. check if keeping or unmortgaging
 
-                                          // keeping: pay 10% to the bank     // unmortgaging: pay 110% to the bank 
-                return pi.KeepMortgaged ? (int) (deed.MortgageValue * 0.10) : (int) (deed.MortgageValue * 1.10);
+                // keeping: pay 10% to the bank     // unmortgaging: pay 110% to the bank 
+                return pi.KeepMortgaged ? (int)(deed.MortgageValue * 0.10) : (int)(deed.MortgageValue * 1.10);
             });
 
 
@@ -323,7 +391,7 @@ namespace DiscordMoniesGame
 
             var giveMortgageMoney = MortgageAmount(table.Give);
             var giveString = string.Join('\n', table.Give.Select(i => ItemName(i))) +
-                (table.GivingMoney > 0 ? $"\n{GivingAmount(table).MoneyString()}" : "") +
+                (table.GivingMoney > 0 ? $"\n{SenderAmount(table).MoneyString()}" : "") +
                 (giveMortgageMoney != 0 ? $"\n**To bank**: {giveMortgageMoney.MoneyString()}" : "");
             var giveField = new EmbedFieldBuilder()
             {
@@ -334,9 +402,9 @@ namespace DiscordMoniesGame
 
             var takeMortgageMoney = MortgageAmount(table.Take);
             var takeString = string.Join('\n', table.Take.Select(i => ItemName(i))) +
-                (table.GivingMoney < 0 ? $"\n{TakingAmount(table).MoneyString()}" : "") +
+                (table.GivingMoney < 0 ? $"\n{RecipientAmount(table).MoneyString()}" : "") +
                 (takeMortgageMoney != 0 ? $"\n**To bank**: {takeMortgageMoney.MoneyString()}" : "");
-            
+
             var takeField = new EmbedFieldBuilder()
             {
                 Name = !reverse ? "You take:" : "You give:",
@@ -404,7 +472,7 @@ namespace DiscordMoniesGame
         }
     }
 
-    class TradeException : Exception 
+    class TradeException : ApplicationException
     {
         public TradeException(string message) : base(message) { }
     }
