@@ -415,9 +415,10 @@ namespace DiscordMoniesGame
                     var everyoneEmbed = new EmbedBuilder()
                     {
                         Title = "Arrears!",
-                        Description = "The players below are in arrears! They must pay back what they owe to the bank, or they must declare bankruptcy, before the round continues.\n" +
-                        "Players:" +
-                        string.Join('\n', newlyBankrupted.Select(p => p.Username)),
+                        Description = $"**{newlyBankrupted.Select(x => x.Username).ToArray().CommaAndList()}** " +
+                        (newlyBankrupted.Count() == 1 ? "is" : "are") +
+                        " in arrears! They must pay back what they owe to the bank or declare bankruptcy before the round continues.",
+
                         Color = Color.Red
                     }.Build();
                     await this.BroadcastExcluding("", embed: everyoneEmbed, exclude: newlyBankrupted.ToArray());
@@ -532,8 +533,19 @@ namespace DiscordMoniesGame
         }
 
         Color PlayerColor(IUser player) => plrStates[player].Color.ToDiscordColor();
+        
+        async Task<bool> TryTransfer(int amount, IUser? payer, IUser? reciever = null)
+        {
+            if (payer is not null && plrStates[payer].Money - amount < 0)
+            {
+                await payer.SendMessageAsync("You do not have enough funds to make this transaction.");
+                return false;
+            }
+            await Transfer(amount, payer, reciever);
+            return true;
+        }
 
-        async Task Transfer(int amount, IUser? payer = null, IUser? reciever = null)
+        async Task Transfer(int amount, IUser? payer, IUser? reciever = null)
         {
             if (amount == 0) 
             {

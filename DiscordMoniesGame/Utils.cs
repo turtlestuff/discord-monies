@@ -30,5 +30,7 @@ namespace DiscordMoniesGame
             var number = (position % 10).ToString();
             return $"{letter}{number}";
         }
+
+        public static string CommaAndList(this string[] els) => els.Length > 1 ? string.Join(", ", els[..^1]) + " and " + els[^1] : els[0];
     }
 }
