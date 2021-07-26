@@ -561,15 +561,17 @@ namespace DiscordMoniesGame
                         var mortgage = board.TitleDeedFor(loc).MortgageValue;
                         var amt = (int) (mortgage * 1.10); // mortgage value + 10%
                     
-                        await Transfer(amt, msg.Author);
-                        board.Spaces[loc] = ps with { Mortgaged = false };
-                        var embed = new EmbedBuilder()
+                        if (await TryTransfer(amt, msg.Author))
                         {
-                            Title = "Mortgage",
-                            Description = $"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
-                            Color = board.GroupColorOrDefault(ps, Color.Gold)
-                        }.Build();
-                        await this.Broadcast("", embed: embed);
+                            board.Spaces[loc] = ps with { Mortgaged = false };
+                            var embed = new EmbedBuilder()
+                            {
+                                Title = "Mortgage",
+                                Description = $"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                                Color = board.GroupColorOrDefault(ps, Color.Gold)
+                            }.Build();
+                            await this.Broadcast("", embed: embed);
+                        }
 
                     }
                     catch (ArgumentException e)

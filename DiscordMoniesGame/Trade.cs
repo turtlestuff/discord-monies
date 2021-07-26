@@ -223,10 +223,13 @@ namespace DiscordMoniesGame
             var senderGivingMoney = SenderAmount(table);
             var recipientGivingMoney = RecipientAmount(table);
 
-            await Transfer(senderMortgage, table.Sender, null);
-            await Transfer(recipientMortgage, table.Recipient, null);
-            await Transfer(senderGivingMoney, table.Sender, table.Recipient);
-            await Transfer(recipientGivingMoney, table.Recipient, table.Sender);
+            if (!await TryTransfer(senderMortgage, table.Sender, null) ||
+                !await TryTransfer(recipientMortgage, table.Recipient, null) ||
+                !await TryTransfer(senderGivingMoney, table.Sender, table.Recipient) ||
+                !await TryTransfer(recipientGivingMoney, table.Recipient, table.Sender))
+            {
+                throw new TradeException("Money failed!");
+            }
 
             var actions = new List<string>();
 

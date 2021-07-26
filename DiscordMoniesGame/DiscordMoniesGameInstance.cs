@@ -223,19 +223,7 @@ namespace DiscordMoniesGame
                         break;
                     case "pay":
                         await Transfer(int.Parse(parts[1]), currentPlr, null);
-                        cardOwe = int.Parse(parts[1]);
-                        waiting = Waiting.ForCardPay;
-
-                        var e1 = new EmbedBuilder()
-                        {
-                            Title = "You are in arrears!",
-                            Description = $"Use `paycard` once you have raised enough funds to contine.",
-                            Color = Color.Red
-                        }.Build();
-                        await currentPlr.SendMessageAsync("", embed: e1);
-
-                        return;
-                        
+                        return;                   
                         
                     case "repairs":
                         {
@@ -257,18 +245,6 @@ namespace DiscordMoniesGame
                             });
 
                             await Transfer(total, currentPlr, null);
-                            
-                            repairsOwe = total;
-                            waiting = Waiting.ForCardPay;
-
-                            var e2 = new EmbedBuilder()
-                            {
-                                Title = "You are in arrears!",
-                                Description = $"Use `payrepairs` once you have raised enough funds to contine.",
-                                Color = Color.Red
-                            }.Build();
-                            await currentPlr.SendMessageAsync("", embed: e2);
-
                             return;
                         }
                     case "warp":
@@ -806,19 +782,20 @@ namespace DiscordMoniesGame
                                 await developer.SendMessageAsync("You can't develop this property because there are no more houses to purchase.");
                                 return false;
                             }
-                            await Transfer(deed.HouseCost, developer, null);
-                            
-                            board.Spaces[loc] = rs with { Houses = rs.Houses + 1 };
-
-                            var embed1 = new EmbedBuilder()
+                            if (await TryTransfer(deed.HouseCost, developer, null))
                             {
-                                Title = "House Built",
-                                Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new house being built, " +
-                                $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
-                                Color = board.GroupColorOrDefault(rs)
-                            }.Build();
-                            await this.Broadcast("", embed: embed1);
-                            return true;
+                                board.Spaces[loc] = rs with { Houses = rs.Houses + 1 };
+
+                                var embed1 = new EmbedBuilder()
+                                {
+                                    Title = "House Built",
+                                    Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new house being built, " +
+                                    $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
+                                    Color = board.GroupColorOrDefault(rs)
+                                }.Build();
+                                await this.Broadcast("", embed: embed1);
+                                return true;
+                            }
                         }
                         // building a hotel
                         if (!board.CanTakeHotel())
@@ -826,26 +803,27 @@ namespace DiscordMoniesGame
                             await developer.SendMessageAsync("You can't develop this property because there are no more hotels to purchase.");
                             return false;
                         }
-                        await Transfer(deed.HotelCost, developer, null);
-                        board.Spaces[loc] = rs with { Houses = 5 };
-
-                        var embed = new EmbedBuilder()
+                        if (await TryTransfer(deed.HotelCost, developer, null))
                         {
-                            Title = "Hotel Built",
-                            Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
-                            Color = board.GroupColorOrDefault(rs)
-                        }.Build();
-                        await this.Broadcast("", embed: embed);
-                        return true;
+                            board.Spaces[loc] = rs with { Houses = 5 };
+
+                            var embed = new EmbedBuilder()
+                            {
+                                Title = "Hotel Built",
+                                Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
+                                Color = board.GroupColorOrDefault(rs)
+                            }.Build();
+                            await this.Broadcast("", embed: embed);
+                            return true;
                         }
-                        
-                    }
+                    }    
                 }
-                else
-                {
-                    await developer.SendMessageAsync("You can't develop this property because developing it would cause the color set to be developed unevenly.");
-                    return false;
-                }
+            }
+            else
+            {
+                await developer.SendMessageAsync("You can't develop this property because developing it would cause the color set to be developed unevenly.");
+                return false;
+            }
 
             await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
             return false;
