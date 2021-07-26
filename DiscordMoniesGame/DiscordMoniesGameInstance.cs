@@ -131,12 +131,20 @@ namespace DiscordMoniesGame
                 {
                     var msgContent = msg.Content[pos..];
 
-                    if (await TryHandleCommand(msgContent, msg))
+                    var commandHandled = await Task.Run(async () => await TryHandleCommand(msgContent, msg));
+                    if (commandHandled)
                         return;
 
                     //Message hasn't matched any commands, proceed to send as chat message...
+                    var userDescription = msg.Author switch
+                    {
+                        var a when Spectators.Contains(a, DiscordComparers.UserComparer) => $"{a.Username} (Spectator)",
+                        var a when bankruptedPlayers.Contains(a, DiscordComparers.UserComparer) => $"{a.Username} (Bankrupt)",
+                        var a => a.Username
+                    };
+                    
                     var chatMessage =
-                        $"**{msg.Author.Username}{(Spectators.Contains(msg.Author, DiscordComparers.UserComparer) ? " (Spectator)" : "")}**: {msgContent}";
+                        $"**{userDescription}**: {msgContent}";
                     if (chatMessage.Length <= 2000)
                     {
                         // ...except if it's too large!
@@ -367,9 +375,9 @@ namespace DiscordMoniesGame
 
         async Task AdvanceRound()
         {
-            waiting = Waiting.ForNothing;
             if (rollAgain)
             {
+                waiting = Waiting.ForNothing;
                 rollAgain = false;
                 var ie = new EmbedBuilder()
                 {
@@ -404,7 +412,7 @@ namespace DiscordMoniesGame
                         {
                             Title = "Arrears!",
                             Description = $"You are in arrears! Please pay back your debt of {(-plrStates[player].Money).MoneyString()} before the round can proceed. " +
-                            "Once you have done this, please type `advance`. If you cannot pay your debt, you must declare bankruptcy by typing `bankrupt`.",
+                            "If you cannot pay back your debt, you must declare bankruptcy by typing `bankrupt`.",
                             Color = Color.Red
                         }.Build();
                         await player.SendMessageAsync(embed: personalEmbed);
@@ -412,7 +420,12 @@ namespace DiscordMoniesGame
                 }
                 return;
             }
-           
+            else if (waiting == Waiting.ForArrearsPay)
+            {
+                await this.Broadcast("All players have cleared their financial situation!");
+            }
+
+            waiting = Waiting.ForNothing;
             continuousRolls = 0;
             round++;
             currentPlr = NextPlayer(currentPlr);
@@ -532,20 +545,28 @@ namespace DiscordMoniesGame
 
             if (payer is not null)
             {
+                if (plrStates[payer].Money >= 0 && plrStates[payer].Money - amount < 0)
+                {
+                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = reciever };
+                }
+                else if (plrStates[payer].Money - amount >= 0)
+                {
+                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
+                }
                 plrStates[payer] = plrStates[payer] with { Money = plrStates[payer].Money - amount };
                 await payer.
                     SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}" +
                     (plrStates[payer].Money < 0 ? "⚠️": "") + ".");
-                return;
             }
 
             if (reciever is not null)
                 await GiveMoney(reciever, amount, payer?.Username ?? "the bank");
-
+            
             await this.BroadcastExcluding($"💸 {amount.MoneyString()}: **{payer?.Username ?? "Bank"}** ➡️ **{reciever?.Username ?? "Bank"}**",
                 exclude: new[] { reciever, payer }.Where(x => x is not null).Cast<IUser>().ToArray());
 
-            if (payer is not null) plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
+            if (waiting == Waiting.ForArrearsPay)
+                await AdvanceRound();
         }
 
         async Task GiveMoney(IUser reciever, int amount, string? giver = null)
@@ -904,10 +925,9 @@ namespace DiscordMoniesGame
                 throw new Exception("Bankruptcy failed");
             }
 
-            if (CurrentPlayers.Length == bankruptedPlayers.Count + 1)
+            if (CurrentPlayers.Length == 1)
             {
-                //TODO: Declare victory
-                IUser winner = CurrentPlayers.Where(player => !bankruptedPlayers.Contains(player)).First();
+                IUser winner = CurrentPlayers[0];
 
                 var embed1 = new EmbedBuilder()
                 {

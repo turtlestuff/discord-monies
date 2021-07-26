@@ -274,6 +274,9 @@ namespace DiscordMoniesGame
             return card;
         }
 
+        public int FirstSpaceFrom(int loc, Func<Space, bool> predicate) =>   
+            Enumerable.Range(loc, Spaces.Length).Select(i => i % Spaces.Length).First(i => predicate(Spaces[i]));
+            
         const int InitialHouses = 32;
         const int InitialHotels = 12;
 

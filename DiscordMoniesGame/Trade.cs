@@ -159,10 +159,14 @@ namespace DiscordMoniesGame
                         }
 
                         aSt.TradeTable.State = TradeTable.TradeTableState.Offered;
-                        trades.Add(aSt.TradeTable);
+
+                        if (!trades.Contains(aSt.TradeTable))
+                            trades.Add(aSt.TradeTable);
+
                         await SendTradeTable(aSt.TradeTable, p, true);
                         await p.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
                             $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
+                        await msg.Author.SendMessageAsync($"Trade trable has been sent, with index {trades.IndexOf(aSt.TradeTable)}");
                     }
                     catch (TradeException)
                     {
@@ -347,38 +351,24 @@ namespace DiscordMoniesGame
 
         bool EnsureItemsTradable(TradeTable table)
         {
-            // TODO: This is a really weird way to do things! 
-            try
+            if (table.Take.Count != 0)
             {
-                if (table.Take.Count != 0)
-                {
-                    var p = DetermineTradeTableParties(table.Take);
+                var p = DetermineTradeTableParties(table.Take);
 
-                    if (p is null)
-                        throw new TradeException("Ambiguous Trade Offer");
-
-                    if (p.Id != table.Recipient?.Id)
-                        return false;
-                }
-
-                if (table.Give.Count != 0)
-                {
-                    var q = DetermineTradeTableParties(table.Give);
-
-                    if (q is null)
-                        throw new TradeException("Ambiguous Trade Offer");
-
-                    if (q.Id != table.Sender?.Id)
-                        return false;
-                }
-
-                return (plrStates[table.Sender!].Money >= TotalSenderAmount(table)) &&
-                    (plrStates[table.Recipient!].Money >= TotalRecipientAmount(table));
+                if (p is null || p.Id != table.Recipient?.Id)
+                    return false;
             }
-            catch (TradeException)
+
+            if (table.Give.Count != 0)
             {
-                return false;
+                var q = DetermineTradeTableParties(table.Give);
+
+                if (q is null || q.Id != table.Sender?.Id)
+                    return false;
             }
+
+            return (plrStates[table.Sender!].Money >= TotalSenderAmount(table)) &&
+                (plrStates[table.Recipient!].Money >= TotalRecipientAmount(table));
         }
 
         int TotalSenderAmount(TradeTable table) =>

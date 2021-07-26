@@ -572,7 +572,6 @@ namespace DiscordMoniesGame
                             }.Build();
                             await this.Broadcast("", embed: embed);
                         }
-
                     }
                     catch (ArgumentException e)
                     {
