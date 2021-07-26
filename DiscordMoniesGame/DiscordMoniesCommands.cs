@@ -605,9 +605,46 @@ namespace DiscordMoniesGame
                 new("trade", CanRun.Player, HandleTradeCommand),
 
                 new("bankrupt", CanRun.Player, async (args, msg) => {
-                    //TODO: Confirm that the player wishes to declare bankruptcy
-
+                    if (waiting != Waiting.ForArrearsPay)
+                    {
+                        await msg.Author.SendMessageAsync("You can't do this right now!");
+                        return;
+                    }
+                    if (plrStates[msg.Author].Money >= 0)
+                    {
+                        await msg.Author.SendMessageAsync("You are not in arrears!");
+                        return;
+                    }
+                    if (args != "bankrupt")
+                    {
+                        var e = new EmbedBuilder()
+                        {
+                            Title = "Are you sure?",
+                            Description = "Declaring bankruptcy will **exclude you from the game permanently**. Only use this if you are sure you cannot raise enough funds to" +
+                            "pay back your debt. To confirm your choice, type `bankrupt bankrupt`",
+                            Color = Color.Gold
+                        }.Build();
+                        await msg.Author.SendMessageAsync(embed: e);
+                        return;
+                    }
                     await HandleBankruptcy(msg.Author);
+                    await AdvanceRound();
+                }),
+
+                new("advance", CanRun.Player, async (args, msg) => 
+                {
+                    if (waiting != Waiting.ForArrearsPay)
+                    {
+                        await msg.Author.SendMessageAsync("You can't do this right now!");
+                        return;
+                    }
+                    if (plrStates[msg.Author].Money < 0)
+                    {
+                        await msg.Author.SendMessageAsync("You are still in arrears!");
+                        return;
+                    }
+
+                    await AdvanceRound();
                 }),
                 //TODO: drop command
 

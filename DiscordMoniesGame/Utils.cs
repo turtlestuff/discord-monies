@@ -22,8 +22,8 @@ namespace DiscordMoniesGame
             _ => "Invalid"
         };
 
-        public static string MoneyString(this int money) => $"`Ð{money:N0}`";
-
+        public static string MoneyString(this int money) => $"`{money:Ð#,0}`";
+            
         public static string LocString(this int position)
         {
             var letter = (char) ('A' + (int) Math.Floor(position / 10.0));

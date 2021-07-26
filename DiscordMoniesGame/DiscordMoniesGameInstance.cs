@@ -22,7 +22,8 @@ namespace DiscordMoniesGame
             ForAuctionToFinish,
             ForOtherJailDecision,
             ForCardPay,
-            ForRepairsPay
+            ForRepairsPay,
+            ForArrearsPay
         }
 
         [Flags]
@@ -33,7 +34,7 @@ namespace DiscordMoniesGame
             Chest = 2
         }
 
-        ImmutableArray<IUser> CurrentPlayers => Players.Except(BankruptedPlayers, DiscordComparers.UserComparer).ToImmutableArray();
+        ImmutableArray<IUser> CurrentPlayers => Players.Except(bankruptedPlayers, DiscordComparers.UserComparer).ToImmutableArray();
 
         public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color, TradeTable? TradeTable, IUser? BankruptcyTarget);
         // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
@@ -44,7 +45,7 @@ namespace DiscordMoniesGame
         readonly ConcurrentDictionary<IUser, PlayerState> plrStates = new(DiscordComparers.UserComparer);
         Board board = default!;
         IUser currentPlr;
-        List<IUser> BankruptedPlayers = new();
+        readonly List<IUser> bankruptedPlayers = new();
 
         int round = 1;
         int continuousRolls;
@@ -64,8 +65,6 @@ namespace DiscordMoniesGame
 
         int? cardOwe;
         int? repairsOwe;
-
-        public List<IUser> BankruptedPlayers1 { get => BankruptedPlayers; set => BankruptedPlayers = value; }
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
@@ -367,7 +366,6 @@ namespace DiscordMoniesGame
             do
             {
                 candidate = CurrentPlayers[(CurrentPlayers.IndexOf(plr, DiscordComparers.UserComparer) + 1) % CurrentPlayers.Length];
-                if (BankruptedPlayers1.Contains(candidate)) candidate = null;
             } while (candidate == null);
             return candidate;
         }
@@ -407,6 +405,37 @@ namespace DiscordMoniesGame
                 await SendBoard(Users, ie);
                 return;
             }
+
+            var newlyBankrupted = CurrentPlayers.Where(p => plrStates[p].Money < 0);
+            if (newlyBankrupted.Any())
+            {
+                if (waiting != Waiting.ForArrearsPay)
+                {
+                    waiting = Waiting.ForArrearsPay;
+                    var everyoneEmbed = new EmbedBuilder()
+                    {
+                        Title = "Arrears!",
+                        Description = "The players below are in arrears! They must pay back what they owe to the bank, or they must declare bankruptcy, before the round continues.\n" +
+                        "Players:" +
+                        string.Join('\n', newlyBankrupted.Select(p => p.Username)),
+                        Color = Color.Red
+                    }.Build();
+                    await this.BroadcastExcluding("", embed: everyoneEmbed, exclude: newlyBankrupted.ToArray());
+                    foreach (var player in newlyBankrupted)
+                    {
+                        var personalEmbed = new EmbedBuilder()
+                        {
+                            Title = "Arrears!",
+                            Description = $"You are in arrears! Please pay back your debt of {(-plrStates[player].Money).MoneyString()} before the round can proceed. " +
+                            "Once you have done this, please type `advance`. If you cannot pay your debt, you must declare bankruptcy by typing `bankrupt`.",
+                            Color = Color.Red
+                        }.Build();
+                        await player.SendMessageAsync(embed: personalEmbed);
+                    }
+                }
+                return;
+            }
+           
             continuousRolls = 0;
             round++;
             currentPlr = NextPlayer(currentPlr);
@@ -427,7 +456,7 @@ namespace DiscordMoniesGame
             }
             else
             {
-                playerEmbed.WithDescription("It's your turn, but unfortunately you in jail. You can try rolling doubles with `roll`, " +
+                playerEmbed.WithDescription("It's your turn, but unfortunately you are in jail. You can try rolling doubles with `roll`, " +
                     $"bailing and paying the {board.JailFine.MoneyString()} fine with `bail`, or using a Get out of Jail Free card, with `usejailcard`, if you have one.")
                     .WithColor(Color.Red);
             }
@@ -879,20 +908,25 @@ namespace DiscordMoniesGame
             await this.Broadcast("", embed: embed);
 
             //Remove the player from the game
-            BankruptedPlayers1.Add(player);
+            bankruptedPlayers.Add(player);
+            if(!plrStates.TryRemove(player, out var _))
+            {
+                throw new Exception("Bankruptcy failed");
+            }
 
-            if (CurrentPlayers.Length == BankruptedPlayers1.Count + 1)
+            if (CurrentPlayers.Length == bankruptedPlayers.Count + 1)
             {
                 //TODO: Declare victory
-                IUser winner = CurrentPlayers.Where(player => !BankruptedPlayers1.Contains(player)).First();
+                IUser winner = CurrentPlayers.Where(player => !bankruptedPlayers.Contains(player)).First();
 
                 var embed1 = new EmbedBuilder()
                 {
                     Title = "Victory!",
-                    Description = $"The game has ended in a victory for **{winner.Username}**!",
+                    Description = $"The game has ended in a victory for **{winner.Username}**! The game is now closed.",
                     Color = Color.Green
                 }.Build();
                 await this.Broadcast("", embed: embed1);
+                Close();
             }
         }
 
