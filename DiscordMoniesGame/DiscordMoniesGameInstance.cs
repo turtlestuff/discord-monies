@@ -33,6 +33,8 @@ namespace DiscordMoniesGame
             Chest = 2
         }
 
+        ImmutableArray<IUser> CurrentPlayers => Players.Except(BankruptedPlayers, DiscordComparers.UserComparer).ToImmutableArray();
+
         public record PlayerState(int Money, int Position, int JailStatus, JailCards JailCards, System.Drawing.Color Color, TradeTable? TradeTable, IUser? BankruptcyTarget);
         // JailStatus: -1 if out of jail, 0-3 if in jail, counting the consecutive turns of double attempts.
 
@@ -42,7 +44,7 @@ namespace DiscordMoniesGame
         readonly ConcurrentDictionary<IUser, PlayerState> plrStates = new(DiscordComparers.UserComparer);
         Board board = default!;
         IUser currentPlr;
-        List<IUser> BankruptedPlayers = new List<IUser>();
+        List<IUser> BankruptedPlayers = new();
 
         int round = 1;
         int continuousRolls;
@@ -63,12 +65,14 @@ namespace DiscordMoniesGame
         int? cardOwe;
         int? repairsOwe;
 
+        public List<IUser> BankruptedPlayers1 { get => BankruptedPlayers; set => BankruptedPlayers = value; }
+
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
         {
             originalPlayerCount = players.Length;
             RegisterCommands();
-            currentPlr = Players[Random.Shared.Next(Players.Length)];
+            currentPlr = CurrentPlayers[Random.Shared.Next(CurrentPlayers.Length)];
             Closing += (_, _) => boardRenderer.Dispose();
         }
 
@@ -86,9 +90,9 @@ namespace DiscordMoniesGame
 
             var shuffledColors = Colors.ColorList.OrderBy(_ => Random.Shared.Next()).ToArray();
 
-            for (var i = 0; i < Players.Length; i++)
+            for (var i = 0; i < CurrentPlayers.Length; i++)
             {
-                if (!plrStates.TryAdd(Players[i],
+                if (!plrStates.TryAdd(CurrentPlayers[i],
                     new PlayerState(board.StartingMoney, 00, -1, JailCards.None, shuffledColors[i].Value, null, null)))
                     throw new Exception("Something very wrong happened Initializing");
             }
@@ -216,25 +220,24 @@ namespace DiscordMoniesGame
                         await SendToJail(currentPlr);
                         break;
                     case "give":
-                        await TryTransfer(int.Parse(parts[1]), null, currentPlr);
+                        await Transfer(int.Parse(parts[1]), null, currentPlr);
                         break;
                     case "pay":
-                        if (!await TryTransfer(int.Parse(parts[1]), currentPlr, null))
+                        await Transfer(int.Parse(parts[1]), currentPlr, null);
+                        cardOwe = int.Parse(parts[1]);
+                        waiting = Waiting.ForCardPay;
+
+                        var e1 = new EmbedBuilder()
                         {
-                            cardOwe = int.Parse(parts[1]);
-                            waiting = Waiting.ForCardPay;
+                            Title = "You are in arrears!",
+                            Description = $"Use `paycard` once you have raised enough funds to contine.",
+                            Color = Color.Red
+                        }.Build();
+                        await currentPlr.SendMessageAsync("", embed: e1);
 
-                            var e1 = new EmbedBuilder()
-                            {
-                                Title = "You are in arrears!",
-                                Description = $"Use `paycard` once you have raised enough funds to contine.",
-                                Color = Color.Red
-                            }.Build();
-                            await currentPlr.SendMessageAsync("", embed: e1);
-
-                            return;
-                        }
-                        break;
+                        return;
+                        
+                        
                     case "repairs":
                         {
                             var houseValue = int.Parse(parts[1]);
@@ -254,23 +257,20 @@ namespace DiscordMoniesGame
                                 }
                             });
 
-                            if (!await TryTransfer(total, currentPlr, null))
+                            await Transfer(total, currentPlr, null);
+                            
+                            repairsOwe = total;
+                            waiting = Waiting.ForCardPay;
+
+                            var e2 = new EmbedBuilder()
                             {
-                                repairsOwe = total;
-                                waiting = Waiting.ForCardPay;
+                                Title = "You are in arrears!",
+                                Description = $"Use `payrepairs` once you have raised enough funds to contine.",
+                                Color = Color.Red
+                            }.Build();
+                            await currentPlr.SendMessageAsync("", embed: e2);
 
-                                var e1 = new EmbedBuilder()
-                                {
-                                    Title = "You are in arrears!",
-                                    Description = $"Use `payrepairs` once you have raised enough funds to contine.",
-                                    Color = Color.Red
-                                }.Build();
-                                await currentPlr.SendMessageAsync("", embed: e1);
-
-                                return;
-                            }
-
-                            break;
+                            return;
                         }
                     case "warp":
                         var move = await MovePlayer(currentPlr, int.Parse(parts[1]));
@@ -363,19 +363,19 @@ namespace DiscordMoniesGame
         }
 
         IUser NextPlayer(IUser plr) {
-            IUser? candidate = null;
+            IUser? candidate;
             do
             {
-                candidate = Players[(Players.IndexOf(plr, DiscordComparers.UserComparer) + 1) % Players.Length];
-                if (BankruptedPlayers.Contains(candidate)) candidate = null;
+                candidate = CurrentPlayers[(CurrentPlayers.IndexOf(plr, DiscordComparers.UserComparer) + 1) % CurrentPlayers.Length];
+                if (BankruptedPlayers1.Contains(candidate)) candidate = null;
             } while (candidate == null);
             return candidate;
         }
 
         IUser[] OrderedPlayers(IUser start)
         {
-            var index = Players.IndexOf(start, DiscordComparers.UserComparer);
-            var playersArray = Players.ToArray();
+            var index = CurrentPlayers.IndexOf(start, DiscordComparers.UserComparer);
+            var playersArray = CurrentPlayers.ToArray();
             return playersArray[index..].Concat(playersArray[..index]).ToArray();
         }
 
@@ -453,7 +453,7 @@ namespace DiscordMoniesGame
         {
             try
             {
-                using var bmp = boardRenderer.Render(Players, plrStates, board);
+                using var bmp = boardRenderer.Render(CurrentPlayers, plrStates, board);
                 using var memStr = new MemoryStream();
                 bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
                 foreach (var u in users)
@@ -504,24 +504,22 @@ namespace DiscordMoniesGame
 
         Color PlayerColor(IUser player) => plrStates[player].Color.ToDiscordColor();
 
-        async Task<bool> TryTransfer(int amount, IUser? payer = null, IUser? reciever = null)
+        async Task Transfer(int amount, IUser? payer = null, IUser? reciever = null)
         {
-            if (amount == 0) {
-                if (payer is not null) plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
-                return true;
+            if (amount == 0) 
+            {
+                if (payer is not null) 
+                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
+                return;
             }
 
             if (payer is not null)
             {
-                if (amount > plrStates[payer].Money)
-                {
-                    await payer.SendMessageAsync($"You do not have enough money to make this transaction. (You have: {plrStates[payer].Money.MoneyString()}. Required amount: {amount.MoneyString()})");
-                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = reciever };
-                    return false;
-                }
                 plrStates[payer] = plrStates[payer] with { Money = plrStates[payer].Money - amount };
                 await payer.
-                    SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}.");
+                    SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}" +
+                    (plrStates[payer].Money < 0 ? "⚠️": "") + ".");
+                return;
             }
 
             if (reciever is not null)
@@ -531,7 +529,6 @@ namespace DiscordMoniesGame
                 exclude: new[] { reciever, payer }.Where(x => x is not null).Cast<IUser>().ToArray());
 
             if (payer is not null) plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
-            return true;
         }
 
         async Task GiveMoney(IUser reciever, int amount, string? giver = null)
@@ -554,19 +551,18 @@ namespace DiscordMoniesGame
                 await player.SendMessageAsync($"\"{space.Name}\" is already owned by a player.");
                 return false;
             }
-            if (await TryTransfer(amount, player))
+            await Transfer(amount, player);
+            
+            board.Spaces[pos] = ps with { Owner = player };
+            var embed = new EmbedBuilder()
             {
-                board.Spaces[pos] = ps with { Owner = player };
-                var embed = new EmbedBuilder()
-                {
-                    Title = "Property Obtained",
-                    Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.LocString()}) for {amount.MoneyString()}!",
-                    Color = board.GroupColorOrDefault(ps, Color.Green)
-                }.Build();
-                await this.Broadcast("", embed: embed);
-                return true;
-            }
-            return false;
+                Title = "Property Obtained",
+                Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.LocString()}) for {amount.MoneyString()}!",
+                Color = board.GroupColorOrDefault(ps, Color.Green)
+            }.Build();
+            await this.Broadcast("", embed: embed);
+            return true;
+            
         }
 
         async Task<bool> TryTakeJailFreeCard(IUser player)
@@ -734,7 +730,7 @@ namespace DiscordMoniesGame
                                 return false;
                             }
 
-                            await TryTransfer(deed.HotelCost / 2, null, developer);
+                            await Transfer(deed.HotelCost / 2, null, developer);
                             board.Spaces[loc] = rs with { Houses = 4 };
 
                             var embed1 = new EmbedBuilder()
@@ -747,7 +743,7 @@ namespace DiscordMoniesGame
                             return true;
                         }
                         // demolishing house
-                        await TryTransfer(deed.HouseCost / 2, null, developer);
+                        await Transfer(deed.HouseCost / 2, null, developer);
                         board.Spaces[loc] = rs with { Houses = rs.Houses - 1 };
 
                         var embed = new EmbedBuilder()
@@ -769,21 +765,19 @@ namespace DiscordMoniesGame
                                 await developer.SendMessageAsync("You can't develop this property because there are no more houses to purchase.");
                                 return false;
                             }
-                            if (await TryTransfer(deed.HouseCost, developer, null))
-                            {
-                                board.Spaces[loc] = rs with { Houses = rs.Houses + 1 };
+                            await Transfer(deed.HouseCost, developer, null);
+                            
+                            board.Spaces[loc] = rs with { Houses = rs.Houses + 1 };
 
-                                var embed = new EmbedBuilder()
-                                {
-                                    Title = "House Built",
-                                    Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new house being built, " +
-                                    $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
-                                    Color = board.GroupColorOrDefault(rs)
-                                }.Build();
-                                await this.Broadcast("", embed: embed);
-                                return true;
-                            }
-                            return false;
+                            var embed1 = new EmbedBuilder()
+                            {
+                                Title = "House Built",
+                                Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new house being built, " +
+                                $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
+                                Color = board.GroupColorOrDefault(rs)
+                            }.Build();
+                            await this.Broadcast("", embed: embed1);
+                            return true;
                         }
                         // building a hotel
                         if (!board.CanTakeHotel())
@@ -791,20 +785,19 @@ namespace DiscordMoniesGame
                             await developer.SendMessageAsync("You can't develop this property because there are no more hotels to purchase.");
                             return false;
                         }
-                        if (await TryTransfer(deed.HotelCost, developer, null))
-                        {
-                            board.Spaces[loc] = rs with { Houses = 5 };
+                        await Transfer(deed.HotelCost, developer, null);
+                        board.Spaces[loc] = rs with { Houses = 5 };
 
-                            var embed = new EmbedBuilder()
-                            {
-                                Title = "Hotel Built",
-                                Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
-                                Color = board.GroupColorOrDefault(rs)
-                            }.Build();
-                            await this.Broadcast("", embed: embed);
-                            return true;
+                        var embed = new EmbedBuilder()
+                        {
+                            Title = "Hotel Built",
+                            Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
+                            Color = board.GroupColorOrDefault(rs)
+                        }.Build();
+                        await this.Broadcast("", embed: embed);
+                        return true;
                         }
-                        return false;
+                        
                     }
                 }
                 else
@@ -812,7 +805,6 @@ namespace DiscordMoniesGame
                     await developer.SendMessageAsync("You can't develop this property because developing it would cause the color set to be developed unevenly.");
                     return false;
                 }
-            }
 
             await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
             return false;
@@ -823,12 +815,12 @@ namespace DiscordMoniesGame
             IUser? target = plrStates[player].BankruptcyTarget;
             PlayerState state = plrStates[player];
             var bankruptTarget = target?.Username ?? "the bank";
-
+            
             var actions = new List<string>();
 
             //Transfer funds
             //TODO: maybe transfer this outside of the TryTansfer function to avoid a message being sent?
-            await TryTransfer(state.Money, player, target);
+            await Transfer(state.Money, player, target);
             actions.Add($"{state.Money.MoneyString()} ➡️ **{bankruptTarget}**");
 
             //Transfer GOOJFCs
@@ -887,12 +879,12 @@ namespace DiscordMoniesGame
             await this.Broadcast("", embed: embed);
 
             //Remove the player from the game
-            BankruptedPlayers.Add(player);
+            BankruptedPlayers1.Add(player);
 
-            if (Players.Length == BankruptedPlayers.Count + 1)
+            if (CurrentPlayers.Length == BankruptedPlayers1.Count + 1)
             {
                 //TODO: Declare victory
-                IUser winner = Players.Where(player => !BankruptedPlayers.Contains(player)).First();
+                IUser winner = CurrentPlayers.Where(player => !BankruptedPlayers1.Contains(player)).First();
 
                 var embed1 = new EmbedBuilder()
                 {
@@ -904,7 +896,7 @@ namespace DiscordMoniesGame
             }
         }
 
-        void Close()
+        void Close() 
         {
             OnClosing();
         }

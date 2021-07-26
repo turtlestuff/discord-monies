@@ -30,7 +30,7 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        player = Utils.MatchClosest(args, Players, u => u.Username);
+                        player = Utils.MatchClosest(args, CurrentPlayers, u => u.Username);
                     }
 
                     if (player is not null)
@@ -66,7 +66,7 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        player = Utils.MatchClosest(args, Players, u => u.Username);
+                        player = Utils.MatchClosest(args, CurrentPlayers, u => u.Username);
                     }
 
                     if (player is not null)
@@ -358,8 +358,8 @@ namespace DiscordMoniesGame
 
                     var aSt = plrStates[msg.Author];
                     var space = (TaxSpace) board.Spaces[aSt.Position];
-                    if (await TryTransfer(space.Value, msg.Author))
-                        await AdvanceRound();
+                    await Transfer(space.Value, msg.Author);
+                    await AdvanceRound();
 
                     return;
                 }),
@@ -384,11 +384,10 @@ namespace DiscordMoniesGame
                     if (space is UtilitySpace)
                         rent *= lastRoll;
 
-                    if (await TryTransfer(rent, msg.Author, space.Owner))
-                    {
-                        await this.BroadcastTo($"**{msg.Author}** has paid you rent.");
-                        await AdvanceRound();
-                    }
+                    await Transfer(rent, msg.Author, space.Owner);
+
+                    await this.BroadcastTo($"**{msg.Author}** has paid you rent.");
+                    await AdvanceRound();
                     return;
                 }),
                 new("paycard", CanRun.CurrentPlayer, async (args, msg) =>
@@ -405,12 +404,10 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    if (await TryTransfer(cardOwe.Value, currentPlr, null))
-                    {
-                        cardOwe = null;
-                        await AdvanceRound();
-                        return;
-                    }
+                    await Transfer(cardOwe.Value, currentPlr, null);
+                    cardOwe = null;
+                    await AdvanceRound();
+                    return;
 
                 }),
                 new("payrepairs", CanRun.CurrentPlayer, async (args, msg) =>
@@ -427,12 +424,11 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    if (await TryTransfer(repairsOwe.Value, currentPlr, null))
-                    {
-                        repairsOwe = null;
-                        await AdvanceRound();
-                        return;
-                    }
+                    await Transfer(repairsOwe.Value, currentPlr, null);
+                    repairsOwe = null;
+                    await AdvanceRound();
+                    return;
+                    
 
                 }),
 
@@ -444,27 +440,27 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    if (await TryTransfer(board.JailFine, msg.Author))
+                    await Transfer(board.JailFine, msg.Author);
+                    
+                    var isJail3 = plrStates[msg.Author].JailStatus == 3;
+                    plrStates[msg.Author] = plrStates[msg.Author] with { JailStatus = -1 };
+                    var embed = new EmbedBuilder()
                     {
-                        var isJail3 = plrStates[msg.Author].JailStatus == 3;
-                        plrStates[msg.Author] = plrStates[msg.Author] with { JailStatus = -1 };
-                        var embed = new EmbedBuilder()
-                        {
-                            Title = "Jail Fine",
-                            Description = $"**{msg.Author.Username}** has paid the fine of {board.JailFine.MoneyString()} and has been released from Jail",
-                            Color = PlayerColor(msg.Author)
-                        }.Build();
-                        await this.Broadcast("", embed: embed);
+                        Title = "Jail Fine",
+                        Description = $"**{msg.Author.Username}** has paid the fine of {board.JailFine.MoneyString()} and has been released from Jail",
+                        Color = PlayerColor(msg.Author)
+                    }.Build();
+                    await this.Broadcast("", embed: embed);
 
-                        if (isJail3)
-                        {
-                            await HandlePlayerLand(await MovePlayerRelative(msg.Author, jailRoll));
-                            return;
-                        }
-
-                        await msg.Author.SendMessageAsync("You may `roll` again.");
-                        waiting = Waiting.ForNothing;
+                    if (isJail3)
+                    {
+                        await HandlePlayerLand(await MovePlayerRelative(msg.Author, jailRoll));
+                        return;
                     }
+
+                    await msg.Author.SendMessageAsync("You may `roll` again.");
+                    waiting = Waiting.ForNothing;
+                    
                 }),
                 new("usejailcard", CanRun.CurrentPlayer, async (args, msg) => {
                     if (plrStates[msg.Author].JailStatus == -1)
@@ -529,17 +525,16 @@ namespace DiscordMoniesGame
                             }
 
                             var amt = board.TitleDeedFor(loc).MortgageValue;
-                            if (await TryTransfer(amt, null, msg.Author))
+                            await Transfer(amt, null, msg.Author);
+                            board.Spaces[loc] = ps with { Mortgaged = true };
+                            var embed = new EmbedBuilder()
                             {
-                                board.Spaces[loc] = ps with { Mortgaged = true };
-                                var embed = new EmbedBuilder()
-                                {
-                                    Title = "Mortgage",
-                                    Description = $"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
-                                    Color = board.GroupColorOrDefault(ps, Color.Gold)
-                                }.Build();
-                                await this.Broadcast("", embed: embed);
-                            }
+                                Title = "Mortgage",
+                                Description = $"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                                Color = board.GroupColorOrDefault(ps, Color.Gold)
+                            }.Build();
+                            await this.Broadcast("", embed: embed);
+                            
                         }
                     }
                     catch (ArgumentException e)
@@ -566,18 +561,16 @@ namespace DiscordMoniesGame
                         var mortgage = board.TitleDeedFor(loc).MortgageValue;
                         var amt = (int) (mortgage * 1.10); // mortgage value + 10%
                     
-                        if (await TryTransfer(amt, msg.Author))
+                        await Transfer(amt, msg.Author);
+                        board.Spaces[loc] = ps with { Mortgaged = false };
+                        var embed = new EmbedBuilder()
                         {
-                            board.Spaces[loc] = ps with { Mortgaged = false };
-                            var embed = new EmbedBuilder()
-                            {
-                                Title = "Mortgage",
-                                Description = $"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
-                                Color = board.GroupColorOrDefault(ps, Color.Gold)
-                            }.Build();
-                            await this.Broadcast("", embed: embed);
+                            Title = "Mortgage",
+                            Description = $"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                            Color = board.GroupColorOrDefault(ps, Color.Gold)
+                        }.Build();
+                        await this.Broadcast("", embed: embed);
 
-                        }
                     }
                     catch (ArgumentException e)
                     {
@@ -626,7 +619,7 @@ namespace DiscordMoniesGame
                     if (i == -1)
                         return;
                     var amt = int.Parse(args[..i]);
-                    var plr = Utils.MatchClosest(args[(i + 1)..], Players, u => u.Username);
+                    var plr = Utils.MatchClosest(args[(i + 1)..], CurrentPlayers, u => u.Username);
                     await GiveMoney(plr, amt);
                     await msg.Author.SendMessageAsync($"Gave {plr.Username} {amt.MoneyString()}");
                 })
@@ -667,7 +660,7 @@ namespace DiscordMoniesGame
                     await commandObj.CmdFunc(args, msg);
                     return true;
                 case CanRun.Player:
-                    if (!Players.Contains(msg.Author, DiscordComparers.UserComparer))
+                    if (!CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer))
                         return false;
                     await commandObj.CmdFunc(args, msg);
                     return true;

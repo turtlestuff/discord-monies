@@ -26,7 +26,7 @@ namespace DiscordMoniesGame
 
         public static string LocString(this int position)
         {
-            var letter = (char)('A' + (int) Math.Floor(position / 10.0));
+            var letter = (char) ('A' + (int) Math.Floor(position / 10.0));
             var number = (position % 10).ToString();
             return $"{letter}{number}";
         }
