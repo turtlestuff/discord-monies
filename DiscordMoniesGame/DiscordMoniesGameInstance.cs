@@ -281,14 +281,15 @@ namespace DiscordMoniesGame
 
             if (board.Spaces[position] is TaxSpace ts)
             {
-                waiting = Waiting.ForTaxPay;
+                await Transfer(ts.Value, currentPlr);
                 var e = new EmbedBuilder()
                 {
                     Title = "Tax",
-                    Description = $"{ts.Name} is {ts.Value.MoneyString()}. Please pay this with the `paytax` command.",
+                    Description = $"You have paid **{ts.Name}** ({ts.Value.MoneyString()}).",
                     Color = Color.Red
                 }.Build();
                 await currentPlr.SendMessageAsync("", embed: e);
+                await AdvanceRound();
                 return;
             }
             if (board.Spaces[position] is PropertySpace ps)
@@ -327,16 +328,19 @@ namespace DiscordMoniesGame
                     return;
                 }
 
-                //TODO: Pay rent automatically where possible
                 var rent = board.CalculateRentFor(position);
                 if (board.Spaces[position] is UtilitySpace)
                     rent *= lastRoll;
 
-                waiting = Waiting.ForRentPay;
+                await Transfer(rent, currentPlr, ps.Owner);
+
+                await this.BroadcastTo($"**{currentPlr.Username}** has paid you rent.");
+                await AdvanceRound();
+
                 var e = new EmbedBuilder()
                 {
                     Title = "Rent",
-                    Description = $"The rent for the square you have landed on is {rent.MoneyString()}. Please pay this with the `payrent` command.",
+                    Description = $"You have paid rent for **{board.LocName(position)}** ({rent.MoneyString()}).",
                     Color = board.GroupColorOrDefault(ps, Color.Red)
                 }.Build();
                 await currentPlr.SendMessageAsync("", embed: e);
