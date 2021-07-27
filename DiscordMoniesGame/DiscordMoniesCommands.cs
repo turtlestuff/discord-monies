@@ -599,18 +599,6 @@ namespace DiscordMoniesGame
                 }),
                 //TODO: drop command
 
-                //TODO: DEBUG COMMANDS! PLEASE REMOVE THESE WHEN FINISHED
-                //HACK: Debig commands!
-                new ("givemoney", CanRun.Player, async (args, msg) =>
-                {
-                    var i = args.IndexOf(' ');
-                    if (i == -1)
-                        return;
-                    var amt = int.Parse(args[..i]);
-                    var plr = Utils.MatchClosest(args[(i + 1)..], CurrentPlayers, u => u.Username);
-                    await GiveMoney(plr, amt);
-                    await msg.Author.SendMessageAsync($"Gave {plr.Username} {amt.MoneyString()}");
-                })
             }.ToImmutableArray();
         }
         #endregion

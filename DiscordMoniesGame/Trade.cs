@@ -140,40 +140,64 @@ namespace DiscordMoniesGame
                     if (aSt.TradeTable is null)
                         break;
                     
-                    try
+                    var p = DetermineTradeTableParties(aSt.TradeTable.Take);
+                    IUser recipient;
+
+                    if (!p.Any())
                     {
-                        var p = DetermineTradeTableParties(aSt.TradeTable.Take);
+                        await msg.Author.SendMessageAsync("No player matches you wish to recieve. Please make sure that one or more players own all that you want to trade.");
+                        return;
+                    }
 
+                    if (args == "")
+                    {
                         if (p.Count() != 1)
-                            throw new TradeException("Ambiguous Trade Offer");
-
-                        aSt.TradeTable.Sender = msg.Author;
-                        var recipient = p.First();
-                        aSt.TradeTable.Recipient = recipient;
-
-                        if (!EnsureItemsTradable(aSt.TradeTable))
                         {
-                            await msg.Author.SendMessageAsync("This trade is invalid. Ensure that each user has the required assets and money to perform this trade.");
+                            await msg.Author.SendMessageAsync($"{p.Select(p => p.Username).ToArray().CommaAndList()} are possible recipients for your trade. Please specify one with" +
+                                "`trade offer [player]`");
                             return;
                         }
-
-                        aSt.TradeTable.State = TradeTable.TradeTableState.Offered;
-
-                        if (!trades.Contains(aSt.TradeTable))
-                            trades.Add(aSt.TradeTable);
-
-                        await SendTradeTable(aSt.TradeTable, recipient, true);
-                        await recipient.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
-                            $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
-
-                        plrStates[msg.Author] = aSt with { TradeTable = null };
-                        await msg.Author.SendMessageAsync($"Trade offer has been sent with index {trades.IndexOf(aSt.TradeTable)}. Your trade table has been closed.");
+                        recipient = p.First();
                     }
-                    catch (TradeException)
+                    else
                     {
-                        await msg.Author.SendMessageAsync("The trade table is ambiguous or invalid. Ensure that the trade table consists of " +
-                            "properties where you are trading between yourself and exactly one other player, and that the players have enough money to complete the trade.");
+                        var closestPlayer = Utils.MatchClosest(args, CurrentPlayers, x => x.Username);
+                        if (!p.Contains(closestPlayer))
+                        {
+                            await msg.Author.SendMessageAsync($"Only {p.Select(p => p.Username).ToArray().CommaAndList()} are possible recipients for your trade. Please check that the " +
+                                $"desired player ({closestPlayer.Username}) owns all the assets you wish to receive.");
+                            return;
+                        }
+                        recipient = closestPlayer;
                     }
+
+                    if (recipient.Id == msg.Author.Id)
+                    {
+                        await msg.Author.SendMessageAsync("You cannot trade with yourself!");
+                        return;
+                    }
+
+                    aSt.TradeTable.Sender = msg.Author;
+                    aSt.TradeTable.Recipient = recipient;
+
+                    if (!EnsureItemsTradable(aSt.TradeTable))
+                    {
+                        await msg.Author.SendMessageAsync("This trade is invalid. Ensure that each user has the required assets and money to perform this trade.");
+                        return;
+                    }
+
+                    aSt.TradeTable.State = TradeTable.TradeTableState.Offered;
+
+                    if (!trades.Contains(aSt.TradeTable))
+                        trades.Add(aSt.TradeTable);
+
+                    await SendTradeTable(aSt.TradeTable, recipient, true);
+                    await recipient.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
+                        $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
+
+                    plrStates[msg.Author] = aSt with { TradeTable = null };
+                    await msg.Author.SendMessageAsync($"Trade offer has been sent to {recipient.Username} with index {trades.IndexOf(aSt.TradeTable)}. Your trade table has been closed.");
+                    
 
                     return;
                 case "viewoffer":
