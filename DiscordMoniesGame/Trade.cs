@@ -140,7 +140,7 @@ namespace DiscordMoniesGame
                 case "offer": //"request"
                     if (aSt.TradeTable is null)
                         break;
-
+                    
                     try
                     {
                         var p = DetermineTradeTableParties(aSt.TradeTable.Take);
@@ -345,7 +345,7 @@ namespace DiscordMoniesGame
                     return space.Owner;
                 }
                 return null;
-            }).Distinct().Where(x => x is not null).Cast<IUser>();
+            }).Distinct(DiscordComparers.UserComparer).Where(x => x is not null).Cast<IUser>();
 
             if (!reducedByProperties.Any())
                 reducedByProperties = CurrentPlayers;   

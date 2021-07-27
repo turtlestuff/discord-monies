@@ -131,8 +131,7 @@ namespace DiscordMoniesGame
                 {
                     var msgContent = msg.Content[pos..];
 
-                    var commandHandled = await TryHandleCommand(msgContent, msg);
-                    if (commandHandled)
+                    if (await TryHandleCommand(msgContent, msg))
                         return;
 
                     //Message hasn't matched any commands, proceed to send as chat message...
@@ -231,7 +230,7 @@ namespace DiscordMoniesGame
                         break;
                     case "pay":
                         await Transfer(int.Parse(parts[1]), currentPlr, null);
-                        return;                   
+                        break;                   
                         
                     case "repairs":
                         {
@@ -253,7 +252,7 @@ namespace DiscordMoniesGame
                             });
 
                             await Transfer(total, currentPlr, null);
-                            return;
+                            break;
                         }
                     case "warp":
                         var move = await MovePlayer(currentPlr, int.Parse(parts[1]));
