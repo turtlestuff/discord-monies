@@ -149,8 +149,15 @@ namespace DiscordMoniesGame
                 }),
                 new("nudge", CanRun.Any, async (args, msg) =>
                 {
-                    await this.BroadcastTo($"{msg.Author.Username} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*", players: currentPlr);
-                    await msg.Author.SendMessageAsync($"I've nudged {currentPlr.Username}.");
+                    var nudgePlayer = waiting switch
+                    {
+                        Waiting.ForAuctionToFinish => currentAuctionPlayer,
+                        _ => currentPlr
+                    };
+                    if (nudgePlayer is null)
+                        return;
+                    await nudgePlayer.SendMessageAsync($"{msg.Author.Username} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
+                    await msg.Author.SendMessageAsync($"I've nudged {nudgePlayer.Username}.");
                 }),
 
                 new("roll", CanRun.CurrentPlayer, async (args, msg) =>
