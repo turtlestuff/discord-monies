@@ -146,9 +146,11 @@ namespace DiscordMoniesGame
                         $"**{userDescription}**: {msgContent}";
                     if (chatMessage.Length <= 2000)
                     {
-                        // ...except if it's too large!
-                        await this.BroadcastExcluding(chatMessage, exclude: msg.Author);
-                        await msg.AddReactionAsync(new Emoji("💬"));
+                        await Task.Run(async () =>
+                        {
+                            await this.BroadcastExcluding(chatMessage, exclude: msg.Author);
+                            await msg.AddReactionAsync(new Emoji("💬"));
+                        });
                     }
                 }
             }
