@@ -199,7 +199,7 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        return $"{board.Spaces[val].Name} ({val.LocString()})";
+                        return board.LocName(val);
                     }
                 });
 
@@ -440,7 +440,7 @@ namespace DiscordMoniesGame
             {
                 Title = "Next Round",
                 Description = $"Round: {round}\nPlayer: **{currentPlr.Username}** @ " +
-                (plrStates[currentPlr].JailStatus == -1 ? $"{board.Spaces[plrStates[currentPlr].Position].Name} ({plrStates[currentPlr].Position.LocString()})" : "Jail"),
+                (plrStates[currentPlr].JailStatus == -1 ? board.LocName(plrStates[currentPlr].Position) : "Jail"),
                 Color = plrStates[currentPlr].Color.ToDiscordColor()
             };
             await SendBoard(Users, embed);
@@ -603,7 +603,7 @@ namespace DiscordMoniesGame
                 var embed = new EmbedBuilder()
                 {
                     Title = "Property Obtained",
-                    Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.LocString()}) for {amount.MoneyString()}!",
+                    Description = $"**{player.Username}** has obtained **{board.LocName(pos)}** for {amount.MoneyString()}!",
                     Color = board.GroupColorOrDefault(ps, Color.Green)
                 }.Build();
                 await this.Broadcast("", embed: embed);
@@ -783,7 +783,7 @@ namespace DiscordMoniesGame
                             var embed1 = new EmbedBuilder()
                             {
                                 Title = "Hotel Demolished",
-                                Description = $"The hotel on **{rs.Name}** ({loc.LocString()}) has been demolished, leaving 4 houses there.",
+                                Description = $"The hotel on **{board.LocName(loc)}** has been demolished, leaving 4 houses there.",
                                 Color = board.GroupColorOrDefault(rs)
                             }.Build();
                             await this.Broadcast("", embed: embed1);
@@ -796,7 +796,7 @@ namespace DiscordMoniesGame
                         var embed = new EmbedBuilder()
                         {
                             Title = "House Demolished",
-                            Description = $"A house on **{rs.Name}** ({loc.LocString()}) has been demolished, leaving {rs.Houses} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
+                            Description = $"A house on **{board.LocName(loc)}** has been demolished, leaving {rs.Houses} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
                             Color = board.GroupColorOrDefault(rs)
                         }.Build();
                         await this.Broadcast("", embed: embed);
@@ -819,7 +819,7 @@ namespace DiscordMoniesGame
                                 var embed1 = new EmbedBuilder()
                                 {
                                     Title = "House Built",
-                                    Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new house being built, " +
+                                    Description = $"Development on **{board.LocName(loc)}** has resulted in a new house being built, " +
                                     $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
                                     Color = board.GroupColorOrDefault(rs)
                                 }.Build();
@@ -840,7 +840,7 @@ namespace DiscordMoniesGame
                             var embed = new EmbedBuilder()
                             {
                                 Title = "Hotel Built",
-                                Description = $"Development on **{rs.Name}** ({loc.LocString()}) has resulted in a new hotel being built.",
+                                Description = $"Development on **{board.LocName(loc)}** has resulted in a new hotel being built.",
                                 Color = board.GroupColorOrDefault(rs)
                             }.Build();
                             await this.Broadcast("", embed: embed);
@@ -908,7 +908,7 @@ namespace DiscordMoniesGame
                         {
                             TransferProperty(i, target, true);
                         }
-                        actions.Add($"**{ps.Name}** ({i.LocString()}) ➡️ **{bankruptTarget}**");
+                        actions.Add($"**{board.LocName(i)}** ➡️ **{bankruptTarget}**");
                     }
                 }
             }

@@ -13,6 +13,8 @@ namespace DiscordMoniesGame
         public static T MatchClosest<T>(string name, IEnumerable<T> users, Func<T, string> selector) =>
             users.Select(x => (Dist: Distance(name.ToLowerInvariant(), selector(x).ToLowerInvariant()), Val: x)).OrderBy(i => i.Dist).First().Val;
 
+        public static string MatchClosest(string input, IEnumerable<string> strings) => MatchClosest(input, strings, x => x);
+
         public static string BuildingsAsString(this int houses) => houses switch
         {
             0 => "None",

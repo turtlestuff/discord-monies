@@ -154,6 +154,14 @@ namespace DiscordMoniesGame
         public Color GroupColorOrDefault(Space space, Color? @default = null) =>
             space is RoadSpace rs ? Colors.ColorOfName(GroupNames[rs.Group]).ToDiscordColor() : @default ?? Color.Default;
 
+        public string LocName(int loc)
+        {
+            var space = Spaces[loc];
+            var strike = space is PropertySpace ps && ps.Mortgaged ? "~~" : "";
+            var prettyLoc = loc.LocString();
+            return $"{strike}{space.Name}{strike} ({prettyLoc})";
+        }
+
         public IEnumerable<RoadSpace> FindSpacesOfGroup(int group) => Spaces.Where(s => s is RoadSpace rs && rs.Group == group).Cast<RoadSpace>();
 
         public bool IsEntireGroupOwned(int group, out IEnumerable<RoadSpace> spaces)

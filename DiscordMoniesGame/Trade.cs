@@ -290,8 +290,8 @@ namespace DiscordMoniesGame
                 {
                     var space = (PropertySpace)board.Spaces[pi.Location];
                     TransferProperty(pi.Location, table.Recipient, pi.KeepMortgaged);
-                    actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Recipient.Username}**" +
-                        (space.Mortgaged ? (pi.KeepMortgaged ? " (kept mortgaged)" : " (de-mortgaged)") : ""));
+                    actions.Add($"{board.LocName(pi.Location)} ➡️ **{table.Recipient.Username}**" +
+                        (space.Mortgaged ? (pi.KeepMortgaged ? " - kept mortgaged" : " - de-mortgaged") : ""));
                 }
             }
 
@@ -307,8 +307,8 @@ namespace DiscordMoniesGame
                 {
                     var space = (PropertySpace)board.Spaces[pi.Location];
                     TransferProperty(pi.Location, table.Sender, pi.KeepMortgaged);
-                    actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Sender.Username}**" +
-                        (space.Mortgaged ? (pi.KeepMortgaged ? " (kept Mortgaged)" : " (de-mortgaged)") : ""));
+                    actions.Add($"{board.LocName(pi.Location)} ➡️ **{table.Sender.Username}**" +
+                        (space.Mortgaged ? (pi.KeepMortgaged ? " - kept mortgaged" : " - de-mortgaged") : ""));
                 }
             }
 
@@ -427,14 +427,13 @@ namespace DiscordMoniesGame
                 Title = "Trade 🔀",
                 Color = Color.Purple
             };
-
             var giveMortgageMoney = MortgageAmount(table.Take);
             var giveString = string.Join('\n', table.Give.Select(i => ItemName(i))) +
                 (table.GivingMoney > 0 ? $"\n{SenderAmount(table).MoneyString()}" : "") +
                 (giveMortgageMoney != 0 ? $"\n**To bank**: {giveMortgageMoney.MoneyString()}" : "");
             var giveField = new EmbedFieldBuilder()
             {
-                Name = !reverse ? "You give:" : "You take:",
+                Name = !reverse ? "You give:" : (table.Recipient is null ? "They give:" : $"{table.Recipient.Username} gives:"),
                 IsInline = true,
                 Value = giveString == "" ? "Empty" : giveString
             };
@@ -446,7 +445,7 @@ namespace DiscordMoniesGame
 
             var takeField = new EmbedFieldBuilder()
             {
-                Name = !reverse ? "You take:" : "You give:",
+                Name = !reverse ? (table.Sender is null ? "They give:" : $"{table.Sender.Username} gives:") : "You give:",
                 IsInline = true,
                 Value = takeString == "" ? "Empty" : takeString
             };
@@ -457,8 +456,8 @@ namespace DiscordMoniesGame
         string ItemName(TradeItem item) => item switch
         {
             JailCardItem => "Get out of Jail Free Card",
-            PropertyItem pt => $"{pt.Location.LocString()}: {board.Spaces[pt.Location].Name}" +
-            (((PropertySpace)board.Spaces[pt.Location]).Mortgaged ? (pt.KeepMortgaged ? " (keep mortgaged)" : " (de-mortgage)") : ""),
+            PropertyItem pt => $"{board.LocName(pt.Location)}" +
+            (((PropertySpace)board.Spaces[pt.Location]).Mortgaged ? (pt.KeepMortgaged ? ": keep mortgaged)" : ": de-mortgage") : ""),
             var x => x.ToString()
         };
 
@@ -493,7 +492,8 @@ namespace DiscordMoniesGame
             {
                 if (board.TryParseBoardSpaceInt(split[0], out var loc) && board.Spaces[loc] is PropertySpace)
                 {
-                    if (split[1] == "demortgage")
+                    var closest = Utils.MatchClosest(split[1], new[] { "demortgage", "keep" });
+                    if (closest == "demortgage")
                     {
                         item = new PropertyItem(loc, false);
                         return true;

@@ -172,7 +172,7 @@ namespace DiscordMoniesGame
                         {
                             Title = "Roll 🎲", //game die emoji
                             Description = $"**{msg.Author.Username}** has rolled `{roll1}` and `{roll2}` " +
-                            (!speedLimit ? $"and has gone to space `{position.LocString()}` ({board.Spaces[position].Name})." :
+                            (!speedLimit ? $"and has gone to space **{board.LocName(position)}**" :
                             ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!"),
                             Color = PlayerColor(msg.Author)
                         }.Build();
@@ -208,7 +208,7 @@ namespace DiscordMoniesGame
                             {
                                 Title = "Jail Roll",
                                 Description = $"**{msg.Author.Username}** has rolled `{roll1}` and `{roll2}` and has been released from jail!\n" +
-                                $"They move to `{position.LocString()}` ({board.Spaces[position].Name})",
+                                $"They move to {board.LocName(position)}",
                                 Color = Color.Green,
                                 Footer = new(){ Text = "They do not get an extra turn for rolling doubles" }
                             }.Build();
@@ -279,7 +279,7 @@ namespace DiscordMoniesGame
 
                     auctionSpace = aSt.Position;
                     waiting = Waiting.ForAuctionToFinish;
-
+                    
                     currentAuctionPlayer = NextPlayer(msg.Author);
                     var sorted = OrderedPlayers(currentAuctionPlayer);
                     auctionState = new(sorted.Select(p => KeyValuePair.Create<IUser, int?>(p, null)), DiscordComparers.UserComparer);
@@ -287,7 +287,7 @@ namespace DiscordMoniesGame
                     var embed = new EmbedBuilder()
                     {
                         Title = "Auction 🧑‍⚖️", // judge emoji
-                        Description = $"**{msg.Author.Username}** is auctioning off **{space.Name}** ({aSt.Position.LocString()}), normally worth {space.Value.MoneyString()}.\n" +
+                        Description = $"**{msg.Author.Username}** is auctioning off **{board.LocName(aSt.Position)}, normally worth {space.Value.MoneyString()}.\n" +
                         $"The auction will start at {1.MoneyString()} minimum with **{currentAuctionPlayer.Username}**, and will continue in the order below. " +
                         "You may use `bid [amount]` to bid or `skip` to skip. " +
                         "It will end when all players but one have skipped, and the last player not to skip gets the property. " +
@@ -501,12 +501,12 @@ namespace DiscordMoniesGame
                             var space = board.Spaces[loc];
                             if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
                             {
-                                await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not your property.");
+                                await msg.Author.SendMessageAsync($"{board.LocName(loc)} is not your property.");
                                 continue;
                             }
                             if (ps.Mortgaged)
                             {
-                                await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is already mortgaged. Use `demortgage` to de-mortgage.");
+                                await msg.Author.SendMessageAsync($"{board.LocName(loc)} is already mortgaged. Use `demortgage` to de-mortgage.");
                                 continue;
                             }
 
@@ -518,7 +518,7 @@ namespace DiscordMoniesGame
                                     //Ensure the entire group consists of undeveloped properties
                                     if (spaces.Any(space => space.Houses > 0))
                                     {
-                                        await msg.Author.SendMessageAsync($"You cannot mortgage {space.Name} ({loc.LocString()}) right now as buildings currently exist on other properties in this set.");
+                                        await msg.Author.SendMessageAsync($"You cannot mortgage {board.LocName(loc)} right now as buildings currently exist on other properties in this set.");
                                         continue;
                                     }
                                 }
@@ -530,7 +530,7 @@ namespace DiscordMoniesGame
                             var embed = new EmbedBuilder()
                             {
                                 Title = "Mortgage",
-                                Description = $"**{msg.Author.Username}** has mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                                Description = $"**{msg.Author.Username}** has mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
                                 Color = board.GroupColorOrDefault(ps, Color.Gold)
                             }.Build();
                             await this.Broadcast("", embed: embed);
@@ -550,12 +550,12 @@ namespace DiscordMoniesGame
                         var space = board.Spaces[loc];
                         if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
                         {
-                            await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not your property.");
+                            await msg.Author.SendMessageAsync($"{board.LocName(loc)} is not your property.");
                             return;
                         }
                         if (!ps.Mortgaged)
                         {
-                            await msg.Author.SendMessageAsync($"{space.Name} ({loc.LocString()}) is not mortgaged.");
+                            await msg.Author.SendMessageAsync($"{board.LocName(loc)} is not mortgaged.");
                             return;
                         }
                         var mortgage = board.TitleDeedFor(loc).MortgageValue;
@@ -567,7 +567,7 @@ namespace DiscordMoniesGame
                             var embed = new EmbedBuilder()
                             {
                                 Title = "Mortgage",
-                                Description = $"**{msg.Author.Username}** has de-mortgaged **{space.Name}** ({loc.LocString()}) for {amt.MoneyString()}.",
+                                Description = $"**{msg.Author.Username}** has de-mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
                                 Color = board.GroupColorOrDefault(ps, Color.Gold)
                             }.Build();
                             await this.Broadcast("", embed: embed);
