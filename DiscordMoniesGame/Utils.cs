@@ -34,5 +34,15 @@ namespace DiscordMoniesGame
         }
 
         public static string CommaAndList(this string[] els) => els.Length > 1 ? string.Join(", ", els[..^1]) + " and " + els[^1] : els[0];
+
+        public static EmbedBuilder WithId(this EmbedBuilder e, int id)
+        {
+            if (e.Footer is null)
+            {
+                e.Footer = new();
+            }
+            e.Footer.Text += $" Game #{id}";
+            return e;
+        }
     }
 }

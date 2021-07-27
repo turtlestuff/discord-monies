@@ -47,7 +47,7 @@ namespace DiscordMoniesGame
                                 new() { IsInline = true, Name = "Jail Card", Value = JailCardOwnedBy(player) is not null ? "Yes" : "No" }
                             },
                             Color = PlayerColor(player)
-                        }.Build();
+                        }.WithId(Id).Build();
                         await this.BroadcastTo("", embed: embed, players: msg.Author);
                         return;
                     }
@@ -109,7 +109,7 @@ namespace DiscordMoniesGame
                             eb.Color = Colors.ColorOfName(board.GroupNames[rs.Group]).ToDiscordColor();
                         }
 
-                        await this.BroadcastTo("", embed: eb.Build(), players: msg.Author);
+                        await this.BroadcastTo("", embed: eb.WithId(Id).Build(), players: msg.Author);
                     }
                     catch (ArgumentException e)
                     {
@@ -121,7 +121,7 @@ namespace DiscordMoniesGame
                     try
                     {
                         var s = board.ParseBoardSpaceInt(args);
-                        await this.BroadcastTo("", embed: board.CreateTitleDeedEmbed(s), players: msg.Author);
+                        await this.BroadcastTo("", embed: board.CreateTitleDeedEmbed(s).WithId(Id).Build(), players: msg.Author);
                     }
                     catch (ArgumentException e)
                     {
@@ -140,7 +140,7 @@ namespace DiscordMoniesGame
                             new() { IsInline = true, Name = "Avaliable Houses", Value = board.AvailableHouses },
                             new() { IsInline = true, Name = "Avaliable Hotels", Value = board.AvailableHotels }
                         }
-                    }.Build();
+                    }.WithId(Id).Build();
                     await this.BroadcastTo("", embed: embed, players: msg.Author);
                 }),
                 new("board", CanRun.Any, async (args, msg) =>
@@ -174,7 +174,7 @@ namespace DiscordMoniesGame
                             new() { IsInline = true, Name = "Player", Value = plrCommands },
                             new() { IsInline = true, Name = "Current Player", Value = curCommands }
                         }
-                    }.Build();
+                    }.WithId(Id).Build();
                     await msg.Author.SendMessageAsync(embed: e);
                 }),
 
@@ -201,7 +201,7 @@ namespace DiscordMoniesGame
                             (!speedLimit ? $"and has gone to space **{board.LocName(position)}**" :
                             ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!"),
                             Color = PlayerColor(msg.Author)
-                        }.Build();
+                        }.WithId(Id).Build();
 
                         await this.Broadcast("", embed: embed);
 
@@ -237,7 +237,7 @@ namespace DiscordMoniesGame
                                 $"They move to {board.LocName(position)}",
                                 Color = Color.Green,
                                 Footer = new() { Text = "They do not get an extra turn for rolling doubles" }
-                            }.Build();
+                            }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed);
                             await HandlePlayerLand(position);
                             return;
@@ -252,7 +252,7 @@ namespace DiscordMoniesGame
                                     Title = "Jail Roll",
                                     Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}`.",
                                     Color = Color.Red
-                                }.Build();
+                                }.WithId(Id).Build();
                                 await this.Broadcast("", embed: embed);
 
                                 waiting = Waiting.ForOtherJailDecision;
@@ -275,7 +275,7 @@ namespace DiscordMoniesGame
                                     Title = "Jail Roll",
                                     Description = $"{msg.Author.Username} has rolled `{roll1}` and `{roll2}`. They have {3 - (jailStatus + 1)} more attempt(s) to roll doubles left.",
                                     Color = Color.Red
-                                }.Build();
+                                }.WithId(Id).Build();
                                 await this.Broadcast("", embed: embed);
                                 await AdvanceRound();
                             }
@@ -331,7 +331,7 @@ namespace DiscordMoniesGame
                             new() { IsInline = false, Name = "Order", Value = PrettyOrderedPlayers(currentAuctionPlayer, true, true, false)}
                         },
                         Color = board.GroupColorOrDefault(space)
-                    }.Build();
+                    }.WithId(Id).Build();
                     await this.Broadcast("", embed: embed);
                 }),
                 new("skip", CanRun.Player, async (args, msg) =>
@@ -399,7 +399,7 @@ namespace DiscordMoniesGame
                         Title = "Jail Fine",
                         Description = $"**{msg.Author.Username}** has paid the fine of {board.JailFine.MoneyString()} and has been released from Jail",
                         Color = PlayerColor(msg.Author)
-                    }.Build();
+                    }.WithId(Id).Build();
                     await this.Broadcast("", embed: embed);
 
                     if (isJail3)
@@ -427,7 +427,7 @@ namespace DiscordMoniesGame
                             Title = "Jail Fine",
                             Description = $"**{msg.Author.Username}** has used a Get Out of Jail Free card and has been released from Jail",
                             Color = PlayerColor(msg.Author)
-                        }.Build();
+                        }.WithId(Id).Build();
                         await this.Broadcast("", embed: embed);
 
                         if (isJail3)
@@ -482,7 +482,7 @@ namespace DiscordMoniesGame
                                 Title = "Mortgage",
                                 Description = $"**{msg.Author.Username}** has mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
                                 Color = board.GroupColorOrDefault(ps, Color.Gold)
-                            }.Build();
+                            }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed);
                             
                         }
@@ -519,7 +519,7 @@ namespace DiscordMoniesGame
                                 Title = "Mortgage",
                                 Description = $"**{msg.Author.Username}** has de-mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
                                 Color = board.GroupColorOrDefault(ps, Color.Gold)
-                            }.Build();
+                            }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed);
                         }
                     }
@@ -574,7 +574,7 @@ namespace DiscordMoniesGame
                             Description = "Declaring bankruptcy will **exclude you from the game permanently**. Only use this if you are sure you cannot raise enough funds to " +
                             "pay back your debt. To confirm your choice, type `bankrupt bankrupt`",
                             Color = Color.Gold
-                        }.Build();
+                        }.WithId(Id).Build();
                         await msg.Author.SendMessageAsync(embed: e);
                         return;
                     }

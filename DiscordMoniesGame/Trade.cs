@@ -317,7 +317,7 @@ namespace DiscordMoniesGame
                 Title = "Trade 🔀",
                 Description = string.Join('\n', actions),
                 Color = Color.Purple
-            }.Build();
+            }.WithId(Id).Build();
 
             await this.Broadcast("", embed: embed);
 
@@ -450,7 +450,7 @@ namespace DiscordMoniesGame
                 Value = takeString == "" ? "Empty" : takeString
             };
             embed.WithFields(reverse ? new[] { takeField, giveField } : new[] { giveField, takeField });
-            await sendTo.SendMessageAsync(embed: embed.Build());
+            await sendTo.SendMessageAsync(embed: embed.WithId(Id).Build());
         }
 
         string ItemName(TradeItem item) => item switch

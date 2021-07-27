@@ -203,7 +203,7 @@ namespace DiscordMoniesGame
             return 0;
         }
 
-        public Embed CreateTitleDeedEmbed(int loc)
+        public EmbedBuilder CreateTitleDeedEmbed(int loc)
         {
             var deed = TitleDeedFor(loc);
             var space = (PropertySpace) Spaces[loc]; //TitleDeedFor would have thrown if that isn't a property space :)
@@ -255,7 +255,7 @@ namespace DiscordMoniesGame
 
             eb.Fields.Add(new() { IsInline = true, Name = "Mortgage Value", Value = deed.MortgageValue.MoneyString() });
 
-            return eb.Build();
+            return eb;
         }
 
         public LuckCard DrawLuckCard(CardType type)

@@ -63,9 +63,6 @@ namespace DiscordMoniesGame
         IUser? chanceJailFreeCardOwner;
         IUser? chestJailFreeCardOwner;
 
-        int? cardOwe;
-        int? repairsOwe;
-
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
         {
@@ -119,7 +116,7 @@ namespace DiscordMoniesGame
                 Description = "You're up first! Use `roll` to roll the dice and move around the board! Your piece is the " +
                     $"{Colors.NameOfColor(plrStates[currentPlr].Color)} one.",
                 Color = plrStates[currentPlr].Color.ToDiscordColor()
-            }.Build();
+            }.WithId(Id).Build();
             await currentPlr.SendMessageAsync(embed: firstEmbed);
         }
 
@@ -219,7 +216,7 @@ namespace DiscordMoniesGame
                             Value = humanReadableDescription
                         }
                     }
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: e);
 
                 switch (parts[0])
@@ -287,7 +284,7 @@ namespace DiscordMoniesGame
                     Title = "Tax",
                     Description = $"You have paid **{ts.Name}** ({ts.Value.MoneyString()}).",
                     Color = Color.Red
-                }.Build();
+                }.WithId(Id).Build();
                 await currentPlr.SendMessageAsync("", embed: e);
                 await AdvanceRound();
                 return;
@@ -296,7 +293,7 @@ namespace DiscordMoniesGame
             {
                 if (ps.Owner is null)
                 {
-                    await currentPlr.SendMessageAsync("", embed: board.CreateTitleDeedEmbed(position));
+                    await currentPlr.SendMessageAsync("", embed: board.CreateTitleDeedEmbed(position).WithId(Id).Build());
                     waiting = Waiting.ForAuctionOrBuyDecision;
                     var era = new EmbedBuilder()
                     {
@@ -304,7 +301,7 @@ namespace DiscordMoniesGame
                         Description = $"This property is not owned. You must choose between buying the property for its listed price ({ps.Value.MoneyString()})" +
                         $" with `buythis` or holding an auction with `auctionthis`.",
                         Color = board.GroupColorOrDefault(ps, Color.Gold)
-                    }.Build();
+                    }.WithId(Id).Build();
                     await currentPlr.SendMessageAsync("", embed: era);
                     return;
                 }
@@ -322,7 +319,7 @@ namespace DiscordMoniesGame
                         Title = "Rent",
                         Description = $"You landed on a mortgaged property, therefore you do not need to pay any rent.",
                         Color = board.GroupColorOrDefault(ps, Color.Red)
-                    }.Build();
+                    }.WithId(Id).Build();
                     await currentPlr.SendMessageAsync("", embed: e1);
                     await AdvanceRound();
                     return;
@@ -342,7 +339,7 @@ namespace DiscordMoniesGame
                     Title = "Rent",
                     Description = $"You have paid rent for **{board.LocName(position)}** ({rent.MoneyString()}).",
                     Color = board.GroupColorOrDefault(ps, Color.Red)
-                }.Build();
+                }.WithId(Id).Build();
                 await currentPlr.SendMessageAsync("", embed: e);
                 return;
             }
@@ -409,7 +406,7 @@ namespace DiscordMoniesGame
                         " in arrears! They must pay back what they owe to the bank or declare bankruptcy before the round continues.",
 
                         Color = Color.Red
-                    }.Build();
+                    }.WithId(Id).Build();
                     await this.BroadcastExcluding("", embed: everyoneEmbed, exclude: newlyBankrupted.ToArray());
                     foreach (var player in newlyBankrupted)
                     {
@@ -419,7 +416,7 @@ namespace DiscordMoniesGame
                             Description = $"You are in arrears! Please pay back your debt of {(-plrStates[player].Money).MoneyString()} before the round can proceed. " +
                             "If you cannot pay back your debt, you must declare bankruptcy by typing `bankrupt`.",
                             Color = Color.Red
-                        }.Build();
+                        }.WithId(Id).Build();
                         await player.SendMessageAsync(embed: personalEmbed);
                     }
                 }
@@ -432,7 +429,7 @@ namespace DiscordMoniesGame
                     Title = "Arrears!",
                     Description = "All players have cleared their financial situation!",
                     Color = Color.Green
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: e);
             }
 
@@ -470,7 +467,7 @@ namespace DiscordMoniesGame
                         .WithColor(Color.Red);
                 }
             }
-            await currentPlr.SendMessageAsync(embed: playerEmbed.Build());
+            await currentPlr.SendMessageAsync(embed: playerEmbed.WithId(Id).Build());
         }
 
         async Task SendToJail(IUser player)
@@ -483,7 +480,7 @@ namespace DiscordMoniesGame
                 Description = $"**{player.Username}** has been sent to jail.\n" +
                 $"They can try rolling doubles up to 3 times, pay a fine of {board.JailFine.MoneyString()} with `bail`, or use a Get out of Jail Free card with `usejailcard`.",
                 Color = Color.Red
-            }.Build();
+            }.WithId(Id).Build();
 
             await this.Broadcast("", embed: embed);
         }
@@ -504,7 +501,7 @@ namespace DiscordMoniesGame
                     if (embed is not null)
                     {
                         embed.ImageUrl = "attachment://board.png";
-                        await u.SendFileAsync(clone, "board.png", embed: embed.Build());
+                        await u.SendFileAsync(clone, "board.png", embed: embed.WithId(Id).Build());
                     }
                     else
                     {
@@ -515,7 +512,7 @@ namespace DiscordMoniesGame
             catch (ObjectDisposedException e)
             {
                 await this.Broadcast("Something went wrong trying to send the board. Don't worry! The turn has gone forward! " +
-                    "Use `board` to get a new board image and `status` to see the current player.", embed: embed?.Build() ?? default);
+                    "Use `board` to get a new board image and `status` to see the current player.", embed: embed?.WithId(Id)?.Build() ?? default);
                 Console.Error.WriteLine(e);
             }
         }
@@ -529,7 +526,7 @@ namespace DiscordMoniesGame
                 {
                     Title = "Pass Go Bonus!",
                     Description = $"**{player.Username}** has gotten {board.PassGoValue.MoneyString()} for passing GO!"
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: embed);
             }
             plrStates[player] = plrStates[player] with { Position = position };
@@ -619,7 +616,7 @@ namespace DiscordMoniesGame
                     Title = "Property Obtained",
                     Description = $"**{player.Username}** has obtained **{board.LocName(pos)}** for {amount.MoneyString()}!",
                     Color = board.GroupColorOrDefault(ps, Color.Green)
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: embed);
                 return true;
             }
@@ -667,7 +664,7 @@ namespace DiscordMoniesGame
                     Title = "Auction",
                     Description = bidString,
                     Color = board.GroupColorOrDefault(board.Spaces[auctionSpace.Value])
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: embed);
                 await FinalizeAuction();
                 return;
@@ -685,7 +682,7 @@ namespace DiscordMoniesGame
                     Title = "Auction",
                     Description = bidString,
                     Color = board.GroupColorOrDefault(board.Spaces[auctionSpace.Value])
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: embed);
                 await FinalizeAuction();
             }
@@ -696,7 +693,7 @@ namespace DiscordMoniesGame
                     Title = "Auction",
                     Description = $"{bidString}\n**{nextPlayer.Username}** is next to bid.",
                     Color = board.GroupColorOrDefault(board.Spaces[auctionSpace.Value])
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: embed);
                 currentAuctionPlayer = nextPlayer;
             }
@@ -721,7 +718,7 @@ namespace DiscordMoniesGame
                             Title = "Auction",
                             Description = "All players have skipped. Property has been sent back to the bank.",
                             Color = board.GroupColorOrDefault(board.Spaces[space])
-                        }.Build();
+                        }.WithId(Id).Build();
                         await this.Broadcast("", embed: e);
                     }
                     else
@@ -799,7 +796,7 @@ namespace DiscordMoniesGame
                                 Title = "Hotel Demolished",
                                 Description = $"The hotel on **{board.LocName(loc)}** has been demolished, leaving 4 houses there.",
                                 Color = board.GroupColorOrDefault(rs)
-                            }.Build();
+                            }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed1);
                             return true;
                         }
@@ -812,7 +809,7 @@ namespace DiscordMoniesGame
                             Title = "House Demolished",
                             Description = $"A house on **{board.LocName(loc)}** has been demolished, leaving {rs.Houses} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
                             Color = board.GroupColorOrDefault(rs)
-                        }.Build();
+                        }.WithId(Id).Build();
                         await this.Broadcast("", embed: embed);
 
                         return true;
@@ -836,7 +833,7 @@ namespace DiscordMoniesGame
                                     Description = $"Development on **{board.LocName(loc)}** has resulted in a new house being built, " +
                                     $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
                                     Color = board.GroupColorOrDefault(rs)
-                                }.Build();
+                                }.WithId(Id).Build();
                                 await this.Broadcast("", embed: embed1);
                                 return true;
                             }
@@ -856,7 +853,7 @@ namespace DiscordMoniesGame
                                 Title = "Hotel Built",
                                 Description = $"Development on **{board.LocName(loc)}** has resulted in a new hotel being built.",
                                 Color = board.GroupColorOrDefault(rs)
-                            }.Build();
+                            }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed);
                             return true;
                         }
@@ -941,7 +938,7 @@ namespace DiscordMoniesGame
                         Value = string.Join("\n", actions)
                     }
                 },
-            }.Build();
+            }.WithId(Id).Build();
             await this.Broadcast("", embed: embed);
 
             //Remove the player from the game
@@ -960,7 +957,7 @@ namespace DiscordMoniesGame
                     Title = "Victory!",
                     Description = $"The game has ended in a victory for **{winner.Username}**! The game is now closed.",
                     Color = Color.Green
-                }.Build();
+                }.WithId(Id).Build();
                 await this.Broadcast("", embed: embed1);
                 Close();
             }
