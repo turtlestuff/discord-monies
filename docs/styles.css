@@ -1,0 +1,251 @@
+@font-face {
+    font-family: noto;
+    src: url("NotoSans-Condensed.ttf");
+}
+
+* {
+    font-family: noto, serif;
+}
+:root {
+    --white: #EDF7E2;
+    --black: #100303;
+    --color: #6CB923;
+    --dark-color: #2F4617;
+}
+
+a { 
+    color: var(--color);
+}
+
+h1 {
+    font-weight: normal;
+    margin-top: 0;
+    font-size: 1.75em;
+}
+
+h2 {
+    font-weight: normal;
+    margin: 0.5em 0 0.5em;
+}
+
+h3 {
+    font-weight: normal;
+    margin: 0.5em 0 0.5em;
+}
+
+h1 {
+    counter-reset: h2;
+}
+
+h2.linkhead::before {
+    counter-increment: h2; content: counter(h2) ". ";
+}
+
+h2.linkhead {
+    counter-reset: h3;
+}
+
+h3.linkhead::before {
+    counter-increment: h3; content: counter(h2) "." counter(h3) " ";
+}
+
+p {
+    margin: 0.5em 0 0.5em;
+}
+
+body {
+    font-size: 14pt;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    min-height: var(--vh);
+}
+
+#main {
+    background-color: var(--white);
+    color: var(--black);
+    width: 60em;
+    min-width: min-content;
+    max-width: 100%;
+    text-align: justify;
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    border: var(--black) 3px solid
+}
+
+#pagehead {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--color);
+    color: var(--dark-color);
+    padding: 0.4em;
+    flex-grow: 0;
+    font-weight: bolder;
+    text-align: center;
+    border-bottom: var(--dark-color) 3px solid;
+}
+
+#pagehead span {
+    font-size: 3em;
+    line-height: 1em;
+}
+
+#pagehead .link a {
+    color: var(--white);
+    padding: 0 10px 0 10px;
+    text-decoration: none;
+}
+
+#page {
+    padding: 1em; 
+    padding-bottom: 0;
+    flex-grow: 2;
+}
+
+#toc > ol {
+    padding: 0;
+}
+
+#toc a {
+    text-decoration: none;
+}
+
+table {
+    background-color: var(--black);
+    margin: auto;
+    margin-bottom: 1em;
+    padding:1px;
+    border-radius: 1.5px;
+    box-shadow: 0 0 0.5em var(--color);
+}
+
+td {
+    background-color: var(--white);
+}
+
+th {
+    background-color: var(--color);
+    color: var(--white);
+    font-weight: normal;
+}
+
+td, th, caption {
+    padding: 0.2em;
+    padding-left: 0.4em;
+    padding-right: 0.4em;
+    text-align: center;
+    min-width: 1em;
+}
+
+.caption {
+    background-color: var(--black);
+    color: var(--white);
+}
+
+b {
+    font-weight: normal;
+    color: var(--color);
+}
+
+#toc ol { 
+    counter-reset: item 
+}
+
+#toc ol > li { 
+    display: block 
+}
+
+#toc ol > li::before { 
+    content: counters(item, ".") ". "; 
+    counter-increment: item; 
+}
+
+#toc li ol > li::before {
+    content: counters(item, ".") " "; 
+}
+
+hr {
+    border: none;
+    border-top: var(--dark-color) solid 2px;
+    margin: 1em 0 0 0
+}
+
+#footer {
+    text-align: center;
+    font-size: 0.7em;
+    margin: 1em;
+    justify-self: self-end;
+    flex-grow: 0;
+    margin-bottom: -1em;
+}
+
+button {
+    font-size: 1em;
+    background-color: var(--color);
+    color: var(--white);
+    border: none;
+    padding: 0.2em 0.4em;
+    box-shadow: 0 0 0.5em var(--color);
+    border-radius: 1.5px;
+    transition: filter 0.1s;
+}
+
+button:hover {
+    filter: brightness(85%);
+}
+
+button:active {
+    filter: brightness(80%) contrast(120%);
+}
+
+::selection {
+    color: var(--white);
+    background: var(--color);
+}
+
+::-webkit-scrollbar {
+    width: min-content;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--white);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color);
+}
+
+sub, sup {
+    font-size: 0.7em;
+}
+
+#error {
+    color: var(--color);
+}
+
+.entry {
+    margin-bottom: 1em;
+}
+
+.word {
+    font-size: 1.2em;
+    color: var(--color);
+}
+
+.def {
+    margin-top: 0;
+}
+
+.def {
+    padding-left: 1.5em;
+}
+
+.def li::marker {
+    color: var(--color);
+    font-size: 0.7em;
+}
+
+
+/* thanks astro for this css :) */
