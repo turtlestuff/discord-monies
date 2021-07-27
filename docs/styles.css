@@ -144,9 +144,14 @@ td, th, caption {
     color: var(--white);
 }
 
-b {
+code {
     font-weight: normal;
-    color: var(--color);
+    border-radius: 5px;
+    border: var(--color) 1px solid;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-family: monospace;
+    font-size: 0.90em;
 }
 
 #toc ol { 

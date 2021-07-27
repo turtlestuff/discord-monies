@@ -3,7 +3,7 @@
         <head>
             <meta charset="UTF-8">
             <link rel="icon" type="image/svg" href="./icon.svg">
-            <title>[no name]</title>
+            <title>Discord Monies help</title>
             <link rel="stylesheet" href="styles.css">
             <script src="toc.js"></script>
         </head>
@@ -20,6 +20,42 @@
                 <div id="toc">
                     JavaScript must be enabled for the ToC to be generated.
                 </div>
+
+                <h2 class="linkhead">Trading</h2>
+                <p>
+                    Trading works by laying out your own personal trade table and then offering it to someone else, and then they may accept, reject, or copy it to their own trade table.
+                    The offer is then checked, and if it is valid, the items, properties and money will be traded.
+                </p>
+                <h3 class="linkhead">New trade</h3>
+                <p>
+                    To lay out a new trade table, use <code>trade new</code>. If you already have a trade table laid out, you must <code>trade close</code> it first. You will get a confirmation
+                    message and will be shown your empty trade table.
+                </p>
+
+                <h3 class="linkhead">Configuring items</h3>
+                <p>
+                    <code>trade give [item]</code> and <code>trade take [item]</code> add an item to the respective side of the trade table, or removes it if it is already present. 
+                    <code>[item]</code> can be an amount of money, a Get Out of Jail Free card or a property space, with an option to keep it mortgaged or de-mortgage it.
+                </p>
+                <p>
+                    If you wish to trade money, <code>[item]</code> must be a simple number, which will set the respective number. Unlike other items, it does not toggle. To remove an amount of
+                    money, you must use <code>0</code> as the amount. You cannot give and take money at the same time; <code>trade give [amount]</code> will set the giving amount and 
+                    <code>trade take [amount]</code> will set the taking amount.
+                </p>
+                <p>
+                    If you wish to trade a Get Out of Jail Free card, use <code>jailcard</code> as the item.
+                </p>
+                <p>
+                    To trade properties, <code>[item]</code> must be a location ID (i.e. <code>A3</code>, <code>B6</code>). You may also specify, after the location ID, whether to keep the property
+                    mortgaged, with <code>keep</code>, or de-mortgage it with <code>demortgage</code>. If it is not specified, the default is to keep it mortgaged.<br>
+                </p>
+
+                <h3 class="linkhead">Offering, accepting, copying and rejecting</h3>
+                <p>
+                    To offer a trade to another player, use <code>trade offer</code>. If a trade is ambiguous, you may specify who the recipient is with <code>trade offer [player]</code>. Otherwise,
+                    the recipient will be determined automatically. 
+                </p>
+
                 <script>
                     autoToc();
                 </script>

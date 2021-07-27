@@ -4,7 +4,7 @@ function autoToc() {
     let headers = [];
     for (l of headerLinks){
         if (l.id === "")
-            l.id = l.innerText.replaceAll(" ", "_") + ":" + discriminatorCounter++;
+            l.id = l.innerText.replaceAll(" ", "_");
 
         if (l.tagName === "H2"){
             headers.push([{id: l.id, name: l.innerText}]);
