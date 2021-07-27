@@ -422,7 +422,13 @@ namespace DiscordMoniesGame
             }
             else if (waiting == Waiting.ForArrearsPay)
             {
-                await this.Broadcast("All players have cleared their financial situation!");
+                var e = new EmbedBuilder()
+                {
+                    Title = "Arrears!",
+                    Description = "All players have cleared their financial situation!",
+                    Color = Color.Green
+                }.Build();
+                await this.Broadcast("", embed: e);
             }
 
             waiting = Waiting.ForNothing;
@@ -589,18 +595,20 @@ namespace DiscordMoniesGame
                 await player.SendMessageAsync($"\"{space.Name}\" is already owned by a player.");
                 return false;
             }
-            await Transfer(amount, player);
-            
-            board.Spaces[pos] = ps with { Owner = player };
-            var embed = new EmbedBuilder()
+            if (await TryTransfer(amount, player))
             {
-                Title = "Property Obtained",
-                Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.LocString()}) for {amount.MoneyString()}!",
-                Color = board.GroupColorOrDefault(ps, Color.Green)
-            }.Build();
-            await this.Broadcast("", embed: embed);
-            return true;
-            
+
+                board.Spaces[pos] = ps with { Owner = player };
+                var embed = new EmbedBuilder()
+                {
+                    Title = "Property Obtained",
+                    Description = $"**{player.Username}** has obtained **{ps.Name}** ({pos.LocString()}) for {amount.MoneyString()}!",
+                    Color = board.GroupColorOrDefault(ps, Color.Green)
+                }.Build();
+                await this.Broadcast("", embed: embed);
+                return true;
+            }
+            return false;
         }
 
         async Task<bool> TryTakeJailFreeCard(IUser player)
@@ -839,14 +847,17 @@ namespace DiscordMoniesGame
                         }
                     }    
                 }
+                else
+                {
+                    await developer.SendMessageAsync("You can't develop this property because developing it would cause the color set to be developed unevenly.");
+                    return false;
+                }
             }
             else
-            {
-                await developer.SendMessageAsync("You can't develop this property because developing it would cause the color set to be developed unevenly.");
+            { 
+                await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
                 return false;
             }
-
-            await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
             return false;
         }
 

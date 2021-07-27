@@ -154,7 +154,7 @@ namespace DiscordMoniesGame
 
                         if (!EnsureItemsTradable(aSt.TradeTable))
                         {
-                            await msg.Author.SendMessageAsync("This trade is invalid. Ensure that each user has the required assets to perform this trade.");
+                            await msg.Author.SendMessageAsync("This trade is invalid. Ensure that each user has the required assets and money to perform this trade.");
                             return;
                         }
 
@@ -171,7 +171,7 @@ namespace DiscordMoniesGame
                     catch (TradeException)
                     {
                         await msg.Author.SendMessageAsync("The trade table is ambiguous or invalid. Ensure that the trade table consists of " +
-                            "properties where you are trading between yourself and exactly one other player.");
+                            "properties where you are trading between yourself and exactly one other player, and that the players have enough money to complete the trade.");
                     }
 
                     return;
@@ -306,7 +306,7 @@ namespace DiscordMoniesGame
             {
                 if (item is PropertyItem pi)
                 {
-                    var space = (PropertySpace)board.Spaces[pi.Location];
+                    var space = (PropertySpace) board.Spaces[pi.Location];
                     if (space.Owner is null) throw new TradeException("No one owns this property");
                     return space.Owner;
                 }
@@ -405,7 +405,7 @@ namespace DiscordMoniesGame
                 Color = Color.Purple
             };
 
-            var giveMortgageMoney = MortgageAmount(table.Give);
+            var giveMortgageMoney = MortgageAmount(table.Take);
             var giveString = string.Join('\n', table.Give.Select(i => ItemName(i))) +
                 (table.GivingMoney > 0 ? $"\n{SenderAmount(table).MoneyString()}" : "") +
                 (giveMortgageMoney != 0 ? $"\n**To bank**: {giveMortgageMoney.MoneyString()}" : "");
@@ -416,7 +416,7 @@ namespace DiscordMoniesGame
                 Value = giveString == "" ? "Empty" : giveString
             };
 
-            var takeMortgageMoney = MortgageAmount(table.Take);
+            var takeMortgageMoney = MortgageAmount(table.Give);
             var takeString = string.Join('\n', table.Take.Select(i => ItemName(i))) +
                 (table.GivingMoney < 0 ? $"\n{RecipientAmount(table).MoneyString()}" : "") +
                 (takeMortgageMoney != 0 ? $"\n**To bank**: {takeMortgageMoney.MoneyString()}" : "");
