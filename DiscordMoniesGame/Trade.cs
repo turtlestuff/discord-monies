@@ -348,7 +348,7 @@ namespace DiscordMoniesGame
             }).Distinct().Where(x => x is not null).Cast<IUser>();
 
             if (!reducedByProperties.Any())
-                reducedByProperties = CurrentPlayers;
+                reducedByProperties = CurrentPlayers;   
 
             if (items.Any(x => x is JailCardItem))
             {
@@ -378,8 +378,8 @@ namespace DiscordMoniesGame
                     return false;
             }
 
-            return (plrStates[table.Sender!].Money >= TotalSenderAmount(table)) &&
-                (plrStates[table.Recipient!].Money >= TotalRecipientAmount(table));
+            return (plrStates[table.Sender!].Money - TotalSenderAmount(table) >= Math.Min(0, plrStates[table.Sender!].Money)) &&
+                (plrStates[table.Recipient!].Money - TotalRecipientAmount(table) >= Math.Min(0, plrStates[table.Recipient!].Money));
         }
 
         int TotalSenderAmount(TradeTable table) =>

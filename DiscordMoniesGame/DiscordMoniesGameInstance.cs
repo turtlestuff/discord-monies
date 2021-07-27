@@ -131,7 +131,7 @@ namespace DiscordMoniesGame
                 {
                     var msgContent = msg.Content[pos..];
 
-                    var commandHandled = await Task.Run(async () => await TryHandleCommand(msgContent, msg));
+                    var commandHandled = await TryHandleCommand(msgContent, msg);
                     if (commandHandled)
                         return;
 
@@ -528,10 +528,10 @@ namespace DiscordMoniesGame
         }
 
         Color PlayerColor(IUser player) => plrStates[player].Color.ToDiscordColor();
-        
+
         async Task<bool> TryTransfer(int amount, IUser? payer, IUser? reciever = null)
         {
-            if (payer is not null && plrStates[payer].Money - amount < 0)
+            if (payer is not null && plrStates[payer].Money - amount < Math.Min(0, plrStates[payer].Money))
             {
                 await payer.SendMessageAsync("You do not have enough funds to make this transaction.");
                 return false;
