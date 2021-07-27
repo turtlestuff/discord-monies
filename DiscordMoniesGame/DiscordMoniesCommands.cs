@@ -43,7 +43,8 @@ namespace DiscordMoniesGame
                             {
                                 new() { IsInline = true, Name = "Balance", Value = playerState.Money.MoneyString() },
                                 new() { IsInline = true, Name = "Position", Value = playerState.Position.LocString() },
-                                new() { IsInline = true, Name = "Color", Value = Colors.NameOfColor(playerState.Color) }
+                                new() { IsInline = true, Name = "Color", Value = Colors.NameOfColor(playerState.Color) },
+                                new() { IsInline = true, Name = "Jail Card", Value = JailCardOwnedBy(player) is not null ? "Yes" : "No" }
                             },
                             Color = PlayerColor(player)
                         }.Build();
@@ -210,7 +211,7 @@ namespace DiscordMoniesGame
                                 Description = $"**{msg.Author.Username}** has rolled `{roll1}` and `{roll2}` and has been released from jail!\n" +
                                 $"They move to {board.LocName(position)}",
                                 Color = Color.Green,
-                                Footer = new(){ Text = "They do not get an extra turn for rolling doubles" }
+                                Footer = new() { Text = "They do not get an extra turn for rolling doubles" }
                             }.Build();
                             await this.Broadcast("", embed: embed);
                             await HandlePlayerLand(position);
@@ -230,8 +231,16 @@ namespace DiscordMoniesGame
                                 await this.Broadcast("", embed: embed);
 
                                 waiting = Waiting.ForOtherJailDecision;
-                                await msg.Author.SendMessageAsync($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} using `bail` or use a " +
-                                    "Get out of Jail Free card (`usejailcard`) in order to get out of jail.");
+                                if (JailCardOwnedBy(msg.Author) is not null)
+                                {
+                                    await msg.Author.SendMessageAsync($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} using `bail` or use a " +
+                                        "Get out of Jail Free card (`usejailcard`) in order to get out of jail.");
+                                }
+                                else
+                                {
+                                    await msg.Author.SendMessageAsync($"You have no remaining roll attempts. You must pay the fine of {board.JailFine.MoneyString()} using `bail`.");
+                                }
+
                                 jailRoll = roll1 + roll2;
                             }
                             else

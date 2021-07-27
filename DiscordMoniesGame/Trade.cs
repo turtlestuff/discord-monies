@@ -282,7 +282,7 @@ namespace DiscordMoniesGame
             {
                 if (giveItem is JailCardItem)
                 {
-                    JailCardThatPlayerOwns(table.Sender) = table.Recipient;
+                    JailCardOwnedBy(table.Sender) = table.Recipient;
                     actions.Add($"**{table.Sender.Username}'s** Get out of Jail Free Card ➡️ **{table.Recipient.Username}**");
                     continue;
                 }
@@ -299,7 +299,7 @@ namespace DiscordMoniesGame
             {
                 if (takeItem is JailCardItem)
                 {
-                    JailCardThatPlayerOwns(table.Recipient) = table.Sender;
+                    JailCardOwnedBy(table.Recipient) = table.Sender;
                     actions.Add($"**{table.Recipient.Username}'s** Get out of Jail Free Card ➡️ **{table.Sender.Username}**");
                     continue;
                 }
@@ -324,7 +324,7 @@ namespace DiscordMoniesGame
             return true;
         }
 
-        ref IUser? JailCardThatPlayerOwns(IUser plr)
+        ref IUser? JailCardOwnedBy(IUser plr)
         {
             if (plr.Id == chanceJailFreeCardOwner?.Id)
                 return ref chanceJailFreeCardOwner;

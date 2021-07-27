@@ -453,9 +453,18 @@ namespace DiscordMoniesGame
             }
             else
             {
-                playerEmbed.WithDescription("It's your turn, but unfortunately you are in jail. You can try rolling doubles with `roll`, " +
-                    $"bailing and paying the {board.JailFine.MoneyString()} fine with `bail`, or using a Get out of Jail Free card, with `usejailcard`, if you have one.")
-                    .WithColor(Color.Red);
+                if (JailCardOwnedBy(currentPlr) is not null)
+                {
+                    playerEmbed.WithDescription("It's your turn, but unfortunately you are in jail. You can try rolling doubles with `roll`, " +
+                        $"bailing and paying the {board.JailFine.MoneyString()} fine with `bail`, or using a Get out of Jail Free card, with `usejailcard`.")
+                        .WithColor(Color.Red);
+                }
+                else
+                {
+                    playerEmbed.WithDescription("It's your turn, but unfortunately you are in jail. You can try rolling doubles with `roll` or " +
+                        $"bailing and paying the {board.JailFine.MoneyString()} fine with `bail`.")
+                        .WithColor(Color.Red);
+                }
             }
             await currentPlr.SendMessageAsync(embed: playerEmbed.Build());
         }
@@ -501,7 +510,8 @@ namespace DiscordMoniesGame
             }
             catch (ObjectDisposedException e)
             {
-                await this.Broadcast("Something went wrong trying to send the board. Don't worry! The turn has gone forward! Use `board` to get a new board image and `status` to see the current player.");
+                await this.Broadcast("Something went wrong trying to send the board. Don't worry! The turn has gone forward! " +
+                    "Use `board` to get a new board image and `status` to see the current player.", embed: embed?.Build() ?? default);
                 Console.Error.WriteLine(e);
             }
         }
