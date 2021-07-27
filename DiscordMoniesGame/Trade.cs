@@ -14,9 +14,9 @@ namespace DiscordMoniesGame
         readonly TimeSpan closeTradeDelay = TimeSpan.FromMinutes(5);
         public sealed class TradeTable
         {
-            public List<TradeItem> Give { get; } = new();
+            public List<TradeItem> Give { get; init; } = new();
             public int GivingMoney { get; set; } = 0;
-            public List<TradeItem> Take { get; } = new();
+            public List<TradeItem> Take { get; init; } = new();
 
             public IUser? Sender { get; set; } = null;
             public IUser? Recipient { get; set; } = null;
@@ -59,7 +59,6 @@ namespace DiscordMoniesGame
                 case "close":
                     if (aSt.TradeTable is null)
                         break;
-                    trades.Remove(aSt.TradeTable);
                     plrStates[msg.Author] = aSt with { TradeTable = null };
                     await msg.Author.SendMessageAsync("You have chucked your old trade away.");
                     return;
@@ -75,7 +74,7 @@ namespace DiscordMoniesGame
                     {
                         if (item is MoneyItem mi)
                         {
-                            aSt.TradeTable.GivingMoney += mi.Amount;
+                            aSt.TradeTable.GivingMoney = mi.Amount;
                         }
                         else if (aSt.TradeTable.Give.Any(x => x == item))
                         {
@@ -110,7 +109,7 @@ namespace DiscordMoniesGame
                     {
                         if (item1 is MoneyItem mi)
                         {
-                            aSt.TradeTable.GivingMoney -= mi.Amount;
+                            aSt.TradeTable.GivingMoney = -mi.Amount;
                         }
                         else if (aSt.TradeTable.Take.Any(x => x == item1))
                         {
@@ -146,11 +145,12 @@ namespace DiscordMoniesGame
                     {
                         var p = DetermineTradeTableParties(aSt.TradeTable.Take);
 
-                        if (p is null)
+                        if (p.Count() != 1)
                             throw new TradeException("Ambiguous Trade Offer");
 
                         aSt.TradeTable.Sender = msg.Author;
-                        aSt.TradeTable.Recipient = p;
+                        var recipient = p.First();
+                        aSt.TradeTable.Recipient = recipient;
 
                         if (!EnsureItemsTradable(aSt.TradeTable))
                         {
@@ -163,10 +163,12 @@ namespace DiscordMoniesGame
                         if (!trades.Contains(aSt.TradeTable))
                             trades.Add(aSt.TradeTable);
 
-                        await SendTradeTable(aSt.TradeTable, p, true);
-                        await p.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
+                        await SendTradeTable(aSt.TradeTable, recipient, true);
+                        await recipient.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
                             $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
-                        await msg.Author.SendMessageAsync($"Trade trable has been sent, with index {trades.IndexOf(aSt.TradeTable)}");
+
+                        plrStates[msg.Author] = aSt with { TradeTable = null };
+                        await msg.Author.SendMessageAsync($"Trade offer has been sent with index {trades.IndexOf(aSt.TradeTable)}. Your trade table has been closed.");
                     }
                     catch (TradeException)
                     {
@@ -201,6 +203,33 @@ namespace DiscordMoniesGame
                         trades.Remove(table2);
                         await table2.Sender.SendMessageAsync($"**{msg.Author.Username}** has rejected your trade offer.");
                         await msg.Author.SendMessageAsync($"You have rejected **{table2.Sender?.Username}**'s trade offer.");
+                    }
+                    else
+                    {
+                        await msg.Author.SendMessageAsync("That trade table is not available.");
+                    }
+                    return;
+                case "copy":
+                    if (TryGetTradeTable(args, out var table3) && table3.Recipient?.Id == msg.Author.Id)
+                    {
+                        if (aSt.TradeTable is not null)
+                        {
+                            await msg.Author.SendMessageAsync("You have already laid out a trade. Use `trade close` to get rid of that one.");
+                            return;
+                        }
+                        plrStates[msg.Author] = plrStates[msg.Author] with
+                        {
+                            TradeTable = new TradeTable()
+                            {
+                                Give = new(table3.Take),
+                                Take = new(table3.Give),
+                                GivingMoney = -table3.GivingMoney
+                            }
+                        };
+                        trades.Remove(table3);
+                        await table3.Sender.SendMessageAsync($"**{msg.Author.Username}** has rejected and copied your trade offer.");
+                        await msg.Author.SendMessageAsync($"You have rejected and copied **{table3.Sender?.Username}**'s trade offer. " +
+                            $"Their trade offer is now available in your trade table.");
                     }
                     else
                     {
@@ -250,7 +279,7 @@ namespace DiscordMoniesGame
                     var space = (PropertySpace)board.Spaces[pi.Location];
                     TransferProperty(pi.Location, table.Recipient, pi.KeepMortgaged);
                     actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Recipient.Username}**" +
-                        (space.Mortgaged ? (pi.KeepMortgaged ? "(Kept Mortgaged)" : "(De-mortgaged)") : ""));
+                        (space.Mortgaged ? (pi.KeepMortgaged ? " (Kept Mortgaged)" : " (De-mortgaged)") : ""));
                 }
             }
 
@@ -267,7 +296,7 @@ namespace DiscordMoniesGame
                     var space = (PropertySpace)board.Spaces[pi.Location];
                     TransferProperty(pi.Location, table.Sender, pi.KeepMortgaged);
                     actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Sender.Username}**" +
-                        (space.Mortgaged ? (pi.KeepMortgaged ? "(Kept Mortgaged)" : "(De-mortgaged)") : ""));
+                        (space.Mortgaged ? (pi.KeepMortgaged ? " (Kept Mortgaged)" : " (De-mortgaged)") : ""));
                 }
             }
 
@@ -300,9 +329,14 @@ namespace DiscordMoniesGame
             // keep mortgage is true
         }
 
-        IUser? DetermineTradeTableParties(IEnumerable<TradeItem> items)
+        IEnumerable<IUser> DetermineTradeTableParties(IEnumerable<TradeItem> items)
         {
-            var reduced = items.Select(item =>
+            if (!items.Any())
+            {
+                return CurrentPlayers;
+            }
+
+            var reducedByProperties = items.Select(item =>
             {
                 if (item is PropertyItem pi)
                 {
@@ -313,40 +347,17 @@ namespace DiscordMoniesGame
                 return null;
             }).Distinct().Where(x => x is not null).Cast<IUser>();
 
-            if (reduced.Count() > 1)
-                return null;
-
-            var plr = reduced.FirstOrDefault();
+            if (!reducedByProperties.Any())
+                reducedByProperties = CurrentPlayers;
 
             if (items.Any(x => x is JailCardItem))
             {
-                if (plr is null)
-                {
-                    //Determine the player from the GOOJFC
-                    return (chanceJailFreeCardOwner, chestJailFreeCardOwner) switch
-                    {
-                        //No one owns a GOOJFC
-                        (null, null) => null, 
-
-                        //One GOOJFC is owned by any player
-                        (null, not null) => chestJailFreeCardOwner,
-                        (not null, null) => chanceJailFreeCardOwner,
-
-                        //The same person owns both GOOJFCs
-                        (not null, not null) when chanceJailFreeCardOwner.Id == chestJailFreeCardOwner.Id => chanceJailFreeCardOwner,
-
-                        //A different person owns each GOOJFC
-                        _ => null 
-                    };
-                }
-
-                if (plr.Id == chanceJailFreeCardOwner?.Id || plr.Id == chestJailFreeCardOwner?.Id)
-                    return plr;
-                else
-                    return null;
+                var reducedByJailCard = CurrentPlayers
+                    .Where(x => x.Id == chanceJailFreeCardOwner?.Id || x.Id == chestJailFreeCardOwner?.Id);
+                return reducedByJailCard.Intersect(reducedByProperties, DiscordComparers.UserComparer);
             }
 
-            return plr;
+            return reducedByProperties;
         }
 
         bool EnsureItemsTradable(TradeTable table)
@@ -355,7 +366,7 @@ namespace DiscordMoniesGame
             {
                 var p = DetermineTradeTableParties(table.Take);
 
-                if (p is null || p.Id != table.Recipient?.Id)
+                if (p.Count() != 1 || p.First().Id != table.Recipient?.Id)
                     return false;
             }
 
@@ -363,7 +374,7 @@ namespace DiscordMoniesGame
             {
                 var q = DetermineTradeTableParties(table.Give);
 
-                if (q is null || q.Id != table.Sender?.Id)
+                if (q.Count() != 1 || q.First().Id != table.Sender?.Id)
                     return false;
             }
 
@@ -480,6 +491,14 @@ namespace DiscordMoniesGame
                         item = new PropertyItem(loc, true);
                         return true;
                     }
+                }
+            }
+            else
+            {
+                if (board.TryParseBoardSpaceInt(split[0], out var loc) && board.Spaces[loc] is PropertySpace)
+                {
+                    item = new PropertyItem(loc, true);
+                    return true;
                 }
             }
 

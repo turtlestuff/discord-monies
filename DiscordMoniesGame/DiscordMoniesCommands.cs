@@ -621,7 +621,7 @@ namespace DiscordMoniesGame
                         var e = new EmbedBuilder()
                         {
                             Title = "Are you sure?",
-                            Description = "Declaring bankruptcy will **exclude you from the game permanently**. Only use this if you are sure you cannot raise enough funds to" +
+                            Description = "Declaring bankruptcy will **exclude you from the game permanently**. Only use this if you are sure you cannot raise enough funds to " +
                             "pay back your debt. To confirm your choice, type `bankrupt bankrupt`",
                             Color = Color.Gold
                         }.Build();
