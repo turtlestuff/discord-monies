@@ -92,9 +92,15 @@ namespace DiscordMoniesGame
                                     aSt.TradeTable.Give.RemoveAt(index);
                                     aSt.TradeTable.Give.Add(item);
                                 }
+                                else
+                                {
+                                    aSt.TradeTable.Give.Add(item);
+                                }
                             }
-                            // new stuff! add it
-                            aSt.TradeTable.Give.Add(item);
+                            else
+                            {
+                                aSt.TradeTable.Give.Add(item);
+                            }
                         }
                         await SendTradeTable(aSt.TradeTable, msg.Author, false);
                         return;
@@ -127,9 +133,15 @@ namespace DiscordMoniesGame
                                     aSt.TradeTable.Take.RemoveAt(index);
                                     aSt.TradeTable.Take.Add(item1);
                                 }
+                                else
+                                {
+                                    aSt.TradeTable.Take.Add(item1);
+                                }
                             }
-                            // new stuff! add it
-                            aSt.TradeTable.Take.Add(item1);
+                            else
+                            {
+                                aSt.TradeTable.Take.Add(item1);
+                            }
                         }
                         await SendTradeTable(aSt.TradeTable, msg.Author, false);
                         return;
@@ -279,7 +291,7 @@ namespace DiscordMoniesGame
                     var space = (PropertySpace)board.Spaces[pi.Location];
                     TransferProperty(pi.Location, table.Recipient, pi.KeepMortgaged);
                     actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Recipient.Username}**" +
-                        (space.Mortgaged ? (pi.KeepMortgaged ? " (Kept Mortgaged)" : " (De-mortgaged)") : ""));
+                        (space.Mortgaged ? (pi.KeepMortgaged ? " (kept mortgaged)" : " (de-mortgaged)") : ""));
                 }
             }
 
@@ -296,7 +308,7 @@ namespace DiscordMoniesGame
                     var space = (PropertySpace)board.Spaces[pi.Location];
                     TransferProperty(pi.Location, table.Sender, pi.KeepMortgaged);
                     actions.Add($"**{space.Name}** ({pi.Location.LocString()}) ➡️ **{table.Sender.Username}**" +
-                        (space.Mortgaged ? (pi.KeepMortgaged ? " (Kept Mortgaged)" : " (De-mortgaged)") : ""));
+                        (space.Mortgaged ? (pi.KeepMortgaged ? " (kept Mortgaged)" : " (de-mortgaged)") : ""));
                 }
             }
 
@@ -446,7 +458,7 @@ namespace DiscordMoniesGame
         {
             JailCardItem => "Get out of Jail Free Card",
             PropertyItem pt => $"{pt.Location.LocString()}: {board.Spaces[pt.Location].Name}" +
-            (((PropertySpace)board.Spaces[pt.Location]).Mortgaged ? (pt.KeepMortgaged ? "(Keep)" : "(Demortgage)") : ""),
+            (((PropertySpace)board.Spaces[pt.Location]).Mortgaged ? (pt.KeepMortgaged ? " (keep mortgaged)" : " (de-mortgage)") : ""),
             var x => x.ToString()
         };
 
