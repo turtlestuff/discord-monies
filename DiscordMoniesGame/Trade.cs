@@ -88,19 +88,13 @@ namespace DiscordMoniesGame
                                 var index = aSt.TradeTable.Give.FindIndex(x => (x as PropertyItem)?.Location == pi.Location);
                                 if (index != -1)
                                 {
-                                    // location is same, but different keepmortgage, switch it
+                                    // location is same, but different keepmortgage, switch it (will be added later)
                                     aSt.TradeTable.Give.RemoveAt(index);
                                     aSt.TradeTable.Give.Add(item);
                                 }
-                                else
-                                {
-                                    aSt.TradeTable.Give.Add(item);
-                                }
                             }
-                            else
-                            {
-                                aSt.TradeTable.Give.Add(item);
-                            }
+
+                            aSt.TradeTable.Give.Add(item);
                         }
                         await SendTradeTable(aSt.TradeTable, msg.Author, false);
                         return;
@@ -129,19 +123,12 @@ namespace DiscordMoniesGame
                                 var index = aSt.TradeTable.Take.FindIndex(x => (x as PropertyItem)?.Location == pi.Location);
                                 if (index != -1)
                                 {
-                                    // location is same, but different keepmortgage, switch it
+                                    // location is same, but different keepmortgage, remove it (to be added later)
                                     aSt.TradeTable.Take.RemoveAt(index);
-                                    aSt.TradeTable.Take.Add(item1);
-                                }
-                                else
-                                {
-                                    aSt.TradeTable.Take.Add(item1);
                                 }
                             }
-                            else
-                            {
-                                aSt.TradeTable.Take.Add(item1);
-                            }
+
+                            aSt.TradeTable.Take.Add(item1);
                         }
                         await SendTradeTable(aSt.TradeTable, msg.Author, false);
                         return;
@@ -277,6 +264,15 @@ namespace DiscordMoniesGame
             }
 
             var actions = new List<string>();
+
+            if (senderMortgage > 0)
+                actions.Add($"**{table.Sender.Username}**'s {senderMortgage.MoneyString()} ➡️ **the bank**");
+            if (recipientMortgage > 0)
+                actions.Add($"**{table.Recipient.Username}**'s {recipientMortgage.MoneyString()} ➡️ **the bank**");
+            if (senderGivingMoney > 0)
+                actions.Add($"**{table.Sender.Username}**'s {senderGivingMoney.MoneyString()} ➡️ **{table.Recipient.Username}**");
+            if (recipientGivingMoney > 0)
+                actions.Add($"**{table.Recipient.Username}**'s {recipientGivingMoney.MoneyString()} ➡️ **{table.Sender.Username}**");
 
             foreach (var giveItem in table.Give)
             {

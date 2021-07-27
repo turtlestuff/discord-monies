@@ -528,7 +528,7 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync(e.Message);
                     }
                 }),
-                new("develop", CanRun.Player, async (args, msg) =>
+                new("build", CanRun.Player, async (args, msg) =>
                 {
                     try
                     {
