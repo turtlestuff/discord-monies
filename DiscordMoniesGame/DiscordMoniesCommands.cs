@@ -159,6 +159,24 @@ namespace DiscordMoniesGame
                     await nudgePlayer.SendMessageAsync($"{msg.Author.Username} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
                     await msg.Author.SendMessageAsync($"I've nudged {nudgePlayer.Username}.");
                 }),
+                new("help", CanRun.Any, async (args, msg) =>
+                {
+                    var anyCommands = string.Join('\n', commands.Where(c => c.CanRun == CanRun.Any).Select(c => $"`{c.Name}`"));
+                    var plrCommands = string.Join('\n', commands.Where(c => c.CanRun == CanRun.Player).Select(c => $"`{c.Name}`"));
+                    var curCommands = string.Join('\n', commands.Where(c => c.CanRun == CanRun.CurrentPlayer).Select(c => $"`{c.Name}`"));
+                    var e = new EmbedBuilder()
+                    {
+                        Title = "Help",
+                        Description = "[Click for more extensive help](https://turtlestuff.github.io/discord-monies)",
+                        Fields = new()
+                        {
+                            new() { IsInline = true, Name = "Anyone", Value = anyCommands },
+                            new() { IsInline = true, Name = "Player", Value = plrCommands },
+                            new() { IsInline = true, Name = "Current Player", Value = curCommands }
+                        }
+                    }.Build();
+                    await msg.Author.SendMessageAsync(embed: e);
+                }),
 
                 new("roll", CanRun.CurrentPlayer, async (args, msg) =>
                 {
