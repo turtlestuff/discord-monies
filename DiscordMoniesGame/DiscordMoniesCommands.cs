@@ -583,15 +583,43 @@ namespace DiscordMoniesGame
                         var e = new EmbedBuilder()
                         {
                             Title = "Are you sure?",
-                            Description = "Declaring bankruptcy will **exclude you from the game permanently**. Only use this if you are sure you cannot raise enough funds to " +
-                            "pay back your debt. To confirm your choice, type `bankrupt bankrupt`",
-                            Color = Color.Gold
+                            Description = "Declaring bankruptcy will **exclude you from the game permanently**, and you will be put as a spectator. " +
+                            "Only use this if you are sure you cannot raise enough funds to pay back your debt. To confirm your choice, type `bankrupt bankrupt`",
+                            Color = Color.Red
                         }.WithId(Id).Build();
                         await msg.Author.SendMessageAsync(embed: e);
                         return;
                     }
                     await HandleBankruptcy(msg.Author);
                     await AdvanceRound();
+                }),
+                new("drop", CanRun.Any, async (args, msg) =>
+                {
+                    if (args != "drop")
+                    {
+                        var e = new EmbedBuilder()
+                        {
+                            Title = "Are you sure?",
+                            Color = Color.Red
+                        }.WithId(Id);
+                        if (CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer))
+                        {
+                            e.Description = "Running drop will effectively bankrupt you and **exclude you from the game permanently**, **without** being put as spectator. " +
+                            "To confirm your choice, type `drop drop`";
+                        }
+                        else
+                        {
+                            e.Description = "Running drop will effectively bankrupt you and **exclude you from spectating permanently**. " +
+                            "To confirm your choice, type `drop drop`";
+                        }
+                        await msg.Author.SendMessageAsync(embed: e.WithId(Id).Build());
+                        return;
+                    }
+                    bankruptedPlayers.Remove(msg.Author);
+                    if (CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer))
+                        await HandleBankruptcy(msg.Author);
+                    
+                    await DropPlayer(msg.Author);
                 }),
 
                 new("advance", CanRun.Player, async (args, msg) => 
@@ -609,7 +637,6 @@ namespace DiscordMoniesGame
 
                     await AdvanceRound();
                 }),
-                //TODO: drop command
 
             }.ToImmutableArray();
         }

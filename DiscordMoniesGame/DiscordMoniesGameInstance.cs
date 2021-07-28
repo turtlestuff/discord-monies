@@ -952,8 +952,8 @@ namespace DiscordMoniesGame
                         Value = string.Join("\n", actions)
                     }
                 },
-            };
-            await SendBoard(Users, embed);
+            }.WithId(Id).Build();
+            await this.Broadcast("", embed: embed);
 
             //Remove the player from the game
             bankruptedPlayers.Add(player);
@@ -982,8 +982,9 @@ namespace DiscordMoniesGame
             OnClosing();
         }
 
-        void DropPlayer(IUser player)
+        async Task DropPlayer(IUser player)
         {
+            await this.Broadcast($"{player.Username} has dropped from the game.");
             OnDroppingUser(player);
         }
     }
