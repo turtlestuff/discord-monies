@@ -3,6 +3,11 @@
     src: url("NotoSans-Condensed.ttf");
 }
 
+@font-face {
+    font-family: mono;
+    src: url("NotoSansMono-ExtraCondensed.ttf");
+}
+
 * {
     font-family: noto, serif;
 }
@@ -150,7 +155,7 @@ code {
     border: var(--color) 1px solid;
     padding-left: 2px;
     padding-right: 2px;
-    font-family: monospace;
+    font-family: mono;
     font-size: 0.90em;
 }
 

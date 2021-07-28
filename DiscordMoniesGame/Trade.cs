@@ -253,6 +253,7 @@ namespace DiscordMoniesGame
                         await table3.Sender.SendMessageAsync($"**{msg.Author.Username}** has copied your trade offer, and are currently editing it.");
                         await msg.Author.SendMessageAsync($"You have rejected and copied **{table3.Sender?.Username}**'s trade offer. " +
                             $"Their trade offer is now available in your trade table.");
+                        await SendTradeTable(plrStates[msg.Author].TradeTable!, msg.Author, false);
                     }
                     else
                     {
@@ -505,7 +506,7 @@ namespace DiscordMoniesGame
                 (giveMortgageMoney != 0 ? $"\n**To bank**: {giveMortgageMoney.MoneyString()}" : "");
             var giveField = new EmbedFieldBuilder()
             {
-                Name = !reverse ? "You give:" : (table.Recipient is null ? "They give:" : $"{table.Recipient.Username} gives:"),
+                Name = !reverse ? "You give:" : (table.Sender is null ? "They give:" : $"{table.Sender.Username} gives:"),
                 IsInline = true,
                 Value = giveString == "" ? "Empty" : giveString
             };
@@ -517,7 +518,7 @@ namespace DiscordMoniesGame
 
             var takeField = new EmbedFieldBuilder()
             {
-                Name = !reverse ? (table.Sender is null ? "They give:" : $"{table.Sender.Username} gives:") : "You give:",
+                Name = !reverse ? (table.Recipient is null ? "They give:" : $"{table.Recipient.Username} gives:") : "You give:",
                 IsInline = true,
                 Value = takeString == "" ? "Empty" : takeString
             };
