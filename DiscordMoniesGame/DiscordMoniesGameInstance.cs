@@ -169,118 +169,8 @@ namespace DiscordMoniesGame
         {
             if (board.Spaces[position] is DrawCardSpace dcs)
             {
-                var card = board.DrawLuckCard(dcs.Type);
-                var parts = card.Command.Split(' ');
-                if (parts[0] == "jailfree")
-                {
-
-                    if ((parts[1] == "chance" && chanceJailFreeCardOwner is not null) ||
-                        (parts[1] == "chest" && chestJailFreeCardOwner is not null))
-                    {
-                        //Draw a new card and try again!
-                        await HandlePlayerLand(position);
-                        return;
-                    }
-                }
-
-                var humanReadableDescription = Regex.Replace(card.Description, "{(moneyValue|boardSpace) ([^}]+)}", match =>
-                {
-                    var type = match.Groups[1].Value;
-                    var value = match.Groups[2].Value;
-                    bool isInt = int.TryParse(value, out var val);
-
-                    if (type == "moneyValue")
-                    {
-                        if (isInt)
-                        {
-                            return val.MoneyString();
-                        }
-                        else
-                        {
-                            if (value == "goSpace") return board.PassGoValue.MoneyString();
-                            return value;
-                        }
-                    }
-                    else
-                    {
-                        return board.LocName(val);
-                    }
-                });
-
-                var cardType = dcs.Type == CardType.Chance ? "Gamble" : "Dubious Treasure";
-
-                var e = new EmbedBuilder()
-                {
-                    Title = cardType,
-                    Description = $"**{currentPlr.Username}** draws a {cardType} card, and it goes as follows...",
-                    Color = Color.Gold,
-                    Fields = new()
-                    {
-                        new()
-                        {
-                            IsInline = true,
-                            Name = $"{cardType} card",
-                            Value = humanReadableDescription
-                        }
-                    }
-                }.WithId(Id).Build();
-                await this.Broadcast("", embed: e);
-
-                switch (parts[0])
-                {
-                    case "arrest":
-                        await SendToJail(currentPlr);
-                        break;
-                    case "give":
-                        await Transfer(int.Parse(parts[1]), null, currentPlr);
-                        break;
-                    case "pay":
-                        await Transfer(int.Parse(parts[1]), currentPlr, null);
-                        break;                   
-                        
-                    case "repairs":
-                        {
-                            var houseValue = int.Parse(parts[1]);
-                            var hotelValue = int.Parse(parts[2]);
-
-                            var total = board.Spaces.Aggregate(0, (currentTotal, space) =>
-                            {
-                                if (space is RoadSpace rs)
-                                {
-                                    if (rs.Owner?.Id != currentPlr.Id) return currentTotal;
-                                    if (rs.Houses == 5) return currentTotal + hotelValue;
-                                    return currentTotal + rs.Houses * houseValue;
-                                }
-                                else
-                                {
-                                    return currentTotal;
-                                }
-                            });
-
-                            await Transfer(total, currentPlr, null);
-                            break;
-                        }
-                    case "warp":
-                        var move = await MovePlayer(currentPlr, int.Parse(parts[1]));
-                        await HandlePlayerLand(move);
-                        return;
-                    case "warprel":
-                        var move1 = await MovePlayerRelative(currentPlr, int.Parse(parts[1]), false);
-                        await HandlePlayerLand(move1);
-                        return;
-                    case "jailfree":
-                        if (parts[1] == "chance")
-                        {
-                            chanceJailFreeCardOwner = currentPlr;
-                        }
-                        else
-                        {
-                            chestJailFreeCardOwner = currentPlr;
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                await DrawCard(position, dcs.Type);
+                return;
             }
 
             if (board.Spaces[position] is TaxSpace ts)
@@ -352,6 +242,122 @@ namespace DiscordMoniesGame
             }
             // nothing happens!
             await AdvanceRound();
+        }
+
+        async Task DrawCard(int position, CardType type)
+        {
+            var card = board.DrawLuckCard(type);
+            var parts = card.Command.Split(' ');
+            if (parts[0] == "jailfree")
+            {
+
+                if ((parts[1] == "chance" && chanceJailFreeCardOwner is not null) ||
+                    (parts[1] == "chest" && chestJailFreeCardOwner is not null))
+                {
+                    //Draw a new card and try again!
+                    await DrawCard(position, type);
+                    return;
+                }
+            }
+
+            var humanReadableDescription = Regex.Replace(card.Description, "{(moneyValue|boardSpace) ([^}]+)}", match =>
+            {
+                var type = match.Groups[1].Value;
+                var value = match.Groups[2].Value;
+                bool isInt = int.TryParse(value, out var val);
+
+                if (type == "moneyValue")
+                {
+                    if (isInt)
+                    {
+                        return val.MoneyString();
+                    }
+                    else
+                    {
+                        if (value == "goSpace") return board.PassGoValue.MoneyString();
+                        return value;
+                    }
+                }
+                else
+                {
+                    return board.LocName(val);
+                }
+            });
+
+            var cardType = type == CardType.Chance ? "Gamble" : "Dubious Treasure";
+
+            var e = new EmbedBuilder()
+            {
+                Title = cardType,
+                Description = $"**{currentPlr.Username}** draws a {cardType} card, and it goes as follows...",
+                Color = Color.Gold,
+                Fields = new()
+                {
+                    new()
+                    {
+                        IsInline = true,
+                        Name = $"{cardType} card",
+                        Value = humanReadableDescription
+                    }
+                }
+            }.WithId(Id).Build();
+            await this.Broadcast("", embed: e);
+
+            switch (parts[0])
+            {
+                case "arrest":
+                    await SendToJail(currentPlr);
+                    break;
+                case "give":
+                    await Transfer(int.Parse(parts[1]), null, currentPlr);
+                    break;
+                case "pay":
+                    await Transfer(int.Parse(parts[1]), currentPlr, null);
+                    break;
+
+                case "repairs":
+                    {
+                        var houseValue = int.Parse(parts[1]);
+                        var hotelValue = int.Parse(parts[2]);
+
+                        var total = board.Spaces.Aggregate(0, (currentTotal, space) =>
+                        {
+                            if (space is RoadSpace rs)
+                            {
+                                if (rs.Owner?.Id != currentPlr.Id) return currentTotal;
+                                if (rs.Houses == 5) return currentTotal + hotelValue;
+                                return currentTotal + rs.Houses * houseValue;
+                            }
+                            else
+                            {
+                                return currentTotal;
+                            }
+                        });
+
+                        await Transfer(total, currentPlr, null);
+                        break;
+                    }
+                case "warp":
+                    var move = await MovePlayer(currentPlr, int.Parse(parts[1]));
+                    await HandlePlayerLand(move);
+                    return;
+                case "warprel":
+                    var move1 = await MovePlayerRelative(currentPlr, int.Parse(parts[1]), false);
+                    await HandlePlayerLand(move1);
+                    return;
+                case "jailfree":
+                    if (parts[1] == "chance")
+                    {
+                        chanceJailFreeCardOwner = currentPlr;
+                    }
+                    else
+                    {
+                        chestJailFreeCardOwner = currentPlr;
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
 
         IUser NextPlayer(IUser plr) {
