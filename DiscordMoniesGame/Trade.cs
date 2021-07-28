@@ -260,7 +260,12 @@ namespace DiscordMoniesGame
                     }
                     return;
                 default:
-                    await msg.Author.SendMessageAsync("Invalid command for trade");
+                    var ee = new EmbedBuilder()
+                    {
+                        Title = "Trade",
+                        Description = "Invalid command for `trade`. [You can get help for this command here](https://turtlestuff.github.io/discord-monies/#Trading)"
+                    }.WithId(Id).Build();
+                    await msg.Author.SendMessageAsync(embed: ee);
                     return;
             }
             await msg.Author.SendMessageAsync("You don't have a trade laid out. Please use `trade new` to lay out a new one!");

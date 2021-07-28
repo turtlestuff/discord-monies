@@ -938,8 +938,8 @@ namespace DiscordMoniesGame
                         Value = string.Join("\n", actions)
                     }
                 },
-            }.WithId(Id).Build();
-            await this.Broadcast("", embed: embed);
+            };
+            await SendBoard(Users, embed);
 
             //Remove the player from the game
             bankruptedPlayers.Add(player);
