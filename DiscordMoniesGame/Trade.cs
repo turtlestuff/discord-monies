@@ -212,6 +212,7 @@ namespace DiscordMoniesGame
                     {
                         if (!await TryConcludeTrade(table1))
                         {
+                            trades.Remove(table1);
                             await msg.Author.SendMessageAsync("This trade is invalid. Ensure that each user has the required assets to perform this trade.");
                         }
                     }
@@ -223,8 +224,7 @@ namespace DiscordMoniesGame
                 case "reject":
                     if (TryGetTradeTable(args, out var table2) && table2.Recipient?.Id == msg.Author.Id)
                     {
-                        trades.Remove(table2);
-                        await table2.Sender.SendMessageAsync($"**{msg.Author.Username}** has rejected your trade offer.");
+                        await table2.Sender.SendMessageAsync($"**{msg.Author.Username}** has rejected your trade offer. You may recall this trade with `trade recall {args}`, to edit it.");
                         await msg.Author.SendMessageAsync($"You have rejected **{table2.Sender?.Username}**'s trade offer.");
                     }
                     else
@@ -240,9 +240,9 @@ namespace DiscordMoniesGame
                             await msg.Author.SendMessageAsync("You have already laid out a trade. Use `trade close` to get rid of that one.");
                             return;
                         }
-                        plrStates[msg.Author] = plrStates[msg.Author] with
+                        plrStates[msg.Author] = aSt with
                         {
-                            TradeTable = new TradeTable()
+                            TradeTable = new()
                             {
                                 Give = new(table3.Take),
                                 Take = new(table3.Give),
@@ -250,9 +250,56 @@ namespace DiscordMoniesGame
                             }
                         };
                         trades.Remove(table3);
-                        await table3.Sender.SendMessageAsync($"**{msg.Author.Username}** has rejected and copied your trade offer.");
+                        await table3.Sender.SendMessageAsync($"**{msg.Author.Username}** has copied your trade offer, and are currently editing it.");
                         await msg.Author.SendMessageAsync($"You have rejected and copied **{table3.Sender?.Username}**'s trade offer. " +
                             $"Their trade offer is now available in your trade table.");
+                    }
+                    else
+                    {
+                        await msg.Author.SendMessageAsync("That trade table is not available.");
+                    }
+                    return;
+                case "recall":
+                    if (TryGetTradeTable(args, out var table4))
+                    {
+                        if (aSt.TradeTable is not null)
+                        {
+                            await msg.Author.SendMessageAsync("You have already laid out a trade. Use `trade close` to get rid of that one.");
+                            return;
+                        }
+
+                        if (table4.Sender?.Id == msg.Author.Id)
+                        {
+                            plrStates[msg.Author] = aSt with
+                            {
+                                TradeTable = new()
+                                {
+                                    Give = new(table4.Give),
+                                    Take = new(table4.Take),
+                                    GivingMoney = table4.GivingMoney
+                                }
+                            };
+                        }
+                        else if (table4.Recipient?.Id == msg.Author.Id)
+                        {
+                            plrStates[msg.Author] = aSt with
+                            {
+                                TradeTable = new()
+                                {
+                                    Give = new(table4.Take),
+                                    Take = new(table4.Give),
+                                    GivingMoney = -table4.GivingMoney
+                                }
+                            };
+                        }
+                        else
+                        {
+                            await msg.Author.SendMessageAsync("That trade table is not available.");
+                            return;
+                        }
+                        await msg.Author.SendMessageAsync($"Trade {args} has been recalled.");
+                        await SendTradeTable(plrStates[msg.Author].TradeTable!, msg.Author, false);
+                        return;
                     }
                     else
                     {

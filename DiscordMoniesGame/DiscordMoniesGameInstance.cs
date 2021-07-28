@@ -489,6 +489,7 @@ namespace DiscordMoniesGame
         {
             try
             {
+                embed?.WithId(Id);
                 using var bmp = boardRenderer.Render(CurrentPlayers, plrStates, board);
                 using var memStr = new MemoryStream();
                 bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
@@ -501,7 +502,7 @@ namespace DiscordMoniesGame
                     if (embed is not null)
                     {
                         embed.ImageUrl = "attachment://board.png";
-                        await u.SendFileAsync(clone, "board.png", embed: embed.WithId(Id).Build());
+                        await u.SendFileAsync(clone, "board.png", embed: embed.Build());
                     }
                     else
                     {
