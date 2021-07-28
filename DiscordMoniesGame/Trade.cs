@@ -162,6 +162,11 @@ namespace DiscordMoniesGame
                     else
                     {
                         var closestPlayer = Utils.MatchClosest(args, CurrentPlayers, x => x.Username);
+                        if (closestPlayer is null)
+                        {
+                            await msg.Author.SendMessageAsync($"Player \"{args}\" not found.");
+                            return;
+                        }
                         if (!p.Contains(closestPlayer))
                         {
                             await msg.Author.SendMessageAsync($"Only {p.Select(p => p.Username).ToArray().CommaAndList()} are possible recipients for your trade. Please check that the " +
@@ -590,6 +595,7 @@ namespace DiscordMoniesGame
 
         bool TryParseItem(string args, [MaybeNullWhen(false)] out TradeItem item)
         {
+            item = default!;
             if (int.TryParse(args, NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var intResult))
             {
                 item = new MoneyItem(intResult);
@@ -605,17 +611,17 @@ namespace DiscordMoniesGame
             {
                 if (board.TryParseBoardSpaceInt(split[0], out var loc) && board.Spaces[loc] is PropertySpace)
                 {
-                    var closest = Utils.MatchClosest(split[1], new[] { "demortgage", "keep" });
-                    if (closest == "demortgage")
+                    if (split[1] == "demortgage")
                     {
                         item = new PropertyItem(loc, false);
                         return true;
                     }
-                    else
+                    if (split[1] == "keep")
                     {
                         item = new PropertyItem(loc, true);
                         return true;
                     }
+                    return false;
                 }
             }
             else

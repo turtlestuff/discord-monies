@@ -30,7 +30,13 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        player = Utils.MatchClosest(args, CurrentPlayers, u => u.Username);
+                        var p = Utils.MatchClosest(args, CurrentPlayers, u => u.Username);
+                        if (p is null)
+                        {
+                            await msg.Author.SendMessageAsync($"Player \"{args}\" not found.");
+                            return;
+                        }
+                        player = p;
                     }
 
                     if (player is not null)
@@ -67,7 +73,13 @@ namespace DiscordMoniesGame
                     }
                     else
                     {
-                        player = Utils.MatchClosest(args, CurrentPlayers, u => u.Username);
+                        var p = Utils.MatchClosest(args, CurrentPlayers, u => u.Username);
+                        if (p is null)
+                        {
+                            await msg.Author.SendMessageAsync($"Player \"{args}\" not found.");
+                            return;
+                        }
+                        player = p;                    
                     }
 
                     if (player is not null)
@@ -625,8 +637,8 @@ namespace DiscordMoniesGame
 
             if (commandObj is null)
             {
-                var closest = Utils.MatchClosest(cmdStr, commands, c => c.Name).Name;
-               if (Utils.Distance(closest, cmdStr) <= 2 && Math.Abs(cmdStr.Length - closest.Length) < 1) 
+               var closest = Utils.MatchClosest(cmdStr, commands, c => c.Name)?.Name;
+               if (closest is not null && Math.Abs(cmdStr.Length - closest.Length) < 1) 
                     await msg.Author.SendMessageAsync($"Did you mean: `{closest}`?");
                 return false;
             }
