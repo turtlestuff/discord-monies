@@ -20,12 +20,12 @@
     "Command": "warp 23"
   },
   {
-    "Description": "Advance to the next utility.\nPay the owner 10 times the amount showing on the die.\nYou may purchase the property if it is unowned.",
-    "Command": "advanceutility"
+    "Description": "Advance to the next utility.\nPay the owner 10 times the amount showing on the dice.\nYou may purchase the property if it is unowned.",
+    "Command": "advance utility"
   },
   {
     "Description": "Advance to the next train station.\nPay the owner twice what they are entitled to.\nYou may purchase the property if it is unowned.",
-    "Command": "advancestation"
+    "Command": "advance station"
   },
   {
     "Description": "Get out of jail Free card!\nYou may keep this card and use it to bail for free.",

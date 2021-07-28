@@ -177,7 +177,7 @@ namespace DiscordMoniesGame
 
         public int CountOwnedBy<T>(IUser player) where T : PropertySpace => Spaces.Count(s => s is T ps && ps.Owner?.Id == player.Id);
 
-        public int CalculateRentFor(int pos)
+        public int CalculateRentFor(int pos, bool bigRent = false)
         {
             var deed = TitleDeedFor(pos);
             var space = (PropertySpace)Spaces[pos];
@@ -198,12 +198,12 @@ namespace DiscordMoniesGame
             if (space is TrainStationSpace)
             {
                 var c = CountOwnedBy<TrainStationSpace>(space.Owner);
-                return deed.RentValues[0] * (int)Math.Pow(2, c - 1);
+                return deed.RentValues[0] * (int)Math.Pow(2, c - 1) * (bigRent ? 2 : 1);
             }
             if (space is UtilitySpace)
             {
                 var c = CountOwnedBy<UtilitySpace>(space.Owner);
-                return c > 1 ? 10 : 4; // multiplication factor of dice roll
+                return (c > 1 || bigRent ? 10 : 4); // multiplication factor of dice roll
             }
             // something has gone wrong
             return 0;

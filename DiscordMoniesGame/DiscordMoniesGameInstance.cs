@@ -169,7 +169,7 @@ namespace DiscordMoniesGame
             }
         }
 
-        async Task HandlePlayerLand(int position)
+        async Task HandlePlayerLand(int position, bool bigRent = false)
         {
             if (board.Spaces[position] is DrawCardSpace dcs)
             {
@@ -226,7 +226,7 @@ namespace DiscordMoniesGame
                     return;
                 }
 
-                var rent = board.CalculateRentFor(position);
+                var rent = board.CalculateRentFor(position, bigRent);
                 if (board.Spaces[position] is UtilitySpace)
                 {
                     rent *= lastRoll;
@@ -317,12 +317,17 @@ namespace DiscordMoniesGame
             {
                 case "arrest":
                     await SendToJail(currentPlr);
+                    await AdvanceRound();
                     break;
+
                 case "give":
                     await Transfer(int.Parse(parts[1]), null, currentPlr);
+                    await AdvanceRound();
                     break;
+
                 case "pay":
                     await Transfer(int.Parse(parts[1]), currentPlr, null);
+                    await AdvanceRound();
                     break;
 
                 case "repairs":
@@ -353,16 +358,20 @@ namespace DiscordMoniesGame
                         });
 
                         await Transfer(total, currentPlr, null);
+                        await AdvanceRound();
                         break;
                     }
+
                 case "warp":
                     var move = await MovePlayer(currentPlr, int.Parse(parts[1]));
                     await HandlePlayerLand(move);
                     return;
+
                 case "warprel":
                     var move1 = await MovePlayerRelative(currentPlr, int.Parse(parts[1]), false);
                     await HandlePlayerLand(move1);
                     return;
+
                 case "jailfree":
                     if (parts[1] == "chance")
                     {
@@ -372,13 +381,44 @@ namespace DiscordMoniesGame
                     {
                         chestJailFreeCardOwner = currentPlr;
                     }
+                    await AdvanceRound();
                     break;
+
                 case "paychance":
                     waiting = Waiting.ForTakeCardOrPayDecision;
                     payOrTakeCardVal = int.Parse(parts[1]);
                     payOrTakeCardType = CardType.Chance;
-                    return;
+                    break;
+
+                case "advance":
+                    int loc;
+                    if (parts[1] == "utility")
+                    {
+                        loc = board.FirstSpaceFrom(position, s => s is UtilitySpace);
+                    }
+                    else if (parts[1] == "station")
+                    {
+                        loc = board.FirstSpaceFrom(position, s => s is TrainStationSpace);
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Invalid type for `advance`");
+                    }
+
+                    var move2 = await MovePlayer(currentPlr, loc);
+                    await HandlePlayerLand(move2);
+                    break;
+
+                case "recvall":
+                    var amt = int.Parse(parts[1]);
+                    foreach (var plr in CurrentPlayers.Where(x => x.Id != currentPlr.Id))
+                    {
+                        await Transfer(amt, plr, currentPlr);
+                    }
+                    await AdvanceRound();
+                    break;
                 default:
+                    await AdvanceRound();
                     break;
             }
         }
