@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -63,6 +64,8 @@ namespace DiscordMoniesGame
         IUser? chanceJailFreeCardOwner;
         IUser? chestJailFreeCardOwner;
 
+        ImmutableArray<string> diceFaces = default!;
+
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
         {
@@ -83,6 +86,10 @@ namespace DiscordMoniesGame
             using var chanceStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.chance.json")!;
 
             board = await Board.BoardFromJson(boardStream, titleStream, chestStream, chanceStream);
+
+            using var facesStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.dieface.json")!;
+
+            diceFaces = await JsonSerializer.DeserializeAsync<ImmutableArray<string>>(facesStream);
 
             var shuffledColors = Colors.ColorList.OrderBy(_ => Random.Shared.Next()).ToArray();
 
