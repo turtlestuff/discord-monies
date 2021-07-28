@@ -14,9 +14,13 @@ namespace DiscordMoniesGame
         {
             var (dist, val) = users.Select(x => (Dist: Distance(name.ToLowerInvariant(), selector(x).ToLowerInvariant()), Val: x)).OrderBy(i => i.Dist).First();
             if (dist / ((double)Math.Min(name.Length, selector(val).Length)) < 1.0 / 3.0)
+            {
                 return val;
+            }
             else
+            {
                 return default;
+            }
         }
 
         public static string? MatchClosest(string input, IEnumerable<string> strings) => MatchClosest(input, strings, x => x);
@@ -31,10 +35,10 @@ namespace DiscordMoniesGame
         };
 
         public static string MoneyString(this int money) => $"`{money:Ð#,0}`";
-            
+
         public static string LocString(this int position)
         {
-            var letter = (char) ('A' + (int) Math.Floor(position / 10.0));
+            var letter = (char)('A' + (int)Math.Floor(position / 10.0));
             var number = (position % 10).ToString();
             return $"{letter}{number}";
         }

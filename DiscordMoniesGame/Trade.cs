@@ -58,18 +58,27 @@ namespace DiscordMoniesGame
                     return;
                 case "close":
                     if (aSt.TradeTable is null)
+                    {
                         break;
+                    }
+
                     plrStates[msg.Author] = aSt with { TradeTable = null };
                     await msg.Author.SendMessageAsync("You have chucked your old trade away.");
                     return;
                 case "view":
                     if (aSt.TradeTable is null)
+                    {
                         break;
+                    }
+
                     await SendTradeTable(aSt.TradeTable, msg.Author, false);
                     return;
                 case "give":
                     if (aSt.TradeTable is null)
+                    {
                         break;
+                    }
+
                     if (TryParseItem(args, out var item))
                     {
                         if (item is MoneyItem mi)
@@ -104,7 +113,10 @@ namespace DiscordMoniesGame
 
                 case "take":
                     if (aSt.TradeTable is null)
+                    {
                         break;
+                    }
+
                     if (TryParseItem(args, out var item1))
                     {
                         if (item1 is MoneyItem mi)
@@ -138,8 +150,10 @@ namespace DiscordMoniesGame
 
                 case "offer": //"request"
                     if (aSt.TradeTable is null)
+                    {
                         break;
-                    
+                    }
+
                     var p = DetermineTradeTableParties(aSt.TradeTable.Take);
                     IUser recipient;
 
@@ -194,7 +208,9 @@ namespace DiscordMoniesGame
                     aSt.TradeTable.State = TradeTable.TradeTableState.Offered;
 
                     if (!trades.Contains(aSt.TradeTable))
+                    {
                         trades.Add(aSt.TradeTable);
+                    }
 
                     await SendTradeTable(aSt.TradeTable, recipient, true);
                     await recipient.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
@@ -202,14 +218,19 @@ namespace DiscordMoniesGame
 
                     plrStates[msg.Author] = aSt with { TradeTable = null };
                     await msg.Author.SendMessageAsync($"Trade offer has been sent to {recipient.Username} with index {trades.IndexOf(aSt.TradeTable)}. Your trade table has been closed.");
-                    
+
 
                     return;
                 case "viewoffer":
                     if (TryGetTradeTable(args, out var table))
+                    {
                         await SendTradeTable(table, msg.Author, table.Recipient?.Id == msg.Author.Id);
+                    }
                     else
+                    {
                         await msg.Author.SendMessageAsync("That trade table is not available.");
+                    }
+
                     return;
 
                 case "accept":
@@ -327,10 +348,14 @@ namespace DiscordMoniesGame
         async Task<bool> TryConcludeTrade(TradeTable table)
         {
             if (table.Recipient is null || table.Sender is null)
+            {
                 return false;
+            }
 
             if (!EnsureItemsTradable(table))
+            {
                 return false;
+            }
 
             var senderMortgage = MortgageAmount(table.Take);
             var recipientMortgage = MortgageAmount(table.Give);
@@ -348,13 +373,24 @@ namespace DiscordMoniesGame
             var actions = new List<string>();
 
             if (senderMortgage > 0)
+            {
                 actions.Add($"**{table.Sender.Username}**'s {senderMortgage.MoneyString()} ➡️ **the bank**");
+            }
+
             if (recipientMortgage > 0)
+            {
                 actions.Add($"**{table.Recipient.Username}**'s {recipientMortgage.MoneyString()} ➡️ **the bank**");
+            }
+
             if (senderGivingMoney > 0)
+            {
                 actions.Add($"**{table.Sender.Username}**'s {senderGivingMoney.MoneyString()} ➡️ **{table.Recipient.Username}**");
+            }
+
             if (recipientGivingMoney > 0)
+            {
                 actions.Add($"**{table.Recipient.Username}**'s {recipientGivingMoney.MoneyString()} ➡️ **{table.Sender.Username}**");
+            }
 
             foreach (var giveItem in table.Give)
             {
@@ -405,9 +441,14 @@ namespace DiscordMoniesGame
         ref IUser? JailCardOwnedBy(IUser plr)
         {
             if (plr.Id == chanceJailFreeCardOwner?.Id)
+            {
                 return ref chanceJailFreeCardOwner;
+            }
             else if (plr.Id == chestJailFreeCardOwner?.Id)
+            {
                 return ref chestJailFreeCardOwner;
+            }
+
             throw new ArgumentException($"Player {plr.Username} does not own any jail card");
         }
 
@@ -430,15 +471,21 @@ namespace DiscordMoniesGame
             {
                 if (item is PropertyItem pi)
                 {
-                    var space = (PropertySpace) board.Spaces[pi.Location];
-                    if (space.Owner is null) throw new TradeException("No one owns this property");
+                    var space = (PropertySpace)board.Spaces[pi.Location];
+                    if (space.Owner is null)
+                    {
+                        throw new TradeException("No one owns this property");
+                    }
+
                     return space.Owner;
                 }
                 return null;
             }).Distinct(DiscordComparers.UserComparer).Where(x => x is not null).Cast<IUser>();
 
             if (!reducedByProperties.Any())
-                reducedByProperties = CurrentPlayers;   
+            {
+                reducedByProperties = CurrentPlayers;
+            }
 
             if (items.Any(x => x is JailCardItem))
             {
@@ -457,7 +504,9 @@ namespace DiscordMoniesGame
                 var p = DetermineTradeTableParties(table.Take);
 
                 if (!p.Any(x => x.Id == table.Recipient?.Id))
+                {
                     return false;
+                }
             }
 
             if (table.Give.Count != 0)
@@ -465,17 +514,23 @@ namespace DiscordMoniesGame
                 var q = DetermineTradeTableParties(table.Give);
 
                 if (!q.Any(x => x.Id == table.Sender?.Id))
+                {
                     return false;
+                }
             }
 
             foreach (var give in table.Give.Where(x => x is PropertyItem).Cast<PropertyItem>())
             {
                 var space = board.Spaces[give.Location];
                 if (space is not RoadSpace rs)
+                {
                     continue;
+                }
 
                 if (rs.Houses == 0)
+                {
                     continue;
+                }
 
                 var otherOfGroup = board.FindSpacesOfGroup(rs.Group);
                 if (table.Give.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
@@ -492,10 +547,14 @@ namespace DiscordMoniesGame
             {
                 var space = board.Spaces[take.Location];
                 if (space is not RoadSpace rs)
+                {
                     continue;
+                }
 
                 if (rs.Houses == 0)
+                {
                     continue;
+                }
 
                 var otherOfGroup = board.FindSpacesOfGroup(rs.Group);
                 if (table.Take.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
@@ -525,10 +584,14 @@ namespace DiscordMoniesGame
             items.Sum(i =>
             {
                 if (i is not PropertyItem pi)
+                {
                     return 0; // not property item
+                }
 
                 if (!((PropertySpace)board.Spaces[pi.Location]).Mortgaged)
+                {
                     return 0; // not mortgaged
+                }
 
                 var deed = board.TitleDeedFor(pi.Location);
                 // mortgaged. check if keeping or unmortgaging
@@ -584,10 +647,14 @@ namespace DiscordMoniesGame
             //maybe we should default to a sane trade table (the first one where they are the recipient?)
             table = default!;
             if (!int.TryParse(args, out var intResult))
+            {
                 return false;
+            }
 
             if (intResult >= trades.Count)
+            {
                 return false;
+            }
 
             table = trades[intResult];
             return true;

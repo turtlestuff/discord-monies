@@ -47,7 +47,7 @@ namespace DiscordMoniesGame
             hotel = new(hotelStream);
         }
 
-        public Bitmap Render(ImmutableArray<IUser> players, 
+        public Bitmap Render(ImmutableArray<IUser> players,
             ConcurrentDictionary<IUser, DiscordMoniesGameInstance.PlayerState> playerStates, Board board)
         {
             var bmp = new Bitmap(baseBoard); // dont need to using because we are returning this
@@ -56,7 +56,9 @@ namespace DiscordMoniesGame
             foreach (var s in board.Spaces)
             {
                 if (s is not PropertySpace ps || ps.Owner is null)
+                {
                     continue;
+                }
 
                 var pos = new Point(s.Bounds.X + 5, s.Bounds.Y + 5);
                 var playerColor = playerStates[ps.Owner].Color;
@@ -82,7 +84,7 @@ namespace DiscordMoniesGame
                     gfx.DrawImage(c, pos);
                     continue;
                 }
-  
+
                 using var colored = Colored(owned, playerColor);
                 gfx.DrawImage(colored, pos);
             }
@@ -94,7 +96,7 @@ namespace DiscordMoniesGame
                     : board.Spaces[playerStates[p].Position].Bounds;
 
                 var array = new BigInteger(p.Id).ToByteArray().Union(new BigInteger(bounds.GetHashCode()).ToByteArray()).ToArray();
-                var hash = MD5.Create().ComputeHash(array); 
+                var hash = MD5.Create().ComputeHash(array);
                 var xOff = hash[0] / 255.0;
                 var yOff = hash[1] / 255.0;
                 var xPos = (int)(xOff * (bounds.Width - basePiece.Width) + (bounds.X + basePiece.Width / 2));
@@ -118,8 +120,8 @@ namespace DiscordMoniesGame
                 {
                     var bc = Color.FromArgb(s[i]);
                     s[i] = Color.FromArgb(bc.A,
-                        bc.R * color.R / 255, 
-                        bc.G * color.G / 255, 
+                        bc.R * color.R / 255,
+                        bc.G * color.G / 255,
                         bc.B * color.B / 255).ToArgb();
                 }
             }
@@ -128,7 +130,7 @@ namespace DiscordMoniesGame
         }
 
         public void Dispose()
-        { 
+        {
             baseBoard.Dispose();
             basePiece.Dispose();
             owned.Dispose();

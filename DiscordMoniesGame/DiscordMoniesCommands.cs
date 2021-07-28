@@ -79,7 +79,7 @@ namespace DiscordMoniesGame
                             await msg.Author.SendMessageAsync($"Player \"{args}\" not found.");
                             return;
                         }
-                        player = p;                    
+                        player = p;
                     }
 
                     if (player is not null)
@@ -105,10 +105,7 @@ namespace DiscordMoniesGame
                             }
                         };
 
-                        if (space is ValueSpace vs)
-                            eb.Fields.Add(new() { IsInline = true, Name = "Value", Value = vs.Value.MoneyString() });
-
-                        if (space is PropertySpace ps)
+                        if (space is ValueSpace vs) { eb.Fields.Add(new() { IsInline = true, Name = "Value", Value = vs.Value.MoneyString() }); } if (space is PropertySpace ps)
                         {
                             eb.Fields.Add(new() { IsInline = true, Name = "Owner", Value = ps.Owner?.Username ?? "None" });
                             eb.Fields.Add(new() { IsInline = true, Name = "Mortgaged?", Value=ps.Mortgaged ? "Yes" : "No" });
@@ -166,9 +163,7 @@ namespace DiscordMoniesGame
                         Waiting.ForAuctionToFinish => currentAuctionPlayer,
                         _ => currentPlr
                     };
-                    if (nudgePlayer is null)
-                        return;
-                    await nudgePlayer.SendMessageAsync($"{msg.Author.Username} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
+                    if (nudgePlayer is null) { return; } await nudgePlayer.SendMessageAsync($"{msg.Author.Username} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
                     await msg.Author.SendMessageAsync($"I've nudged {nudgePlayer.Username}.");
                 }),
                 new("help", CanRun.Any, async (args, msg) =>
@@ -224,10 +219,7 @@ namespace DiscordMoniesGame
                             return;
                         }
 
-                        if (doubles)
-                            rollAgain = true;
-
-                        await HandlePlayerLand(position);
+                        if (doubles) { rollAgain = true; } await HandlePlayerLand(position);
                         return;
                     }
                     else
@@ -306,10 +298,7 @@ namespace DiscordMoniesGame
 
                     var aSt = plrStates[msg.Author];
                     var space = (PropertySpace) board.Spaces[aSt.Position];
-                    if (await TryBuyProperty(msg.Author, aSt.Position, space.Value))
-                        await AdvanceRound();
-
-                    return;
+                    if (await TryBuyProperty(msg.Author, aSt.Position, space.Value)) { await AdvanceRound(); } return;
                 }),
 
                 new("auctionthis", CanRun.CurrentPlayer, async (args, msg) =>
@@ -325,7 +314,7 @@ namespace DiscordMoniesGame
 
                     auctionSpace = aSt.Position;
                     waiting = Waiting.ForAuctionToFinish;
-                    
+
                     currentAuctionPlayer = NextPlayer(msg.Author);
                     var sorted = OrderedPlayers(currentAuctionPlayer);
                     auctionState = new(sorted.Select(p => KeyValuePair.Create<IUser, int?>(p, null)), DiscordComparers.UserComparer);
@@ -403,7 +392,7 @@ namespace DiscordMoniesGame
                     }
 
                     await Transfer(board.JailFine, msg.Author);
-                    
+
                     var isJail3 = plrStates[msg.Author].JailStatus == 3;
                     plrStates[msg.Author] = plrStates[msg.Author] with { JailStatus = -1 };
                     var embed = new EmbedBuilder()
@@ -422,7 +411,7 @@ namespace DiscordMoniesGame
 
                     await msg.Author.SendMessageAsync("You may `roll` again.");
                     waiting = Waiting.ForNothing;
-                    
+
                 }),
                 new("usejailcard", CanRun.CurrentPlayer, async (args, msg) => {
                     if (plrStates[msg.Author].JailStatus == -1)
@@ -496,7 +485,7 @@ namespace DiscordMoniesGame
                                 Color = board.GroupColorOrDefault(ps, Color.Gold)
                             }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed);
-                            
+
                         }
                     }
                     catch (ArgumentException e)
@@ -616,27 +605,47 @@ namespace DiscordMoniesGame
                         return;
                     }
                     bankruptedPlayers.Remove(msg.Author);
-                    if (CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer))
-                        await HandleBankruptcy(msg.Author);
-                    
-                    await DropPlayer(msg.Author);
+                    if (CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer)) { await HandleBankruptcy(msg.Author); } await DropPlayer(msg.Author);
                 }),
 
-                new("advance", CanRun.Player, async (args, msg) => 
+                new("pay", CanRun.CurrentPlayer, async (args, msg) =>
                 {
-                    if (waiting != Waiting.ForArrearsPay)
+                    if (waiting != Waiting.ForTakeCardOrPayDecision)
                     {
                         await msg.Author.SendMessageAsync("You can't do this right now!");
                         return;
                     }
-                    if (plrStates[msg.Author].Money < 0)
+                    if (!payOrTakeCardVal.HasValue || !payOrTakeCardType.HasValue)
                     {
-                        await msg.Author.SendMessageAsync("You are still in arrears!");
                         return;
                     }
 
-                    await AdvanceRound();
+                    if (await TryTransfer(payOrTakeCardVal.Value, msg.Author, null))
+                    {
+                        var e = new EmbedBuilder()
+                        {
+                            Title = "Pay or Take",
+                            Description = $"{msg.Author.Username} has chosen to pay {payOrTakeCardVal.Value.MoneyString()}.",
+                            Color = Color.Gold
+                        }.WithId(Id).Build();
+                        await this.Broadcast("", embed: e);
+                        await AdvanceRound();
+                    }
                 }),
+                new ("takecard", CanRun.CurrentPlayer, async (args, msg) =>
+                {
+                    if (waiting != Waiting.ForTakeCardOrPayDecision)
+                    {
+                        await msg.Author.SendMessageAsync("You can't do this right now!");
+                        return;
+                    }
+                    if (!payOrTakeCardVal.HasValue || !payOrTakeCardType.HasValue)
+                    {
+                        return;
+                    }
+
+                    await DrawCard(plrStates[currentPlr].Position, payOrTakeCardType.Value);
+                })
 
             }.ToImmutableArray();
         }
@@ -646,7 +655,7 @@ namespace DiscordMoniesGame
         ImmutableArray<Command> commands = default!;
 
         async Task<bool> TryHandleCommand(string msgContent, IUserMessage msg)
-        {  
+        {
             var index = msgContent.IndexOf(' ');
             string cmdStr, args;
             if (index == -1)
@@ -655,7 +664,7 @@ namespace DiscordMoniesGame
                 args = "";
             }
             else
-            {   
+            {
                 cmdStr = msgContent[..index].Trim().ToLowerInvariant();
                 args = msgContent[index..].Trim();
             }
@@ -664,9 +673,12 @@ namespace DiscordMoniesGame
 
             if (commandObj is null)
             {
-               var closest = Utils.MatchClosest(cmdStr, commands, c => c.Name)?.Name;
-               if (closest is not null && Math.Abs(cmdStr.Length - closest.Length) < 1) 
+                var closest = Utils.MatchClosest(cmdStr, commands, c => c.Name)?.Name;
+                if (closest is not null && Math.Abs(cmdStr.Length - closest.Length) < 1)
+                {
                     await msg.Author.SendMessageAsync($"Did you mean: `{closest}`?");
+                }
+
                 return false;
             }
             switch (commandObj.CanRun)
@@ -676,14 +688,17 @@ namespace DiscordMoniesGame
                     return true;
                 case CanRun.Player:
                     if (!CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer))
+                    {
                         return false;
+                    }
+
                     await commandObj.CmdFunc(args, msg);
                     return true;
                 case CanRun.CurrentPlayer:
                     if (currentPlr.Id != msg.Author.Id)
                     {
                         await this.BroadcastTo("Only the current player can run this!", players: msg.Author);
-                        return false; 
+                        return false;
                     }
                     await commandObj.CmdFunc(args, msg);
                     return true;

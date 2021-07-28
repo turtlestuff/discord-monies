@@ -1,4 +1,4 @@
-﻿    using Discord;
+﻿using Discord;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -26,7 +26,7 @@ namespace DiscordMoniesGame
         public ConcurrentStack<LuckCard> ChanceCards { get; private set; }
         public ConcurrentBag<LuckCard> UsedChanceCards { get; } = new();
         public ConcurrentStack<LuckCard> ChestCards { get; private set; }
-        public ConcurrentBag<LuckCard> UsedChestCards { get; }  = new();
+        public ConcurrentBag<LuckCard> UsedChestCards { get; } = new();
 
         public int VisitingJailPosition => Array.FindIndex(Spaces, s => s.Name == "Visiting Jail");
         public int PassGoValue => ((GoSpace)Array.Find(Spaces, s => s is GoSpace)!).Value;
@@ -48,8 +48,8 @@ namespace DiscordMoniesGame
             static SpaceBounds decodeBounds(JsonElement el) =>
                 new(el.GetProperty("X").GetInt32(), el.GetProperty("Y").GetInt32(),
                     el.GetProperty("Width").GetInt32(), el.GetProperty("Height").GetInt32());
-            
-            var raw = await JsonSerializer.DeserializeAsync<Dictionary<string, JsonElement>>(boardJson) 
+
+            var raw = await JsonSerializer.DeserializeAsync<Dictionary<string, JsonElement>>(boardJson)
                 ?? throw new JsonException("DeserializeAsync returned null");
             var startingMoney = raw["StartingMoney"].GetInt32();
             var jailFine = raw["JailFine"].GetInt32();
@@ -111,16 +111,20 @@ namespace DiscordMoniesGame
 
         static int Position(string positionString) =>
             (char.ToLowerInvariant(positionString[0]) - 'a') * 10 + int.Parse(positionString[1..]);
-            
+
         public int ParseBoardSpaceInt(string loc)
         {
             if (loc.Length != 2 || !char.IsLetter(loc[0]) || !char.IsDigit(loc[1]))
+            {
                 throw new ArgumentException("Invalid argument format");
+            }
 
             var spacePos = Board.Position(loc.ToLowerInvariant());
 
             if (spacePos < 0 || spacePos > Spaces.Length)
+            {
                 throw new ArgumentException("Out of bounds");
+            }
 
             return spacePos;
         }
@@ -176,10 +180,12 @@ namespace DiscordMoniesGame
         public int CalculateRentFor(int pos)
         {
             var deed = TitleDeedFor(pos);
-            var space = (PropertySpace) Spaces[pos];
+            var space = (PropertySpace)Spaces[pos];
 
             if (space.Owner is null || space.Mortgaged) // something has gone a little wrong
+            {
                 return 0;
+            }
 
             if (space is RoadSpace rs)
             {
@@ -192,7 +198,7 @@ namespace DiscordMoniesGame
             if (space is TrainStationSpace)
             {
                 var c = CountOwnedBy<TrainStationSpace>(space.Owner);
-                return deed.RentValues[0] * (int) Math.Pow(2, c - 1);
+                return deed.RentValues[0] * (int)Math.Pow(2, c - 1);
             }
             if (space is UtilitySpace)
             {
@@ -206,7 +212,7 @@ namespace DiscordMoniesGame
         public EmbedBuilder CreateTitleDeedEmbed(int loc)
         {
             var deed = TitleDeedFor(loc);
-            var space = (PropertySpace) Spaces[loc]; //TitleDeedFor would have thrown if that isn't a property space :)
+            var space = (PropertySpace)Spaces[loc]; //TitleDeedFor would have thrown if that isn't a property space :)
 
             var eb = new EmbedBuilder()
             {
@@ -243,9 +249,13 @@ namespace DiscordMoniesGame
                 {
                     var value = deed.RentValues[i];
                     if (i == 0)
+                    {
                         text += $"**RENT**: {value.MoneyString()}\n*Rent doubled when entire group is owned*\n";
+                    }
                     else
+                    {
                         text += $"With **{i.BuildingsAsString()}**: {value.MoneyString()}\n";
+                    }
                 }
                 eb.Fields.Add(new() { IsInline = false, Name = "Rent Values", Value = text });
                 eb.Fields.Add(new() { IsInline = true, Name = "House Cost", Value = deed.HouseCost.MoneyString() });
@@ -282,9 +292,9 @@ namespace DiscordMoniesGame
             return card;
         }
 
-        public int FirstSpaceFrom(int loc, Func<Space, bool> predicate) =>   
+        public int FirstSpaceFrom(int loc, Func<Space, bool> predicate) =>
             Enumerable.Range(loc, Spaces.Length).Select(i => i % Spaces.Length).First(i => predicate(Spaces[i]));
-            
+
         const int InitialHouses = 32;
         const int InitialHotels = 12;
 

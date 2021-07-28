@@ -28,10 +28,6 @@
     "Command": "advancestation"
   },
   {
-    "Description": "Advance to the next train station.\nPay the owner twice what they are entitled to.\nYou may purchase the property if it is unowned.",
-    "Command": "advancestation"
-  },
-  {
     "Description": "Get out of jail Free card!\nYou may keep this card and use it to bail for free.",
     "Command": "jailfree chance"
   },
