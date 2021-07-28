@@ -451,7 +451,7 @@ namespace DiscordMoniesGame
             {
                 var p = DetermineTradeTableParties(table.Take);
 
-                if (p.Count() != 1 || p.First().Id != table.Recipient?.Id)
+                if (!p.Any(x => x.Id == table.Recipient?.Id))
                     return false;
             }
 
@@ -459,8 +459,48 @@ namespace DiscordMoniesGame
             {
                 var q = DetermineTradeTableParties(table.Give);
 
-                if (q.Count() != 1 || q.First().Id != table.Sender?.Id)
+                if (!q.Any(x => x.Id == table.Sender?.Id))
                     return false;
+            }
+
+            foreach (var give in table.Give.Where(x => x is PropertyItem).Cast<PropertyItem>())
+            {
+                var space = board.Spaces[give.Location];
+                if (space is not RoadSpace rs)
+                    continue;
+
+                if (rs.Houses == 0)
+                    continue;
+
+                var otherOfGroup = board.FindSpacesOfGroup(rs.Group);
+                if (table.Give.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
+                    .Select(x => (RoadSpace)board.Spaces[((PropertyItem)x).Location])
+                    .Intersect(otherOfGroup).Count() != otherOfGroup.Count())
+                {
+                    // If the number of elements in the intersection of the requested road spaces and the ones with the same group is not the same,
+                    // i.e. if the user is not trading all of the elements in a group, fail the transaction.
+                    return false;
+                }
+            }
+
+            foreach (var take in table.Take.Where(x => x is PropertyItem).Cast<PropertyItem>())
+            {
+                var space = board.Spaces[take.Location];
+                if (space is not RoadSpace rs)
+                    continue;
+
+                if (rs.Houses == 0)
+                    continue;
+
+                var otherOfGroup = board.FindSpacesOfGroup(rs.Group);
+                if (table.Take.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
+                    .Select(x => (RoadSpace)board.Spaces[((PropertyItem)x).Location])
+                    .Intersect(otherOfGroup).Count() != otherOfGroup.Count())
+                {
+                    // If the number of elements in the intersection of the requested road spaces and the ones with the same group is not the same,
+                    // i.e. if the user is not trading all of the elements in a group, fail the transaction.
+                    return false;
+                }
             }
 
             return (plrStates[table.Sender!].Money - TotalSenderAmount(table) >= Math.Min(0, plrStates[table.Sender!].Money)) &&

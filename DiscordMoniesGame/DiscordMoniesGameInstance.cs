@@ -965,8 +965,8 @@ namespace DiscordMoniesGame
                     Title = "Victory!",
                     Description = $"The game has ended in a victory for **{winner.Username}**! The game is now closed.",
                     Color = Color.Green
-                }.WithId(Id).Build();
-                await this.Broadcast("", embed: embed1);
+                };
+                await SendBoard(Users, embed1);
                 Close();
             }
         }

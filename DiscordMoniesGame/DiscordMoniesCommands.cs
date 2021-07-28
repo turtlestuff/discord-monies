@@ -197,7 +197,7 @@ namespace DiscordMoniesGame
                         var embed = new EmbedBuilder()
                         {
                             Title = "Roll 🎲", //game die emoji
-                            Description = $"**{msg.Author.Username}** has rolled {diceFaces[roll1]} and {diceFaces[roll2]}" +
+                            Description = $"**{msg.Author.Username}** has rolled {diceFaces[roll1]} {diceFaces[roll2]} " +
                             (!speedLimit ? $"and has gone to space **{board.LocName(position)}**" :
                             ".\nHowever, as they have rolled doubles for the 3rd time, they have been sent to jail. No speeding!"),
                             Color = PlayerColor(msg.Author)
@@ -233,7 +233,7 @@ namespace DiscordMoniesGame
                             var embed = new EmbedBuilder()
                             {
                                 Title = "Jail Roll",
-                                Description = $"**{msg.Author.Username}** has rolled {diceFaces[roll1]} and {diceFaces[roll2]} and has been released from jail!\n" +
+                                Description = $"**{msg.Author.Username}** has rolled {diceFaces[roll1]} {diceFaces[roll2]}  and has been released from jail!\n" +
                                 $"They move to {board.LocName(position)}",
                                 Color = Color.Green,
                                 Footer = new() { Text = "They do not get an extra turn for rolling doubles" }
@@ -250,7 +250,7 @@ namespace DiscordMoniesGame
                                 var embed = new EmbedBuilder()
                                 {
                                     Title = "Jail Roll",
-                                    Description = $"{msg.Author.Username} has rolled {diceFaces[roll1]} and {diceFaces[roll2]}.",
+                                    Description = $"{msg.Author.Username} has rolled {diceFaces[roll1]} {diceFaces[roll2]}.",
                                     Color = Color.Red
                                 }.WithId(Id).Build();
                                 await this.Broadcast("", embed: embed);
@@ -273,7 +273,7 @@ namespace DiscordMoniesGame
                                 var embed = new EmbedBuilder()
                                 {
                                     Title = "Jail Roll",
-                                    Description = $"{msg.Author.Username} has rolled {diceFaces[roll1]} and {diceFaces[roll2]}. They have {3 - (jailStatus + 1)} more attempt(s) to roll doubles left.",
+                                    Description = $"{msg.Author.Username} has rolled {diceFaces[roll1]} {diceFaces[roll2]}. They have {3 - (jailStatus + 1)} more attempt(s) to roll doubles left.",
                                     Color = Color.Red
                                 }.WithId(Id).Build();
                                 await this.Broadcast("", embed: embed);
