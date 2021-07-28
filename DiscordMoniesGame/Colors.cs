@@ -8,14 +8,14 @@ namespace DiscordMoniesGame
     {
         public static readonly Dictionary<string, Color> ColorList = new()
         {
-            { "red", Color.Red },
-            { "orange", Color.Orange },
-            { "yellow", Color.Yellow },
-            { "green", Color.Green },
-            { "cyan", Color.Cyan },
-            { "blue", Color.Blue },
-            { "pink", Color.Pink }, 
-            { "gray", Color.Gray }
+            { "red", Color.FromArgb(255, 70, 70) },
+            { "orange", Color.FromArgb(255, 204, 109) },
+            { "yellow", Color.FromArgb(255, 251, 140) },
+            { "green", Color.FromArgb(128, 255, 94) },
+            { "cyan", Color.FromArgb(31, 255, 255) },
+            { "blue", Color.FromArgb(126, 131, 236) },
+            { "pink", Color.FromArgb(233, 143, 224) }, 
+            { "gray", Color.FromArgb(192, 192, 192) }
         };
 
         public static Color ColorOfName(string name) => ColorList[name];
