@@ -555,6 +555,22 @@ namespace DiscordMoniesGame
                 }
             }
             await currentPlr.SendMessageAsync(embed: playerEmbed.WithId(Id).Build());
+
+            var pendingTradesForPlr = trades.Where(t => t.Open).GroupBy(t => t.Recipient)
+                .Select((x, i) => (x.Key, x.Select(t => $"{i}: from {t.Sender!.Username} (expires in {t.Expires - DateTime.Now})")));
+
+            foreach (var (user, pending) in pendingTradesForPlr)
+            {
+                var pe = new EmbedBuilder()
+                {
+                    Title = "Pending Trades 🔀",
+                    Description = "You have the following pending trades:\n" + 
+                    string.Join('\n', pending) +
+                    "\n\nUse `trade viewoffer [index]` to view them.",
+                    Color = Color.Purple
+                }.WithId(Id).Build();
+                await user.SendMessageAsync(embed: pe);
+            }
         }
 
         async Task SendToJail(IUser player)

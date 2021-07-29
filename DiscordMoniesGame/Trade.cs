@@ -20,6 +20,8 @@ namespace DiscordMoniesGame
             public List<TradeItem> Take { get; init; } = new();
             public Timer? CloseTimer { get; set; }
 
+            public DateTime Expires { get; set; } = DateTime.MinValue;
+
             public IUser? Sender { get; set; } = null;
             public IUser? Recipient { get; set; } = null;
 
@@ -216,6 +218,8 @@ namespace DiscordMoniesGame
                     await msg.Author.SendMessageAsync($"Trade offer has been sent to {recipient.Username} with index {trades.IndexOf(aSt.TradeTable)}. The trade offer will automatically " +
                         "close after 5 minutes. Your trade table has been closed.");
 
+                    trades[index].Expires = DateTime.Now.AddMinutes(5);
+
                     trades[index].CloseTimer = new Timer(async (a) =>
                     {
                         var trade = trades[index];
@@ -269,6 +273,7 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync("That trade table is not available.");
                     }
                     return;
+
                 case "copy":
                     if (TryGetTradeTable(args, out var table3) && table3.Recipient?.Id == msg.Author.Id)
                     {
@@ -297,6 +302,7 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync("That trade table is not available.");
                     }
                     return;
+
                 case "recall":
                     if (TryGetTradeTable(args, out var table4, true))
                     {
@@ -344,6 +350,27 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync("That trade table is not available.");
                     }
                     return;
+
+                case "pending":
+                    var pendingTradesForPlr = trades.Where(t => t.Open && t.Recipient?.Id == msg.Author.Id)
+                        .Select((x, i) => $"{i}: from {x.Sender!.Username} (expires in {x.Expires - DateTime.Now})");
+                    var pendingTradesFromPlr = trades.Where(t => t.Open && t.Sender?.Id == msg.Author.Id)
+                        .Select((x, i) => $"{i}: to {x.Recipient!.Username} (expires in {x.Expires - DateTime.Now})");
+
+                    var pe = new EmbedBuilder()
+                    {
+                        Title = "Pending Trades 🔀",
+                        Fields = new()
+                        {
+                            new() { IsInline = true, Name = "Sent:", Value = string.Join('\n', pendingTradesFromPlr) },
+                            new() { IsInline = true, Name = "Received:", Value = string.Join('\n', pendingTradesForPlr) }
+                        },
+                        Color = Color.Purple
+                    }.WithId(Id).Build();
+                    await msg.Author.SendMessageAsync(embed: pe);
+                    
+                    return;
+
                 default:
                     var ee = new EmbedBuilder()
                     {
