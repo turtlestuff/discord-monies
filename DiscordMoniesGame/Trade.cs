@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DiscordMoniesGame
@@ -17,18 +18,12 @@ namespace DiscordMoniesGame
             public List<TradeItem> Give { get; init; } = new();
             public int GivingMoney { get; set; } = 0;
             public List<TradeItem> Take { get; init; } = new();
+            public Timer? CloseTimer { get; set; }
 
             public IUser? Sender { get; set; } = null;
             public IUser? Recipient { get; set; } = null;
 
-            public enum TradeTableState
-            {
-                Creating,
-                Offered,
-                Closed
-            }
-
-            public TradeTableState State { get; set; } = TradeTableState.Creating;
+            public bool Open { get; set; } = true;
         }
 
         readonly List<TradeTable> trades = new();
@@ -52,6 +47,7 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync("You have already laid out a trade. Use `trade close` to get rid of that one.");
                         return;
                     }
+                    await this.Broadcast($"**{msg.Author.Username}** is creating a trade...");
                     plrStates[msg.Author] = aSt with { TradeTable = new TradeTable() };
                     await msg.Author.SendMessageAsync("You have laid out a new trade.");
                     await SendTradeTable(plrStates[msg.Author].TradeTable!, msg.Author, false);
@@ -94,11 +90,11 @@ namespace DiscordMoniesGame
                         {
                             if (item is PropertyItem pi)
                             {
-                                var index = aSt.TradeTable.Give.FindIndex(x => (x as PropertyItem)?.Location == pi.Location);
-                                if (index != -1)
+                                var index1 = aSt.TradeTable.Give.FindIndex(x => (x as PropertyItem)?.Location == pi.Location);
+                                if (index1 != -1)
                                 {
                                     // location is same, but different keepmortgage, switch it (will be added later)
-                                    aSt.TradeTable.Give.RemoveAt(index);
+                                    aSt.TradeTable.Give.RemoveAt(index1);
                                 }
                             }
 
@@ -131,11 +127,11 @@ namespace DiscordMoniesGame
                         {
                             if (item1 is PropertyItem pi)
                             {
-                                var index = aSt.TradeTable.Take.FindIndex(x => (x as PropertyItem)?.Location == pi.Location);
-                                if (index != -1)
+                                var index1 = aSt.TradeTable.Take.FindIndex(x => (x as PropertyItem)?.Location == pi.Location);
+                                if (index1 != -1)
                                 {
                                     // location is same, but different keepmortgage, remove it (to be added later)
-                                    aSt.TradeTable.Take.RemoveAt(index);
+                                    aSt.TradeTable.Take.RemoveAt(index1);
                                 }
                             }
 
@@ -182,8 +178,8 @@ namespace DiscordMoniesGame
                         }
                         if (!p.Contains(closestPlayer))
                         {
-                            await msg.Author.SendMessageAsync($"Only {p.Select(p => p.Username).ToArray().CommaAndList()} are possible recipients for your trade. Please check that the " +
-                                $"desired player ({closestPlayer.Username}) owns all the assets you wish to receive.");
+                            await msg.Author.SendMessageAsync($"Only {p.Where(x => x.Id != msg.Author.Id).Select(p => p.Username).ToArray().CommaAndList()} are " +
+                                $"possible recipients for your trade. Please check that the desired player ({closestPlayer.Username}) owns all the assets you wish to receive.");
                             return;
                         }
                         recipient = closestPlayer;
@@ -204,22 +200,32 @@ namespace DiscordMoniesGame
                         return;
                     }
 
-                    aSt.TradeTable.State = TradeTable.TradeTableState.Offered;
-
                     if (!trades.Contains(aSt.TradeTable))
                     {
                         trades.Add(aSt.TradeTable);
                     }
 
+                    await this.Broadcast($"**{msg.Author.Username}** and **{recipient.Username}** are trading...");
                     await SendTradeTable(aSt.TradeTable, recipient, true);
+                    var index = trades.IndexOf(aSt.TradeTable);
                     await recipient.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
-                        $"`trade accept {trades.IndexOf(aSt.TradeTable)}`, reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}` or copy it to your own table with " +
-                        $"`trade copy {trades.IndexOf(aSt.TradeTable)}`.");
+                        $"`trade accept {index}`, reject it with `trade reject {index}` or copy it to your own table with " +
+                        $"`trade copy {index}`.");
 
                     plrStates[msg.Author] = aSt with { TradeTable = null };
-                    await msg.Author.SendMessageAsync($"Trade offer has been sent to {recipient.Username} with index {trades.IndexOf(aSt.TradeTable)}. Your trade table has been closed.");
+                    await msg.Author.SendMessageAsync($"Trade offer has been sent to {recipient.Username} with index {trades.IndexOf(aSt.TradeTable)}. The trade offer will automatically " +
+                        "close after 5 minutes. Your trade table has been closed.");
 
-
+                    trades[index].CloseTimer = new Timer(async (a) =>
+                    {
+                        var trade = trades[index];
+                        if (trade.Open)
+                        {
+                            await this.BroadcastTo($"Trade #{index} has been closed after 5 minutes.", false, null, trade.Sender!, trade.Recipient!);
+                            trade.Open = false;
+                        }
+                        trade.CloseTimer = null;
+                    }, null, TimeSpan.FromMinutes(5), Timeout.InfiniteTimeSpan);
                     return;
                 case "viewoffer":
                     if (TryGetTradeTable(args, out var table))
@@ -241,6 +247,10 @@ namespace DiscordMoniesGame
                             trades.Remove(table1);
                             await msg.Author.SendMessageAsync("This trade is invalid. Ensure that each user has the required assets to perform this trade.");
                         }
+                        else
+                        {
+                            table1.Open = false;
+                        }
                     }
                     else
                     {
@@ -252,6 +262,7 @@ namespace DiscordMoniesGame
                     {
                         await table2.Sender.SendMessageAsync($"**{msg.Author.Username}** has rejected your trade offer. You may recall this trade with `trade recall {args}`, to edit it.");
                         await msg.Author.SendMessageAsync($"You have rejected **{table2.Sender?.Username}**'s trade offer.");
+                        table2.Open = false;
                     }
                     else
                     {
@@ -279,6 +290,7 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync($"You have rejected and copied **{table3.Sender?.Username}**'s trade offer. " +
                             $"Their trade offer is now available in your trade table.");
                         await SendTradeTable(plrStates[msg.Author].TradeTable!, msg.Author, false);
+                        table3.Open = false;
                     }
                     else
                     {
@@ -665,7 +677,7 @@ namespace DiscordMoniesGame
                 return false;
             }
 
-            if (!canBeClosed && trades[intResult].State == TradeTable.TradeTableState.Closed)
+            if (!canBeClosed && !trades[intResult].Open)
             {
                 return false;
             }
