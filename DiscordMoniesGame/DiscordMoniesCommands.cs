@@ -21,7 +21,7 @@ namespace DiscordMoniesGame
                     IUser player;
                     if (args == "")
                     {
-                        if (Spectators.Contains(msg.Author, DiscordComparers.UserComparer))
+                        if (!CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer))
                         {
                             await msg.Author.SendMessageAsync("As a spectator, you may only view other players' information.");
                             return;
@@ -42,6 +42,9 @@ namespace DiscordMoniesGame
                     if (player is not null)
                     {
                         var playerState = plrStates[player];
+                        string jailCard;
+                        jailCard = JailCardOwnedBy(player) is not null ? "Yes" : "No";
+                        
                         var embed = new EmbedBuilder()
                         {
                             Title = player.Username,
@@ -50,7 +53,7 @@ namespace DiscordMoniesGame
                                 new() { IsInline = true, Name = "Balance", Value = playerState.Money.MoneyString() },
                                 new() { IsInline = true, Name = "Position", Value = playerState.Position.LocString() },
                                 new() { IsInline = true, Name = "Color", Value = Colors.NameOfColor(playerState.Color) },
-                                new() { IsInline = true, Name = "Jail Card", Value = JailCardOwnedBy(player) is not null ? "Yes" : "No" }
+                                new() { IsInline = true, Name = "Jail Card", Value = jailCard }
                             },
                             Color = PlayerColor(player)
                         }.WithId(Id).Build();
@@ -64,7 +67,7 @@ namespace DiscordMoniesGame
                     IUser player;
                     if (args == "")
                     {
-                        if (Spectators.Contains(msg.Author, DiscordComparers.UserComparer))
+                        if (!CurrentPlayers.Contains(msg.Author, DiscordComparers.UserComparer))
                         {
                             await msg.Author.SendMessageAsync("As a spectator, you may only view other players' information.");
                             return;
@@ -322,7 +325,7 @@ namespace DiscordMoniesGame
                     var embed = new EmbedBuilder()
                     {
                         Title = "Auction 🧑‍⚖️", // judge emoji
-                        Description = $"**{msg.Author.Username}** is auctioning off **{board.LocName(aSt.Position)}, normally worth {space.Value.MoneyString()}.\n" +
+                        Description = $"**{msg.Author.Username}** is auctioning off **{board.LocName(aSt.Position)}**, normally worth {space.Value.MoneyString()}.\n" +
                         $"The auction will start at {1.MoneyString()} minimum with **{currentAuctionPlayer.Username}**, and will continue in the order below. " +
                         "You may use `bid [amount]` to bid or `skip` to skip. " +
                         "It will end when all players but one have skipped, and the last player not to skip gets the property. " +

@@ -214,7 +214,8 @@ namespace DiscordMoniesGame
 
                     await SendTradeTable(aSt.TradeTable, recipient, true);
                     await recipient.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
-                        $"`trade accept {trades.IndexOf(aSt.TradeTable)}` or reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}`");
+                        $"`trade accept {trades.IndexOf(aSt.TradeTable)}`, reject it with `trade reject {trades.IndexOf(aSt.TradeTable)}` or copy it to your own table with " +
+                        $"`trade copy {trades.IndexOf(aSt.TradeTable)}`.");
 
                     plrStates[msg.Author] = aSt with { TradeTable = null };
                     await msg.Author.SendMessageAsync($"Trade offer has been sent to {recipient.Username} with index {trades.IndexOf(aSt.TradeTable)}. Your trade table has been closed.");
@@ -275,8 +276,7 @@ namespace DiscordMoniesGame
                                 GivingMoney = -table3.GivingMoney
                             }
                         };
-                        trades.Remove(table3);
-                        await table3.Sender.SendMessageAsync($"**{msg.Author.Username}** has copied your trade offer, and are currently editing it.");
+                        await table3.Sender.SendMessageAsync($"**{msg.Author.Username}** has copied your trade offer, and is currently editing it.");
                         await msg.Author.SendMessageAsync($"You have rejected and copied **{table3.Sender?.Username}**'s trade offer. " +
                             $"Their trade offer is now available in your trade table.");
                         await SendTradeTable(plrStates[msg.Author].TradeTable!, msg.Author, false);
@@ -396,7 +396,7 @@ namespace DiscordMoniesGame
             {
                 if (giveItem is JailCardItem)
                 {
-                    JailCardOwnedBy(table.Sender) = table.Recipient;
+                    RefJailCardOwnedBy(table.Sender) = table.Recipient;
                     actions.Add($"**{table.Sender.Username}'s** Get out of Jail Free Card ➡️ **{table.Recipient.Username}**");
                     continue;
                 }
@@ -413,7 +413,7 @@ namespace DiscordMoniesGame
             {
                 if (takeItem is JailCardItem)
                 {
-                    JailCardOwnedBy(table.Recipient) = table.Sender;
+                    RefJailCardOwnedBy(table.Recipient) = table.Sender;
                     actions.Add($"**{table.Recipient.Username}'s** Get out of Jail Free Card ➡️ **{table.Sender.Username}**");
                     continue;
                 }
@@ -438,7 +438,7 @@ namespace DiscordMoniesGame
             return true;
         }
 
-        ref IUser? JailCardOwnedBy(IUser plr)
+        ref IUser? RefJailCardOwnedBy(IUser plr)
         {
             if (plr.Id == chanceJailFreeCardOwner?.Id)
             {
@@ -448,9 +448,23 @@ namespace DiscordMoniesGame
             {
                 return ref chestJailFreeCardOwner;
             }
-
-            throw new ArgumentException($"Player {plr.Username} does not own any jail card");
+            throw new TradeException("jail card");
         }
+
+        IUser? JailCardOwnedBy(IUser plr)
+        {
+            if (plr.Id == chanceJailFreeCardOwner?.Id)
+            {
+                return chanceJailFreeCardOwner;
+            }
+            else if (plr.Id == chestJailFreeCardOwner?.Id)
+            {
+                return chestJailFreeCardOwner;
+            }
+            return null;
+        }
+
+
 
         void TransferProperty(int loc, IUser toUser, bool keepMortgaged)
         {

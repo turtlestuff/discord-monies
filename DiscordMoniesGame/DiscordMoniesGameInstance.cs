@@ -133,6 +133,11 @@ namespace DiscordMoniesGame
         {
             try
             {
+                if (msg.Content == "")
+                {
+                    return;
+                }
+
                 using (msg.Channel.EnterTypingState())
                 {
                     var msgContent = msg.Content[pos..];
@@ -234,9 +239,7 @@ namespace DiscordMoniesGame
 
                 await Transfer(rent, currentPlr, ps.Owner);
 
-                await this.BroadcastTo($"**{currentPlr.Username}** has paid you rent.");
-                await AdvanceRound();
-
+                await ps.Owner.SendMessageAsync($"**{currentPlr.Username}** has paid you rent.");
                 var e = new EmbedBuilder()
                 {
                     Title = "Rent",
@@ -244,6 +247,8 @@ namespace DiscordMoniesGame
                     Color = board.GroupColorOrDefault(ps, Color.Red)
                 }.WithId(Id).Build();
                 await currentPlr.SendMessageAsync("", embed: e);
+
+                await AdvanceRound();
                 return;
             }
             // nothing happens!
@@ -613,6 +618,10 @@ namespace DiscordMoniesGame
         async Task<int> MovePlayerRelative(IUser player, int amount, bool passGoBonus = true)
         {
             var position = (plrStates[player].Position + amount) % board.Spaces.Length;
+            while (position < 0)
+            {
+                position = board.Spaces.Length + position;
+            }
             return await MovePlayer(player, position, passGoBonus);
         }
 
