@@ -9,12 +9,12 @@ namespace DiscordMoniesGame
         public static readonly Dictionary<string, Color> ColorList = new()
         {
             { "red", Color.FromArgb(255, 70, 70) },
-            { "orange", Color.FromArgb(255, 204, 109) },
+            { "orange", Color.FromArgb(255, 163, 76) },
             { "yellow", Color.FromArgb(255, 251, 140) },
-            { "green", Color.FromArgb(128, 255, 94) },
+            { "green", Color.FromArgb(118, 202, 38) },
             { "cyan", Color.FromArgb(31, 255, 255) },
             { "blue", Color.FromArgb(140, 143, 232) },
-            { "pink", Color.FromArgb(233, 143, 224) }, 
+            { "pink", Color.FromArgb(255, 136, 210) }, 
             { "gray", Color.FromArgb(192, 192, 192) }
         };
 
