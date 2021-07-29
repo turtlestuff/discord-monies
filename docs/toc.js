@@ -1,6 +1,7 @@
 let discriminatorCounter = 0;
 function autoToc() {
-    let headerLinks = document.getElementsByClassName("linkhead");
+    let mdContent = document.getElementById("mdContent");
+    let headerLinks = mdContent.querySelectorAll("h2,h3");
     let headers = [];
     for (l of headerLinks){
         if (l.id === "")

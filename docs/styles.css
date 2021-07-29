@@ -42,15 +42,15 @@ h1 {
     counter-reset: h2;
 }
 
-h2.linkhead::before {
+#mdContent h2::before {
     counter-increment: h2; content: counter(h2) ". ";
 }
 
-h2.linkhead {
+#mdContent h2 {
     counter-reset: h3;
 }
 
-h3.linkhead::before {
+#mdContent h3::before {
     counter-increment: h3; content: counter(h2) "." counter(h3) " ";
 }
 
