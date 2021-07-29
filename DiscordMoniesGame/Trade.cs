@@ -99,7 +99,6 @@ namespace DiscordMoniesGame
                                 {
                                     // location is same, but different keepmortgage, switch it (will be added later)
                                     aSt.TradeTable.Give.RemoveAt(index);
-                                    aSt.TradeTable.Give.Add(item);
                                 }
                             }
 

@@ -251,6 +251,11 @@ namespace DiscordMoniesGame
                 await AdvanceRound();
                 return;
             }
+
+            if (board.Spaces[position] is GoToJailSpace)
+            {
+                await SendToJail(currentPlr);
+            }
             // nothing happens!
             await AdvanceRound();
         }
