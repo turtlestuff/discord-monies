@@ -911,7 +911,7 @@ namespace DiscordMoniesGame
                         var embed = new EmbedBuilder()
                         {
                             Title = "House Demolished",
-                            Description = $"A house on **{board.LocName(loc)}** has been demolished, leaving {rs.Houses} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
+                            Description = $"A house on **{board.LocName(loc)}** has been demolished, leaving {rs.Houses - 1} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
                             Color = board.GroupColorOrDefault(rs)
                         }.WithId(Id).Build();
                         await this.Broadcast("", embed: embed);
