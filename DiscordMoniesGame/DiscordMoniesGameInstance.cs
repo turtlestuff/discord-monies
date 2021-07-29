@@ -557,7 +557,7 @@ namespace DiscordMoniesGame
             await currentPlr.SendMessageAsync(embed: playerEmbed.WithId(Id).Build());
 
             var pendingTradesForPlr = trades.Where(t => t.Open).GroupBy(t => t.Recipient)
-                .Select((x, i) => (x.Key, x.Select(t => $"{i}: from {t.Sender!.Username} (expires in {t.Expires - DateTime.Now})")));
+                .Select((x, i) => (x.Key, x.Select(t => $"`{i}` - from **{t.Sender!.Username}** (expires in {t.Expires - DateTime.Now:m'm 'ss's'})")));
 
             foreach (var (user, pending) in pendingTradesForPlr)
             {

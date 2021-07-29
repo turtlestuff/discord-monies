@@ -51,7 +51,7 @@ namespace DiscordMoniesGame
             {
                 e.Footer = new();
             }
-            if (e.Footer.Text == "")
+            if (e.Footer.Text == "" || e.Footer.Text is null)
             {
                 e.Footer.Text = $"Game #{id}";
             }

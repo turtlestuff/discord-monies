@@ -353,17 +353,18 @@ namespace DiscordMoniesGame
 
                 case "pending":
                     var pendingTradesForPlr = trades.Where(t => t.Open && t.Recipient?.Id == msg.Author.Id)
-                        .Select((x, i) => $"{i}: from {x.Sender!.Username} (expires in {x.Expires - DateTime.Now})");
+                        .Select((x, i) => $"`{i}` - from **{x.Sender!.Username}** (expires in {x.Expires - DateTime.Now:m'm 'ss's'})");
                     var pendingTradesFromPlr = trades.Where(t => t.Open && t.Sender?.Id == msg.Author.Id)
-                        .Select((x, i) => $"{i}: to {x.Recipient!.Username} (expires in {x.Expires - DateTime.Now})");
-
+                        .Select((x, i) => $"`{i}` - to **{x.Recipient!.Username}** (expires in {x.Expires - DateTime.Now:m'm 'ss's'})");
+                    var sent = string.Join('\n', pendingTradesFromPlr);
+                    var received = string.Join('\n', pendingTradesForPlr);
                     var pe = new EmbedBuilder()
                     {
                         Title = "Pending Trades 🔀",
                         Fields = new()
                         {
-                            new() { IsInline = true, Name = "Sent:", Value = string.Join('\n', pendingTradesFromPlr) },
-                            new() { IsInline = true, Name = "Received:", Value = string.Join('\n', pendingTradesForPlr) }
+                            new() { IsInline = true, Name = "Sent:", Value = sent == "" ? "None" : sent },
+                            new() { IsInline = true, Name = "Received:", Value =  received == "" ? "None" : received }
                         },
                         Color = Color.Purple
                     }.WithId(Id).Build();
@@ -583,7 +584,7 @@ namespace DiscordMoniesGame
                 {
                     // If the number of elements in the intersection of the requested road spaces and the ones with the same group is not the same,
                     // i.e. if the user is not trading all of the elements in a group.
-                    foreach(var p in reduced)
+                    foreach(var p in otherOfGroup)
                     {
                         if (p.Houses > 0)
                         {
@@ -614,7 +615,7 @@ namespace DiscordMoniesGame
                 {
                     // If the number of elements in the intersection of the requested road spaces and the ones with the same group is not the same,
                     // i.e. if the user is not trading all of the elements in a group
-                    foreach (var p in reduced)
+                    foreach (var p in otherOfGroup)
                     {
                         if (p.Houses > 0)
                         {
