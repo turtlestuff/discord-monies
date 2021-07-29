@@ -1,5 +1,5 @@
 async function loadData() {
-    let results = await fetch("/doc.md", {
+    let results = await fetch("doc.md", {
 
     });
     let mdData = await results.text();
