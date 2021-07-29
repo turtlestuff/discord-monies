@@ -39,12 +39,12 @@ namespace DiscordMoniesGame
                         player = p;
                     }
 
+
                     if (player is not null)
                     {
                         var playerState = plrStates[player];
-                        string jailCard;
-                        jailCard = JailCardOwnedBy(player) is not null ? "Yes" : "No";
-                        
+                        var jailCard = JailCardOwnedBy(player) is not null ? "Yes" : "No";
+                        var ownedProperty = board.OwnedBy<PropertySpace>(player).Select(x => board.LocName(Array.IndexOf(board.Spaces, x)));
                         var embed = new EmbedBuilder()
                         {
                             Title = player.Username,
@@ -53,7 +53,8 @@ namespace DiscordMoniesGame
                                 new() { IsInline = true, Name = "Balance", Value = playerState.Money.MoneyString() },
                                 new() { IsInline = true, Name = "Position", Value = playerState.Position.LocString() },
                                 new() { IsInline = true, Name = "Color", Value = Colors.NameOfColor(playerState.Color) },
-                                new() { IsInline = true, Name = "Jail Card", Value = jailCard }
+                                new() { IsInline = true, Name = "Jail Card", Value = jailCard },
+                                new() { IsInline = false, Name = "Properties Owned", Value = string.Join('\n', ownedProperty) }
                             },
                             Color = PlayerColor(player)
                         }.WithId(Id).Build();

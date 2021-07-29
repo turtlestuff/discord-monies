@@ -175,8 +175,10 @@ namespace DiscordMoniesGame
             return ss.Count() == ss.Count(s => s.Owner?.Id == player.Id);
         }
 
-        public int CountOwnedBy<T>(IUser player) where T : PropertySpace => Spaces.Count(s => s is T ps && ps.Owner?.Id == player.Id);
+        public IEnumerable<T> OwnedBy<T>(IUser player) where T : PropertySpace => Spaces.Where(s => s is T ps && ps.Owner?.Id == player.Id).Cast<T>();
 
+        public int CountOwnedBy<T>(IUser player) where T : PropertySpace => OwnedBy<T>(player).Count();
+        
         public int CalculateRentFor(int pos, bool bigRent = false)
         {
             var deed = TitleDeedFor(pos);
