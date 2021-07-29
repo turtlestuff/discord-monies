@@ -548,19 +548,21 @@ namespace DiscordMoniesGame
                     continue;
                 }
 
-                if (rs.Houses == 0)
-                {
-                    continue;
-                }
-
                 var otherOfGroup = board.FindSpacesOfGroup(rs.Group);
-                if (table.Give.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
+                var reduced = table.Give.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
                     .Select(x => (RoadSpace)board.Spaces[((PropertyItem)x).Location])
-                    .Intersect(otherOfGroup).Count() != otherOfGroup.Count())
+                    .Intersect(otherOfGroup);
+                if (reduced.Count() != otherOfGroup.Count())
                 {
                     // If the number of elements in the intersection of the requested road spaces and the ones with the same group is not the same,
-                    // i.e. if the user is not trading all of the elements in a group, fail the transaction.
-                    return false;
+                    // i.e. if the user is not trading all of the elements in a group.
+                    foreach(var p in reduced)
+                    {
+                        if (p.Houses > 0)
+                        {
+                            return false; //If any of them have houses, do not allow the trade
+                        }
+                    }
                 }
             }
 
@@ -578,12 +580,20 @@ namespace DiscordMoniesGame
                 }
 
                 var otherOfGroup = board.FindSpacesOfGroup(rs.Group);
-                if (table.Take.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
+                var reduced = table.Take.Where(x => x is PropertyItem pi && board.Spaces[pi.Location] is RoadSpace)
                     .Select(x => (RoadSpace)board.Spaces[((PropertyItem)x).Location])
-                    .Intersect(otherOfGroup).Count() != otherOfGroup.Count())
+                    .Intersect(otherOfGroup);
+                if (reduced.Count() != otherOfGroup.Count())
                 {
                     // If the number of elements in the intersection of the requested road spaces and the ones with the same group is not the same,
-                    // i.e. if the user is not trading all of the elements in a group, fail the transaction.
+                    // i.e. if the user is not trading all of the elements in a group
+                    foreach (var p in reduced)
+                    {
+                        if (p.Houses > 0)
+                        {
+                            return false; //If any of them have houses, do not allow the trade
+                        }
+                    }
                     return false;
                 }
             }
