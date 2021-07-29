@@ -416,7 +416,7 @@ namespace DiscordMoniesGame
                     }
 
                     var move2 = await MovePlayer(currentPlr, loc);
-                    await HandlePlayerLand(move2);
+                    await HandlePlayerLand(move2, true);
                     break;
 
                 case "recvall":

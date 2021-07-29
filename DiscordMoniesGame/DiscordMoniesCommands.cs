@@ -583,7 +583,6 @@ namespace DiscordMoniesGame
                         return;
                     }
                     await HandleBankruptcy(msg.Author);
-                    await AdvanceRound();
                 }),
                 new("drop", CanRun.Any, async (args, msg) =>
                 {
