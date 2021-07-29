@@ -411,7 +411,7 @@ namespace DiscordMoniesGame
                         loc = board.FirstSpaceFrom(position, s => s is TrainStationSpace);
                     }
                     else
-                    {
+                    {   
                         throw new ArgumentException("Invalid type for `advance`");
                     }
 
@@ -857,7 +857,7 @@ namespace DiscordMoniesGame
                 return false;
             }
 
-            if (board.IsEntireGroupOwned(rs.Group, out var spaces))
+            if (board.IsEntireGroupOwned(rs.Group, developer, out var spaces))
             {
                 if (spaces.Any(space => space.Mortgaged))
                 {

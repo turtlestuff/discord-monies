@@ -467,7 +467,7 @@ namespace DiscordMoniesGame
                             if (ps is RoadSpace rs)
                             {
 
-                                if (board.IsEntireGroupOwned(rs.Group, out var spaces))
+                                if (board.IsEntireGroupOwned(rs.Group, msg.Author, out var spaces))
                                 {
                                     //Ensure the entire group consists of undeveloped properties
                                     if (spaces.Any(space => space.Houses > 0))

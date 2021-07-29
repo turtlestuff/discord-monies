@@ -168,11 +168,11 @@ namespace DiscordMoniesGame
 
         public IEnumerable<RoadSpace> FindSpacesOfGroup(int group) => Spaces.Where(s => s is RoadSpace rs && rs.Group == group).Cast<RoadSpace>();
 
-        public bool IsEntireGroupOwned(int group, out IEnumerable<RoadSpace> spaces)
+        public bool IsEntireGroupOwned(int group, IUser player, out IEnumerable<RoadSpace> spaces)
         {
             var ss = FindSpacesOfGroup(group);
             spaces = ss;
-            return ss.Count() == ss.Count(s => s.Owner is not null);
+            return ss.Count() == ss.Count(s => s.Owner?.Id == player.Id);
         }
 
         public int CountOwnedBy<T>(IUser player) where T : PropertySpace => Spaces.Count(s => s is T ps && ps.Owner?.Id == player.Id);
@@ -189,9 +189,14 @@ namespace DiscordMoniesGame
 
             if (space is RoadSpace rs)
             {
+                if (rs.Owner is null)
+                {
+                    return 0;
+                }
+
                 return rs.Houses switch
                 {
-                    0 => deed.RentValues[0] * (IsEntireGroupOwned(rs.Group, out _) ? 2 : 1),
+                    0 => deed.RentValues[0] * (IsEntireGroupOwned(rs.Group, rs.Owner, out _) ? 2 : 1),
                     var x => deed.RentValues[x]
                 };
             }
