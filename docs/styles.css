@@ -43,7 +43,7 @@ h1 {
 }
 
 #mdContent h2::before {
-    counter-increment: h2; content: counter(h2) ". ";
+    counter-increment: h2; content: counter(h2) " ";
 }
 
 #mdContent h2 {
@@ -168,7 +168,7 @@ code {
 }
 
 #toc ol > li::before { 
-    content: counters(item, ".") ". "; 
+    content: counters(item, ".") " "; 
     counter-increment: item; 
 }
 
