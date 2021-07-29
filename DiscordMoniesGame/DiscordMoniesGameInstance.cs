@@ -893,7 +893,6 @@ namespace DiscordMoniesGame
                                 return false;
                             }
 
-                            await Transfer(deed.HotelCost / 2, null, developer);
                             board.Spaces[loc] = rs with { Houses = 4 };
 
                             var embed1 = new EmbedBuilder()
@@ -903,10 +902,10 @@ namespace DiscordMoniesGame
                                 Color = board.GroupColorOrDefault(rs)
                             }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed1);
+                            await Transfer(deed.HotelCost / 2, null, developer);
                             return true;
                         }
                         // demolishing house
-                        await Transfer(deed.HouseCost / 2, null, developer);
                         board.Spaces[loc] = rs with { Houses = rs.Houses - 1 };
 
                         var embed = new EmbedBuilder()
@@ -916,6 +915,7 @@ namespace DiscordMoniesGame
                             Color = board.GroupColorOrDefault(rs)
                         }.WithId(Id).Build();
                         await this.Broadcast("", embed: embed);
+                        await Transfer(deed.HouseCost / 2, null, developer);
 
                         return true;
                     }
@@ -988,7 +988,6 @@ namespace DiscordMoniesGame
 
             //Transfer funds
             //TODO: maybe transfer this outside of the TryTansfer function to avoid a message being sent?
-            await Transfer(state.Money, player, target);
             actions.Add($"{state.Money.MoneyString()} ➡️ **{bankruptTarget}**");
 
             //Transfer GOOJFCs
@@ -1045,6 +1044,7 @@ namespace DiscordMoniesGame
                 },
             }.WithId(Id).Build();
             await this.Broadcast("", embed: embed);
+            await Transfer(state.Money, player, target);
 
             //Remove the player from the game
             bankruptedPlayers.Add(player);

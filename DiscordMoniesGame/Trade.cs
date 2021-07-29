@@ -286,7 +286,7 @@ namespace DiscordMoniesGame
                     }
                     return;
                 case "recall":
-                    if (TryGetTradeTable(args, out var table4))
+                    if (TryGetTradeTable(args, out var table4, true))
                     {
                         if (aSt.TradeTable is not null)
                         {
@@ -361,14 +361,6 @@ namespace DiscordMoniesGame
             var senderGivingMoney = SenderAmount(table);
             var recipientGivingMoney = RecipientAmount(table);
 
-            if (!await TryTransfer(senderMortgage, table.Sender, null) ||
-                !await TryTransfer(recipientMortgage, table.Recipient, null) ||
-                !await TryTransfer(senderGivingMoney, table.Sender, table.Recipient) ||
-                !await TryTransfer(recipientGivingMoney, table.Recipient, table.Sender))
-            {
-                throw new TradeException("Money failed!");
-            }
-
             var actions = new List<string>();
 
             if (senderMortgage > 0)
@@ -433,6 +425,10 @@ namespace DiscordMoniesGame
             }.WithId(Id).Build();
 
             await this.Broadcast("", embed: embed);
+            await Transfer(senderMortgage, table.Sender, null);
+            await Transfer(recipientMortgage, table.Recipient, null);
+            await Transfer(senderGivingMoney, table.Sender, table.Recipient);
+            await Transfer(recipientGivingMoney, table.Recipient, table.Sender);
 
             return true;
         }
@@ -655,7 +651,7 @@ namespace DiscordMoniesGame
             var x => x.ToString()
         };
 
-        bool TryGetTradeTable(string args, [MaybeNullWhen(false)] out TradeTable table)
+        bool TryGetTradeTable(string args, [MaybeNullWhen(false)] out TradeTable table, bool canBeClosed = false)
         {
             //maybe we should default to a sane trade table (the first one where they are the recipient?)
             table = default!;
@@ -665,6 +661,11 @@ namespace DiscordMoniesGame
             }
 
             if (intResult >= trades.Count)
+            {
+                return false;
+            }
+
+            if (!canBeClosed && trades[intResult].State == TradeTable.TradeTableState.Closed)
             {
                 return false;
             }

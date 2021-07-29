@@ -479,7 +479,6 @@ namespace DiscordMoniesGame
                             }
 
                             var amt = board.TitleDeedFor(loc).MortgageValue;
-                            await Transfer(amt, null, msg.Author);
                             board.Spaces[loc] = ps with { Mortgaged = true };
                             var embed = new EmbedBuilder()
                             {
@@ -488,7 +487,7 @@ namespace DiscordMoniesGame
                                 Color = board.GroupColorOrDefault(ps, Color.Gold)
                             }.WithId(Id).Build();
                             await this.Broadcast("", embed: embed);
-
+                            await Transfer(amt, null, msg.Author);
                         }
                     }
                     catch (ArgumentException e)
