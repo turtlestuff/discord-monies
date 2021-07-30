@@ -49,7 +49,7 @@ namespace DiscordMoniesGame
                         await msg.Author.SendMessageAsync("You have already laid out a trade. Use `trade close` to get rid of that one.");
                         return;
                     }
-                    await this.Broadcast($"**{msg.Author.Username}** is creating a trade...");
+                    await this.BroadcastExcluding($"**{msg.Author.Username}** is creating a trade...", exclude: msg.Author);
                     plrStates[msg.Author] = aSt with { TradeTable = new TradeTable() };
                     await msg.Author.SendMessageAsync("You have laid out a new trade.");
                     await SendTradeTable(plrStates[msg.Author].TradeTable!, msg.Author, false);
@@ -207,7 +207,7 @@ namespace DiscordMoniesGame
                         trades.Add(aSt.TradeTable);
                     }
 
-                    await this.Broadcast($"**{msg.Author.Username}** and **{recipient.Username}** are trading...");
+                    await this.BroadcastExcluding($"**{msg.Author.Username}** and **{recipient.Username}** are trading...", exclude: new[] { msg.Author, recipient });
                     await SendTradeTable(aSt.TradeTable, recipient, true);
                     var index = trades.IndexOf(aSt.TradeTable);
                     await recipient.SendMessageAsync($"**{msg.Author.Username}** has offered you the trade above. You may accept this trade with " +
