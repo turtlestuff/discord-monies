@@ -481,7 +481,7 @@ namespace DiscordMoniesGame
 
                             var amt = board.TitleDeedFor(loc).MortgageValue;
                             board.Spaces[loc] = ps with { Mortgaged = true };
-                            await combiningMessageManager.CombinedEmbedMessage(Users, msg.Author,
+                            await combiningMessageManager.CombiningEmbedMessage(Users, msg.Author,
                                 "Mortgage",
                                 $"**{msg.Author.Username}** has mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
                                 board.GroupColorOrDefault(ps, Color.Gold));
@@ -518,7 +518,7 @@ namespace DiscordMoniesGame
                             if (await TryTransfer(amt, msg.Author))
                             {
                                 board.Spaces[loc] = ps with { Mortgaged = false };
-                                await combiningMessageManager.CombinedEmbedMessage(Users, msg.Author,
+                                await combiningMessageManager.CombiningEmbedMessage(Users, msg.Author,
                                     "Mortgage",
                                     $"**{msg.Author.Username}** has de-mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
                                     board.GroupColorOrDefault(ps, Color.Gold));

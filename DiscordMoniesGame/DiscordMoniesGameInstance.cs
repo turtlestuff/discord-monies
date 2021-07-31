@@ -626,7 +626,7 @@ namespace DiscordMoniesGame
         {
             if (position < plrStates[player].Position && passGoBonus)
             {
-                await GiveMoney(player, board.PassGoValue);
+                GiveMoney(player, board.PassGoValue);
                 var embed = new EmbedBuilder()
                 {
                     Title = "Pass Go Bonus!",
@@ -661,8 +661,10 @@ namespace DiscordMoniesGame
             return true;
         }
 
-        async Task Transfer(int amount, IUser? payer, IUser? reciever = null)
+        async Task Transfer(int amount, IUser? payer, IUser? receiver = null)
         {
+            string? payerMsg = null;
+            string? receiverMsg = null;
             if (amount == 0)
             {
                 if (payer is not null)
@@ -677,25 +679,27 @@ namespace DiscordMoniesGame
             {
                 if (plrStates[payer].Money >= 0 && plrStates[payer].Money - amount < 0)
                 {
-                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = reciever };
+                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = receiver };
                 }
                 else if (plrStates[payer].Money - amount >= 0)
                 {
                     plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
                 }
                 plrStates[payer] = plrStates[payer] with { Money = plrStates[payer].Money - amount };
-                await payer.
-                    SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}" +
-                    (plrStates[payer].Money < 0 ? "⚠️" : "") + ".");
+                payerMsg = $"You have transferred {amount.MoneyString()} to {receiver?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}" +
+                    (plrStates[payer].Money < 0 ? "⚠️" : "") + ".";
             }
 
-            if (reciever is not null)
+            if (receiver is not null)
             {
-                await GiveMoney(reciever, amount, payer?.Username ?? "the bank");
+                GiveMoney(receiver, amount);
+                receiverMsg = $"You have recieved {amount.MoneyString()} from **{payer?.Username ?? "the bank"}**. Your balance is now {plrStates[receiver].Money.MoneyString()}.";
+
             }
 
-            await this.BroadcastExcluding($"💸 {amount.MoneyString()}: **{payer?.Username ?? "Bank"}** ➡️ **{reciever?.Username ?? "Bank"}**",
-                exclude: new[] { reciever, payer }.Where(x => x is not null).Cast<IUser>().ToArray());
+            await combiningMessageManager.CombiningTransactionMessage(Users, payer, receiver, payerMsg, receiverMsg,
+                $"💸 {amount.MoneyString()}: **{payer?.Username ?? "Bank"}** ➡️ **{receiver?.Username ?? "Bank"}**");
+
 
             if (waiting == Waiting.ForArrearsPay)
             {
@@ -703,13 +707,9 @@ namespace DiscordMoniesGame
             }
         }
 
-        async Task GiveMoney(IUser reciever, int amount, string? giver = null)
+        void GiveMoney(IUser reciever, int amount)
         {
             plrStates[reciever] = plrStates[reciever] with { Money = plrStates[reciever].Money + amount };
-            if (giver is not null)
-            {
-                await reciever.SendMessageAsync($"You have recieved {amount.MoneyString()} from **{giver}**. Your balance is now {plrStates[reciever].Money.MoneyString()}.");
-            }
         }
 
         async Task<bool> TryBuyProperty(IUser player, int pos, int amount)
@@ -913,7 +913,7 @@ namespace DiscordMoniesGame
 
                             board.Spaces[loc] = rs with { Houses = 4 };
 
-                            await combiningMessageManager.CombinedEmbedMessage(Users, developer,
+                            await combiningMessageManager.CombiningEmbedMessage(Users, developer,
                                 "Development",
                                 $"The hotel on **{board.LocName(loc)}** has been demolished, leaving 4 houses there.",
                                 board.GroupColorOrDefault(rs));
@@ -923,7 +923,7 @@ namespace DiscordMoniesGame
                         // demolishing house
                         board.Spaces[loc] = rs with { Houses = rs.Houses - 1 };
 
-                        await combiningMessageManager.CombinedEmbedMessage(Users, developer,
+                        await combiningMessageManager.CombiningEmbedMessage(Users, developer,
                             "Development",
                             $"A house on **{board.LocName(loc)}** has been demolished, leaving {rs.Houses - 1} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
                             board.GroupColorOrDefault(rs));
@@ -944,7 +944,7 @@ namespace DiscordMoniesGame
                             {
                                 board.Spaces[loc] = rs with { Houses = rs.Houses + 1 };
 
-                                await combiningMessageManager.CombinedEmbedMessage(Users, developer,
+                                await combiningMessageManager.CombiningEmbedMessage(Users, developer,
                                     "Development",
                                     $"A new house in **{board.LocName(loc)}** has been built, " +
                                     $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
@@ -962,7 +962,7 @@ namespace DiscordMoniesGame
                         {
                             board.Spaces[loc] = rs with { Houses = 5 };
 
-                            await combiningMessageManager.CombinedEmbedMessage(Users, developer,
+                            await combiningMessageManager.CombiningEmbedMessage(Users, developer,
                                 "Development",
                                 $"A new hotel in **{board.LocName(loc)}** has been built.",
                                 board.GroupColorOrDefault(rs));

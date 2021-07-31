@@ -1,11 +1,9 @@
 ﻿using Discord;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Threading;
-using System.Numerics;
+using System.Collections.Immutable;
 
 namespace DiscordMoniesGame
 {
@@ -16,12 +14,64 @@ namespace DiscordMoniesGame
         readonly List<CombiningEmbedMessage> combiningMessages = new();
         readonly int id;
 
+        ImmutableDictionary<IUser, IUserMessage>? transactionMessages;
+        DateTime transactionMessageExpire = DateTime.MinValue;
+
         public CombiningMessageManager(int gameId)
         {
             id = gameId;
         }
 
-        public async Task CombinedEmbedMessage(IEnumerable<IUser> sendToUsers, IUser player, string title, string body, Color color)
+        public async Task CombiningTransactionMessage(IEnumerable<IUser> users, IUser? payer, IUser? receiver, string? payerMessage, string? receiverMessage, string everyoneMessage)
+        {
+            if (transactionMessages is null || DateTime.Now >= transactionMessageExpire)
+            {
+                var tmsgs = new Dictionary<IUser, IUserMessage>(DiscordComparers.UserComparer);
+                foreach (var user in users)
+                {
+                    if (user.Id == payer?.Id && payerMessage is not null)
+                    {
+                        tmsgs.Add(user, await user.SendMessageAsync(payerMessage));
+                    }
+                    else if (user.Id == receiver?.Id && receiverMessage is not null)
+                    {
+                        tmsgs.Add(user, await user.SendMessageAsync(receiverMessage));
+                    }
+                    else
+                    {
+                        tmsgs.Add(user, await user.SendMessageAsync(everyoneMessage));
+                    }
+                }
+                transactionMessages = tmsgs.ToImmutableDictionary(DiscordComparers.UserComparer).WithComparers(DiscordComparers.UserComparer);
+                transactionMessageExpire = DateTime.Now.AddSeconds(5);
+            }
+            else
+            {
+                foreach (var user in users)
+                {
+                    await transactionMessages[user].ModifyAsync(m =>
+                    {
+                        string msg;
+                        if (user.Id == payer?.Id && payerMessage is not null)
+                        {
+                            msg = payerMessage;
+                        }
+                        else if (user.Id == receiver?.Id && receiverMessage is not null)
+                        {
+                            msg = receiverMessage;
+                        }
+                        else
+                        {
+                            msg = everyoneMessage;
+                        }
+                        
+                        m.Content = transactionMessages[user].Content + "\n" + msg;  
+                    });
+                }
+            }
+        }
+
+        public async Task CombiningEmbedMessage(IEnumerable<IUser> sendToUsers, IUser player, string title, string body, Color color)
         {
             if (combiningMessages.Any(m => m!.Title == title && m.Player.Id == player.Id))
             {
