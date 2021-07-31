@@ -481,13 +481,11 @@ namespace DiscordMoniesGame
 
                             var amt = board.TitleDeedFor(loc).MortgageValue;
                             board.Spaces[loc] = ps with { Mortgaged = true };
-                            var embed = new EmbedBuilder()
-                            {
-                                Title = "Mortgage",
-                                Description = $"**{msg.Author.Username}** has mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
-                                Color = board.GroupColorOrDefault(ps, Color.Gold)
-                            }.WithId(Id).Build();
-                            await this.Broadcast("", embed: embed);
+                            await combiningMessageManager.CombinedEmbedMessage(Users, msg.Author,
+                                "Mortgage",
+                                $"**{msg.Author.Username}** has mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
+                                board.GroupColorOrDefault(ps, Color.Gold));
+
                             await Transfer(amt, null, msg.Author);
                         }
                     }

@@ -3,8 +3,8 @@
     <PropertyGroup>
         <OutputType>Library</OutputType>
         <TargetFramework>net6.0</TargetFramework>
-      <OutputPath>../Leisure/bin/Debug/net6.0/Games</OutputPath>
-      <Nullable>enable</Nullable>
+        <OutputPath>../Leisure/bin/$(Configuration)/net6.0/Games</OutputPath>
+        <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
       <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>

@@ -65,6 +65,7 @@ namespace DiscordMoniesGame
 
         int? payOrTakeCardVal;
         CardType? payOrTakeCardType;
+        readonly CombiningMessageManager combiningMessageManager;
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
@@ -73,6 +74,7 @@ namespace DiscordMoniesGame
             RegisterCommands();
             currentPlr = CurrentPlayers[Random.Shared.Next(CurrentPlayers.Length)];
             Closing += (_, _) => boardRenderer.Dispose();
+            combiningMessageManager = new(Id);
         }
 
 
