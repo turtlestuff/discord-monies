@@ -498,31 +498,31 @@ namespace DiscordMoniesGame
                 {
                     try
                     {
-                        var loc = board.ParseBoardSpaceInt(args);
-                        var space = board.Spaces[loc];
-                        if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
+                        foreach (var spaceArg in args.Split(" "))
                         {
-                            await msg.Author.SendMessageAsync($"{board.LocName(loc)} is not your property.");
-                            return;
-                        }
-                        if (!ps.Mortgaged)
-                        {
-                            await msg.Author.SendMessageAsync($"{board.LocName(loc)} is not mortgaged.");
-                            return;
-                        }
-                        var mortgage = board.TitleDeedFor(loc).MortgageValue;
-                        var amt = (int) (mortgage * 1.10); // mortgage value + 10%
-                    
-                        if (await TryTransfer(amt, msg.Author))
-                        {
-                            board.Spaces[loc] = ps with { Mortgaged = false };
-                            var embed = new EmbedBuilder()
+                            var loc = board.ParseBoardSpaceInt(spaceArg);
+                            var space = board.Spaces[loc];
+                            if (space is not PropertySpace ps || ps.Owner?.Id != msg.Author.Id)
                             {
-                                Title = "Mortgage",
-                                Description = $"**{msg.Author.Username}** has de-mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
-                                Color = board.GroupColorOrDefault(ps, Color.Gold)
-                            }.WithId(Id).Build();
-                            await this.Broadcast("", embed: embed);
+                                await msg.Author.SendMessageAsync($"{board.LocName(loc)} is not your property.");
+                                continue;
+                            }
+                            if (!ps.Mortgaged)
+                            {
+                                await msg.Author.SendMessageAsync($"{board.LocName(loc)} is not mortgaged.");
+                                continue;
+                            }
+                            var mortgage = board.TitleDeedFor(loc).MortgageValue;
+                            var amt = (int) (mortgage * 1.10); // mortgage value + 10%
+                    
+                            if (await TryTransfer(amt, msg.Author))
+                            {
+                                board.Spaces[loc] = ps with { Mortgaged = false };
+                                await combiningMessageManager.CombinedEmbedMessage(Users, msg.Author,
+                                    "Mortgage",
+                                    $"**{msg.Author.Username}** has de-mortgaged **{board.LocName(loc)}** for {amt.MoneyString()}.",
+                                    board.GroupColorOrDefault(ps, Color.Gold));
+                            }
                         }
                     }
                     catch (ArgumentException e)
@@ -534,8 +534,14 @@ namespace DiscordMoniesGame
                 {
                     try
                     {
-                        var loc = board.ParseBoardSpaceInt(args);
-                        await TryDevelopSpace(msg.Author, loc, false);
+                        foreach (var spaceArgs in args.Split(" "))
+                        {
+                            var loc = board.ParseBoardSpaceInt(args);
+                            if(!await TryDevelopSpace(msg.Author, loc, false))
+                            {
+                                return;
+                            }
+                        }
                     }
                     catch (ArgumentException e)
                     {
@@ -546,8 +552,14 @@ namespace DiscordMoniesGame
                 {
                     try
                     {
-                        var loc = board.ParseBoardSpaceInt(args);
-                        await TryDevelopSpace(msg.Author, loc, true);
+                        foreach (var spaceArgs in args.Split(" "))
+                        {
+                            var loc = board.ParseBoardSpaceInt(args);
+                            if(!await TryDevelopSpace(msg.Author, loc, true))
+                            {
+                                return;
+                            }
+                        }
                     }
                     catch (ArgumentException e)
                     {
