@@ -604,6 +604,7 @@ namespace DiscordMoniesGame
                     memStr.Position = 0;
                     await memStr.CopyToAsync(clone);
                     clone.Position = 0;
+
                     if (embed is not null)
                     {
                         embed.ImageUrl = "attachment://board.png";

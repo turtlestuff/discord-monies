@@ -536,7 +536,7 @@ namespace DiscordMoniesGame
                     {
                         foreach (var spaceArgs in args.Split(" "))
                         {
-                            var loc = board.ParseBoardSpaceInt(args);
+                            var loc = board.ParseBoardSpaceInt(spaceArgs);
                             if(!await TryDevelopSpace(msg.Author, loc, false))
                             {
                                 return;
@@ -554,7 +554,7 @@ namespace DiscordMoniesGame
                     {
                         foreach (var spaceArgs in args.Split(" "))
                         {
-                            var loc = board.ParseBoardSpaceInt(args);
+                            var loc = board.ParseBoardSpaceInt(spaceArgs);
                             if(!await TryDevelopSpace(msg.Author, loc, true))
                             {
                                 return;
