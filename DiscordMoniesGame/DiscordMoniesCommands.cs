@@ -596,6 +596,12 @@ namespace DiscordMoniesGame
                 }),
                 new("drop", CanRun.Any, async (args, msg) =>
                 {
+                    if (currentPlr.Id == msg.Author.Id)
+                    {
+                        await msg.Author.SendMessageAsync("You can't drop on your own turn. Please finish your round before dropping.");
+                        return;
+                    }
+
                     if (args != "drop")
                     {
                         var e = new EmbedBuilder()
