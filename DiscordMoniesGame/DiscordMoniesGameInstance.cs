@@ -65,6 +65,7 @@ namespace DiscordMoniesGame
 
         int? payOrTakeCardVal;
         CardType? payOrTakeCardType;
+        readonly CombiningMessageManager combiningMessageManager;
 
         public DiscordMoniesGameInstance(int id, IDiscordClient client, ImmutableArray<IUser> players, ImmutableArray<IUser> spectators)
             : base(id, client, players, spectators)
@@ -73,6 +74,7 @@ namespace DiscordMoniesGame
             RegisterCommands();
             currentPlr = CurrentPlayers[Random.Shared.Next(CurrentPlayers.Length)];
             Closing += (_, _) => boardRenderer.Dispose();
+            combiningMessageManager = new(Id);
         }
 
 
@@ -624,7 +626,7 @@ namespace DiscordMoniesGame
         {
             if (position < plrStates[player].Position && passGoBonus)
             {
-                await GiveMoney(player, board.PassGoValue);
+                GiveMoney(player, board.PassGoValue);
                 var embed = new EmbedBuilder()
                 {
                     Title = "Pass Go Bonus!",
@@ -659,8 +661,10 @@ namespace DiscordMoniesGame
             return true;
         }
 
-        async Task Transfer(int amount, IUser? payer, IUser? reciever = null)
+        async Task Transfer(int amount, IUser? payer, IUser? receiver = null)
         {
+            string? payerMsg = null;
+            string? receiverMsg = null;
             if (amount == 0)
             {
                 if (payer is not null)
@@ -675,25 +679,27 @@ namespace DiscordMoniesGame
             {
                 if (plrStates[payer].Money >= 0 && plrStates[payer].Money - amount < 0)
                 {
-                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = reciever };
+                    plrStates[payer] = plrStates[payer] with { BankruptcyTarget = receiver };
                 }
                 else if (plrStates[payer].Money - amount >= 0)
                 {
                     plrStates[payer] = plrStates[payer] with { BankruptcyTarget = null };
                 }
                 plrStates[payer] = plrStates[payer] with { Money = plrStates[payer].Money - amount };
-                await payer.
-                    SendMessageAsync($"You have transferred {amount.MoneyString()} to {reciever?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}" +
-                    (plrStates[payer].Money < 0 ? "⚠️" : "") + ".");
+                payerMsg = $"You have transferred {amount.MoneyString()} to {receiver?.Username ?? "the bank"}. Your balance is now {plrStates[payer].Money.MoneyString()}" +
+                    (plrStates[payer].Money < 0 ? "⚠️" : "") + ".";
             }
 
-            if (reciever is not null)
+            if (receiver is not null)
             {
-                await GiveMoney(reciever, amount, payer?.Username ?? "the bank");
+                GiveMoney(receiver, amount);
+                receiverMsg = $"You have recieved {amount.MoneyString()} from **{payer?.Username ?? "the bank"}**. Your balance is now {plrStates[receiver].Money.MoneyString()}.";
+
             }
 
-            await this.BroadcastExcluding($"💸 {amount.MoneyString()}: **{payer?.Username ?? "Bank"}** ➡️ **{reciever?.Username ?? "Bank"}**",
-                exclude: new[] { reciever, payer }.Where(x => x is not null).Cast<IUser>().ToArray());
+            await combiningMessageManager.CombiningTransactionMessage(Users, payer, receiver, payerMsg, receiverMsg,
+                $"💸 {amount.MoneyString()}: **{payer?.Username ?? "Bank"}** ➡️ **{receiver?.Username ?? "Bank"}**");
+
 
             if (waiting == Waiting.ForArrearsPay)
             {
@@ -701,13 +707,9 @@ namespace DiscordMoniesGame
             }
         }
 
-        async Task GiveMoney(IUser reciever, int amount, string? giver = null)
+        void GiveMoney(IUser reciever, int amount)
         {
             plrStates[reciever] = plrStates[reciever] with { Money = plrStates[reciever].Money + amount };
-            if (giver is not null)
-            {
-                await reciever.SendMessageAsync($"You have recieved {amount.MoneyString()} from **{giver}**. Your balance is now {plrStates[reciever].Money.MoneyString()}.");
-            }
         }
 
         async Task<bool> TryBuyProperty(IUser player, int pos, int amount)
@@ -869,7 +871,7 @@ namespace DiscordMoniesGame
             var deed = board.TitleDeedFor(loc);
             if (space is not RoadSpace rs || rs.Owner?.Id != developer.Id)
             {
-                await developer.SendMessageAsync("You can't develop this property.");
+                await developer.SendMessageAsync($"{loc.LocString()}: You can't develop this property.");
                 return false;
             }
 
@@ -877,7 +879,7 @@ namespace DiscordMoniesGame
             {
                 if (spaces.Any(space => space.Mortgaged))
                 {
-                    await developer.SendMessageAsync("You can't develop this property right now because other properties in this set are mortgaged.");
+                    await developer.SendMessageAsync($"{loc.LocString()}: You can't develop this property right now because other properties in this set are mortgaged.");
                     return false;
                 }
 
@@ -885,11 +887,11 @@ namespace DiscordMoniesGame
                 {
                     if (demolish)
                     {
-                        await developer.SendMessageAsync("You can't demolish anything here because there are no more houses to demolish.");
+                        await developer.SendMessageAsync($"{loc.LocString()}: You can't demolish anything here because there are no more houses to demolish.");
                     }
                     else
                     {
-                        await developer.SendMessageAsync("You can't develop this property further because there is already a hotel on this property.");
+                        await developer.SendMessageAsync($"{loc.LocString()}: You can't develop this property further because there is already a hotel on this property.");
                     }
                     return false;
                 }
@@ -905,32 +907,26 @@ namespace DiscordMoniesGame
                         {
                             if (!board.CanTakeHouse(4))
                             {
-                                await developer.SendMessageAsync("You can't demolish this hotel because there are no more houses to purchase.");
+                                await developer.SendMessageAsync($"{loc.LocString()}: You can't demolish this hotel because there are no more houses to purchase.");
                                 return false;
                             }
 
                             board.Spaces[loc] = rs with { Houses = 4 };
 
-                            var embed1 = new EmbedBuilder()
-                            {
-                                Title = "Hotel Demolished",
-                                Description = $"The hotel on **{board.LocName(loc)}** has been demolished, leaving 4 houses there.",
-                                Color = board.GroupColorOrDefault(rs)
-                            }.WithId(Id).Build();
-                            await this.Broadcast("", embed: embed1);
+                            await combiningMessageManager.CombiningEmbedMessage(Users, developer,
+                                "Development",
+                                $"The hotel on **{board.LocName(loc)}** has been demolished, leaving 4 houses there.",
+                                board.GroupColorOrDefault(rs));
                             await Transfer(deed.HotelCost / 2, null, developer);
                             return true;
                         }
                         // demolishing house
                         board.Spaces[loc] = rs with { Houses = rs.Houses - 1 };
 
-                        var embed = new EmbedBuilder()
-                        {
-                            Title = "House Demolished",
-                            Description = $"A house on **{board.LocName(loc)}** has been demolished, leaving {rs.Houses - 1} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
-                            Color = board.GroupColorOrDefault(rs)
-                        }.WithId(Id).Build();
-                        await this.Broadcast("", embed: embed);
+                        await combiningMessageManager.CombiningEmbedMessage(Users, developer,
+                            "Development",
+                            $"A house on **{board.LocName(loc)}** has been demolished, leaving {rs.Houses - 1} {((rs.Houses - 1) == 1 ? "house" : "houses")} there.",
+                            board.GroupColorOrDefault(rs));
                         await Transfer(deed.HouseCost / 2, null, developer);
 
                         return true;
@@ -941,54 +937,48 @@ namespace DiscordMoniesGame
                         {
                             if (!board.CanTakeHouse())
                             {
-                                await developer.SendMessageAsync("You can't develop this property because there are no more houses to purchase.");
+                                await developer.SendMessageAsync($"{loc.LocString()}: You can't develop this property because there are no more houses to purchase.");
                                 return false;
                             }
                             if (await TryTransfer(deed.HouseCost, developer, null))
                             {
                                 board.Spaces[loc] = rs with { Houses = rs.Houses + 1 };
 
-                                var embed1 = new EmbedBuilder()
-                                {
-                                    Title = "House Built",
-                                    Description = $"Development on **{board.LocName(loc)}** has resulted in a new house being built, " +
+                                await combiningMessageManager.CombiningEmbedMessage(Users, developer,
+                                    "Development",
+                                    $"A new house in **{board.LocName(loc)}** has been built, " +
                                     $"for a total of {rs.Houses + 1} {((rs.Houses + 1) == 1 ? "house" : "houses")} on the property.",
-                                    Color = board.GroupColorOrDefault(rs)
-                                }.WithId(Id).Build();
-                                await this.Broadcast("", embed: embed1);
+                                    board.GroupColorOrDefault(rs));
                                 return true;
                             }
                         }
                         // building a hotel
                         if (!board.CanTakeHotel())
                         {
-                            await developer.SendMessageAsync("You can't develop this property because there are no more hotels to purchase.");
+                            await developer.SendMessageAsync($"{loc.LocString()}: You can't develop this property because there are no more hotels to purchase.");
                             return false;
                         }
                         if (await TryTransfer(deed.HotelCost, developer, null))
                         {
                             board.Spaces[loc] = rs with { Houses = 5 };
 
-                            var embed = new EmbedBuilder()
-                            {
-                                Title = "Hotel Built",
-                                Description = $"Development on **{board.LocName(loc)}** has resulted in a new hotel being built.",
-                                Color = board.GroupColorOrDefault(rs)
-                            }.WithId(Id).Build();
-                            await this.Broadcast("", embed: embed);
+                            await combiningMessageManager.CombiningEmbedMessage(Users, developer,
+                                "Development",
+                                $"A new hotel in **{board.LocName(loc)}** has been built.",
+                                board.GroupColorOrDefault(rs));
                             return true;
                         }
                     }
                 }
                 else
                 {
-                    await developer.SendMessageAsync("You can't develop this property because developing it would cause the color set to be developed unevenly.");
+                    await developer.SendMessageAsync($"{loc.LocString()}: You can't develop this property because developing it would cause the color set to be developed unevenly.");
                     return false;
                 }
             }
             else
             {
-                await developer.SendMessageAsync("You can't develop this property because you do not own its entire group yet.");
+                await developer.SendMessageAsync($"{loc.LocString()}: You can't develop this property because you do not own its entire group yet.");
                 return false;
             }
             return false;
