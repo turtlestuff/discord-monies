@@ -1,4 +1,5 @@
 ﻿using Discord;
+using SkiaSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -13,15 +14,15 @@ namespace DiscordMoniesGame
 {
     public class BoardRenderer : IDisposable
     {
-        readonly Bitmap baseBoard;
-        readonly Bitmap basePiece;
-        readonly Bitmap owned;
-        readonly Bitmap mortgaged;
-        readonly Bitmap house1;
-        readonly Bitmap house2;
-        readonly Bitmap house3;
-        readonly Bitmap house4;
-        readonly Bitmap hotel;
+        readonly SKBitmap baseBoard;
+        readonly SKBitmap basePiece;
+        readonly SKBitmap owned;
+        readonly SKBitmap mortgaged;
+        readonly SKBitmap house1;
+        readonly SKBitmap house2;
+        readonly SKBitmap house3;
+        readonly SKBitmap house4;
+        readonly SKBitmap hotel;
 
         public BoardRenderer()
         {
@@ -35,37 +36,38 @@ namespace DiscordMoniesGame
             using var house3Stream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.3houses.png")!;
             using var house4Stream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.4houses.png")!;
             using var hotelStream = asm.GetManifestResourceStream("DiscordMoniesGame.Resources.hotel.png")!;
-
-            baseBoard = new(boardStream);
-            basePiece = new(pieceStream);
-            owned = new(ownedStream);
-            mortgaged = new(mortgagedStream);
-            house1 = new(house1Stream);
-            house2 = new(house2Stream);
-            house3 = new(house3Stream);
-            house4 = new(house4Stream);
-            hotel = new(hotelStream);
+           
+            baseBoard = SKBitmap.Decode(boardStream);
+            basePiece = SKBitmap.Decode(pieceStream);
+            owned = SKBitmap.Decode(ownedStream);
+            mortgaged = SKBitmap.Decode(mortgagedStream);
+            house1 = SKBitmap.Decode(house1Stream);
+            house2 = SKBitmap.Decode(house2Stream);
+            house3 = SKBitmap.Decode(house3Stream);
+            house4 = SKBitmap.Decode(house4Stream);
+            hotel = SKBitmap.Decode(hotelStream);
         }
 
-        public Bitmap Render(ImmutableArray<IUser> players,
+        public SKBitmap Render(ImmutableArray<IUser> players,
             ConcurrentDictionary<IUser, DiscordMoniesGameInstance.PlayerState> playerStates, Board board)
         {
-            var bmp = new Bitmap(baseBoard); // dont need to using because we are returning this
-            using var gfx = Graphics.FromImage(bmp);
+            var bmp = baseBoard.Copy(); // dont need to using because we are returning this
+            var canvas = new SKCanvas(bmp);
 
-            foreach (var s in board.Spaces)
+            foreach (var space in board.Spaces)
             {
-                if (s is not PropertySpace ps || ps.Owner is null)
+                if (space is not PropertySpace ps || ps.Owner is null)
                 {
                     continue;
                 }
-
-                var pos = new Point(s.Bounds.X + 5, s.Bounds.Y + 5);
-                var playerColor = playerStates[ps.Owner].Color;
+                
+                var pos = new SKPoint(space.Bounds.X + 5, space.Bounds.Y + 5);
+                var color = playerStates[ps.Owner].Color;
+                
                 if (ps.Mortgaged)
                 {
-                    using var c = Colored(mortgaged, playerColor);
-                    gfx.DrawImage(c, pos);
+                    using var c = Colored(mortgaged, color);
+                    canvas.DrawBitmap(c, pos);
                     continue;
                 }
 
@@ -80,54 +82,42 @@ namespace DiscordMoniesGame
                         5 => hotel,
                         _ => owned,
                     };
-                    using var c = Colored(piece, playerColor);
-                    gfx.DrawImage(c, pos);
+                    using var c = Colored(piece, color);
+                    canvas.DrawBitmap(c, pos);
                     continue;
                 }
 
-                using var colored = Colored(owned, playerColor);
-                gfx.DrawImage(colored, pos);
+                using var col = Colored(owned, color);
+                canvas.DrawBitmap(col, pos);
             }
 
-            foreach (var p in players)
+            foreach (var player in players)
             {
-                var bounds = playerStates[p].JailStatus != -1
-                    ? board.JailBounds
-                    : board.Spaces[playerStates[p].Position].Bounds;
+                var bounds = playerStates[player].JailStatus != -1 ?
+                    board.JailBounds :
+                    board.Spaces[playerStates[player].Position].Bounds;
 
-                var array = new BigInteger(p.Id).ToByteArray().Union(new BigInteger(bounds.GetHashCode()).ToByteArray()).ToArray();
-                var hash = MD5.Create().ComputeHash(array);
-                var xOff = hash[0] / 255.0;
-                var yOff = hash[1] / 255.0;
+                var hash = HashCode.Combine(player.Id, bounds);
+                var xOff = (hash & 0xFF) / 255.0;
+                var yOff = ((hash >> 8) & 0xFF) / 255.0;
                 var xPos = (int)(xOff * (bounds.Width - basePiece.Width) + (bounds.X + basePiece.Width / 2));
                 var yPos = (int)(yOff * (bounds.Height - basePiece.Height) + (bounds.Y + basePiece.Height / 2));
-                using var c = Colored(basePiece, playerStates[p].Color);
-
-                gfx.DrawImage(c, xPos - basePiece.Height / 2, yPos - basePiece.Width / 2);
+                using var c = Colored(basePiece, playerStates[player].Color);
+                canvas.DrawBitmap(c, new SKPoint(xPos - basePiece.Height / 2, yPos - basePiece.Height / 2));
             }
 
             return bmp;
         }
 
-        static Bitmap Colored(Bitmap bitmap, Color color)
+        
+        static SKBitmap Colored(SKBitmap bitmap, Color color)
         {
-            var bmp = new Bitmap(bitmap);
-            var data = bmp.LockBits(new(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-            unsafe
-            {
-                var s = new Span<int>(data.Scan0.ToPointer(), data.Width * data.Height);
-                for (var i = 0; i < s.Length; i++)
-                {
-                    var bc = Color.FromArgb(s[i]);
-                    s[i] = Color.FromArgb(bc.A,
-                        bc.R * color.R / 255,
-                        bc.G * color.G / 255,
-                        bc.B * color.B / 255).ToArgb();
-                }
-            }
-            bmp.UnlockBits(data);
+            var bmp = bitmap.Copy();
+            var cnv = new SKCanvas(bmp);
+            cnv.DrawColor(new(color.R, color.G, color.B), SKBlendMode.Modulate);
             return bmp;
         }
+        
 
         public void Dispose()
         {

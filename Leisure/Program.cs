@@ -26,8 +26,6 @@ namespace Leisure
         
         public static Color LeisureColor = new(160, 28, 195);
 
-        static readonly System.Drawing.Bitmap? dummy = new(1, 1);
-
         static async Task Main()
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;

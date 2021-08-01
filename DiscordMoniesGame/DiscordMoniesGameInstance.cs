@@ -595,7 +595,7 @@ namespace DiscordMoniesGame
                 embed?.WithId(Id);
                 using var bmp = boardRenderer.Render(CurrentPlayers, plrStates, board);
                 using var memStr = new MemoryStream();
-                bmp.Save(memStr, System.Drawing.Imaging.ImageFormat.Png);
+                bmp.Encode(memStr, SkiaSharp.SKEncodedImageFormat.Png, 100);
                 foreach (var u in users)
                 {
                     using var clone = new MemoryStream();
