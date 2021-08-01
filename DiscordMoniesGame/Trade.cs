@@ -352,10 +352,12 @@ namespace DiscordMoniesGame
                     return;
 
                 case "pending":
-                    var pendingTradesForPlr = trades.Where(t => t.Open && t.Recipient?.Id == msg.Author.Id)
-                        .Select((x, i) => $"`{i}` - from **{x.Sender!.Username}** (expires in {x.Expires - DateTime.Now:m'm 'ss's'})");
-                    var pendingTradesFromPlr = trades.Where(t => t.Open && t.Sender?.Id == msg.Author.Id)
-                        .Select((x, i) => $"`{i}` - to **{x.Recipient!.Username}** (expires in {x.Expires - DateTime.Now:m'm 'ss's'})");
+                    var pendingTradesForPlr = trades.Select((x, i) => (Trade: x, Index: i))
+                        .Where(t => t.Trade.Open && t.Trade.Recipient?.Id == msg.Author.Id)
+                        .Select(x => $"`{x.Index}` - from **{x.Trade.Sender!.Username}** (expires in {x.Trade.Expires - DateTime.Now:m'm 'ss's'})");
+                    var pendingTradesFromPlr = trades.Select((x, i) => (Trade: x, Index: i))
+                        .Where(t => t.Trade.Open && t.Trade.Sender?.Id == msg.Author.Id)
+                        .Select(x => $"`{x.Index}` - to **{x.Trade.Recipient!.Username}** (expires in {x.Trade.Expires - DateTime.Now:m'm 'ss's'})");
                     var sent = string.Join('\n', pendingTradesFromPlr);
                     var received = string.Join('\n', pendingTradesForPlr);
                     var pe = new EmbedBuilder()
