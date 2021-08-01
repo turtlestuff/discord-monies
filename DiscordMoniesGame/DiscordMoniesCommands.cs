@@ -678,7 +678,7 @@ namespace DiscordMoniesGame
             string cmdStr, args;
             if (index == -1)
             {
-                cmdStr = msgContent;
+                cmdStr = msgContent.ToLowerInvariant();
                 args = "";
             }
             else
