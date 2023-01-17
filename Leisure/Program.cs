@@ -77,7 +77,7 @@ namespace Leisure
 
             InstalledGames = gameInfos;
 
-            Client = new DiscordSocketClient();
+            Client = new DiscordSocketClient(new DiscordSocketConfig() { GatewayIntents = GatewayIntents.All });
             Client.MessageReceived += ClientOnMessageReceived;
             Client.Log += msg =>
             {
