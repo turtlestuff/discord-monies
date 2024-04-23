@@ -6,6 +6,7 @@ using Remora.Discord.Extensions.Extensions;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.Commands.Services;
 using Remora.Rest.Core;
+using DiscordMonies.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -18,6 +19,9 @@ builder.Services
     .AddInteractivity()
     .AddCommandGroupsFromAssembly(typeof(Program).Assembly)
     .AddRespondersFromAssembly(typeof(Program).Assembly);
+
+builder.Services
+    .AddSingleton<LobbyService>();
 
 var host = builder.Build();
 
