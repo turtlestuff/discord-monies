@@ -7,6 +7,8 @@ using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.Commands.Services;
 using Remora.Rest.Core;
 using DiscordMonies.Lobby;
+using DiscordMonies.Game;
+using Remora.Discord.Commands.Responders;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -18,10 +20,18 @@ builder.Services
     .AddDiscordCommands(enableSlash: true)
     .AddInteractivity()
     .AddCommandGroupsFromAssembly(typeof(Program).Assembly)
-    .AddRespondersFromAssembly(typeof(Program).Assembly);
+    .AddInteractionGroup<LobbyInteractions>()
+    .AddPreExecutionEvent<GameCommandPreExecutionEvent>()
+    .AddPostExecutionEvent<GameCommandPostExecutionEvent>()
+    .Configure<InteractionResponderOptions>(o => o.SuppressAutomaticResponses = true);
 
 builder.Services
-    .AddSingleton<LobbyService>();
+    .AddSingleton<LobbyService>()
+    .AddSingleton<GameService>()
+    .AddScoped<GameStateInjector>();
+
+builder.Services
+    .AddTransient<GameState>(s => s.GetRequiredService<GameStateInjector>().GameState!);
 
 var host = builder.Build();
 
@@ -39,7 +49,7 @@ if (dmConfig.DebugServerId is ulong serverId)
         var appInfo = await host.Services.GetRequiredService<IDiscordRestOAuth2API>().GetCurrentBotApplicationInformationAsync();
 
         var api = host.Services.GetRequiredService<IDiscordRestApplicationAPI>();
-        await api.BulkOverwriteGuildApplicationCommandsAsync(appInfo.Entity.ID, new(277922530973581312), []);
+        await api.BulkOverwriteGuildApplicationCommandsAsync(appInfo.Entity.ID, new(serverId), []);
     }
 }
 else

@@ -1,11 +1,11 @@
 ﻿using DiscordMonies.Extensions;
-using DiscordMonies.Lobby;
+using DiscordMonies.Game;
+
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Objects;
-using Remora.Discord.Commands.Attributes;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Messages;
 using Remora.Discord.Commands.Feedback.Services;
@@ -15,26 +15,46 @@ using Remora.Discord.Interactivity;
 using Remora.Results;
 
 using System.Diagnostics;
+using System.Drawing;
 
 namespace DiscordMonies.Lobby;
 
+public class OtherCommands(IFeedbackService feedbackService) : CommandGroup
+{
+    [Command("roll")]
+    public async Task<IResult> Roll()
+    {
+        await feedbackService.SendContextualAsync("Roll");
+        return Result.Success;
+    }
+}
+
 [Group("lobby")]
-internal class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup
+public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup
 {
     [Command("open")]
     public async Task<IResult> OpenLobby()
     {
-        var lobbyId = lobbyService.OpenLobby(ctx.Interaction.User.Value.ID);
+        var creatorId = ctx.Interaction.Member.Value.User.Value.ID;
+        var lobbyId = lobbyService.OpenLobby(creatorId);
+
+        lobbyService.JoinLobby(lobbyId, creatorId);
 
         var embed = new EmbedBuilder()
         {
-
+            Title = "Ready to play Discord Monies?",
+            Description = 
+                $"""
+                {Mention.User(creatorId)} has opened **Lobby #{lobbyId}**!
+                """,
+            Footer = new($"This lobby will expire {Markdown.Timestamp(DateTime.UtcNow + TimeSpan.FromMinutes(5), TimestampStyle.RelativeTime)}"),
+            Colour = Color.PaleGreen
         };
 
         var buttons = new ActionRowComponent([
             new ButtonComponent(ButtonComponentStyle.Primary, "Join",
                 CustomID: CustomIDHelpers.CreateButtonIDWithState("JoinLobby", lobbyId.ToString())),
-            new ButtonComponent(ButtonComponentStyle.Danger, "Drop",
+            new ButtonComponent(ButtonComponentStyle.Danger, "Leave",
                 CustomID: CustomIDHelpers.CreateButtonIDWithState("DropLobby", lobbyId.ToString())),
             new ButtonComponent(ButtonComponentStyle.Success, "Close and start",
                 CustomID: CustomIDHelpers.CreateButtonIDWithState("CloseLobby", lobbyId.ToString()))
@@ -47,19 +67,20 @@ internal class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbac
     }
 }
 
-internal class LobbyInteractions(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionContext ctx, IDiscordRestChannelAPI channelApi) : InteractionGroup
+public class LobbyInteractions(LobbyService lobbyService, GameService gameService, IFeedbackService feedbackService, IInteractionContext ctx, IDiscordRestChannelAPI channelApi) : InteractionGroup
 {
     private static FeedbackMessageOptions Ephemeral = new(MessageFlags: MessageFlags.Ephemeral);
 
     [Button("JoinLobby")]
-    [SuppressInteractionResponse(true)]
-    public async Task<IResult> JoinLobby(int lobbyId)
+    public async Task<IResult> JoinLobby(string state)
     {
-        var user = ctx.Interaction.User.Value;
+        var user = ctx.Interaction.Member.Value.User.Value;
+        int lobbyId = int.Parse(state);
+
         var result = lobbyService.JoinLobby(lobbyId, user.ID);
         if (result.IsSuccess)
         {
-            return await feedbackService.SendContextualAsync($"{Mention.User(user)} has joined game **#{lobbyId}**.");
+            return await feedbackService.SendContextualAsync($"{Mention.User(user)} has joined lobby **#{lobbyId}**.");
         }
         else
         {
@@ -73,10 +94,11 @@ internal class LobbyInteractions(LobbyService lobbyService, IFeedbackService fee
     }
 
     [Button("DropLobby")]
-    [SuppressInteractionResponse(true)]
-    public async Task<IResult> DropLobby(int lobbyId)
+    public async Task<IResult> DropLobby(string state)
     {
-        var user = ctx.Interaction.User.Value;
+        var user = ctx.Interaction.Member.Value.User.Value;
+        int lobbyId = int.Parse(state);
+
         var result = lobbyService.DropLobby(lobbyId, user.ID);
         if (result.IsSuccess)
         {
@@ -94,12 +116,12 @@ internal class LobbyInteractions(LobbyService lobbyService, IFeedbackService fee
     }
 
     [Button("CloseLobby")]
-    [SuppressInteractionResponse(true)]
-    public async Task<IResult> CloseLobby(int lobbyId)
+    public async Task<IResult> CloseLobby(string state)
     {
-        var user = ctx.Interaction.User.Value;
+        var user = ctx.Interaction.Member.Value.User.Value;
         var channel = ctx.Interaction.Channel.Value;
-        var message = ctx.Interaction.Message.Value; 
+
+        int lobbyId = int.Parse(state);
 
         var result = lobbyService.CloseLobby(lobbyId, user.ID);
         if (!result.IsSuccess)
@@ -111,10 +133,12 @@ internal class LobbyInteractions(LobbyService lobbyService, IFeedbackService fee
                 _ => throw new UnreachableException()
             }, options: Ephemeral);
         }
+        var message = await feedbackService.SendContextualAsync($"Lobby **#{lobbyId}** has closed and the game is now starting.").AsThrowing();
+        var thread = await channelApi.StartThreadFromMessageAsync(channel.ID.Value, message.ID, $"Game #{lobbyId}", AutoArchiveDuration.Hour).AsThrowing();
 
-        await feedbackService.SendContextualAsync($"Game **#{lobbyId}** has closed and the game is now starting.").AsThrowing();
-        var thread = await channelApi.StartThreadFromMessageAsync(channel.ID.Value, message.ID, $"Discord Monies Game #{lobbyId}", default).AsThrowing();
-        
+        var lobby = result.Entity;
+        gameService.OpenGame(lobbyId, thread.ID, lobby.Players);
+
         return Result.Success;
     }
 }

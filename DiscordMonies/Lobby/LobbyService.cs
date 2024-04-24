@@ -3,11 +3,12 @@ using Remora.Rest.Core;
 using Remora.Results;
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace DiscordMonies.Lobby;
 
-internal sealed class LobbyService
+public sealed class LobbyService
 {
     private sealed class Lobby(int lobbyId, Snowflake creatorId)
     {
@@ -32,6 +33,8 @@ internal sealed class LobbyService
         {
             return playerIds.Remove(playerId);
         }
+
+        public ImmutableArray<Snowflake> GetPlayerIds() => playerIds.ToImmutableArray();
     }
 
     private readonly ConcurrentDictionary<int, Lobby> lobbies = new();
@@ -76,7 +79,7 @@ internal sealed class LobbyService
 
         lock (lobby)
         {
-            if (!lobby.JoinPlayer(playerId))
+            if (!lobby.DropPlayer(playerId))
             {
                 return Result.FromError(new UserCannotJoinDropClose());
             }
@@ -85,24 +88,24 @@ internal sealed class LobbyService
         }
     }
 
-    public IResult CloseLobby(int lobbyId, Snowflake playerId)
+    public IResult<ClosedLobby> CloseLobby(int lobbyId, Snowflake playerId)
     {
-        if (!lobbies.TryGetValue(lobbyId, out var lobby))
+        if (!lobbies.TryRemove(lobbyId, out var lobby))
         {
-            return Result.FromError(new LobbyIsClosed());
+            return Result<ClosedLobby>.FromError(new LobbyIsClosed());
         }
 
-        lock (lobby)
+        if (lobby.CreatorId != playerId)
         {
-            if (lobby.CreatorId != playerId)
-            {
-                return Result.FromError(new UserCannotJoinDropClose());
-            }
+            return Result<ClosedLobby>.FromError(new UserCannotJoinDropClose());
         }
 
-        return Result.Success;
+        var result = new ClosedLobby(lobby.LobbyId, lobby.GetPlayerIds());
+        return Result<ClosedLobby>.FromSuccess(result);
     }
 }
+
+public sealed record ClosedLobby(int LobbyId, ImmutableArray<Snowflake> Players);
 
 public class LobbyIsClosed : ResultErrorBase;
 
