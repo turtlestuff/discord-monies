@@ -1,12 +1,11 @@
 ﻿using DiscordMonies.Extensions;
-
 using Remora.Rest.Core;
 using Remora.Results;
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace DiscordMonies.Services;
+namespace DiscordMonies.Lobby;
 
 internal sealed class LobbyService
 {

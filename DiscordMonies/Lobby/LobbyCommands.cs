@@ -1,6 +1,5 @@
 ﻿using DiscordMonies.Extensions;
-using DiscordMonies.Services;
-
+using DiscordMonies.Lobby;
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
@@ -17,7 +16,7 @@ using Remora.Results;
 
 using System.Diagnostics;
 
-namespace DiscordMonies.Commands;
+namespace DiscordMonies.Lobby;
 
 [Group("lobby")]
 internal class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup

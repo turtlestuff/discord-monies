@@ -6,7 +6,7 @@ using Remora.Discord.Extensions.Extensions;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.Commands.Services;
 using Remora.Rest.Core;
-using DiscordMonies.Services;
+using DiscordMonies.Lobby;
 
 var builder = Host.CreateApplicationBuilder(args);
 
