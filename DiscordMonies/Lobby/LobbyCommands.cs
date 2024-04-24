@@ -1,5 +1,6 @@
 ﻿using DiscordMonies.Extensions;
 using DiscordMonies.Game;
+using DiscordMonies.Remora;
 
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
@@ -19,17 +20,8 @@ using System.Drawing;
 
 namespace DiscordMonies.Lobby;
 
-public class OtherCommands(IFeedbackService feedbackService) : CommandGroup
-{
-    [Command("roll")]
-    public async Task<IResult> Roll()
-    {
-        await feedbackService.SendContextualAsync("Roll");
-        return Result.Success;
-    }
-}
-
 [Group("lobby")]
+[RequiresPlayer(PlayerType.None)]
 public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup
 {
     [Command("open")]

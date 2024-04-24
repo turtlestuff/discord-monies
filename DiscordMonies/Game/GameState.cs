@@ -26,6 +26,8 @@ public partial class GameState
 
     private List<GamePlayer> players = [];
 
+    public GamePlayer CurrentPlayer => new(default, default, default, default);
+
     public void UpdatePlayers(List<GamePlayer> players)
     {
         this.players = players;

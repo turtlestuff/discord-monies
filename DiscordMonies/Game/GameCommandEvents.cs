@@ -1,5 +1,4 @@
 ﻿using DiscordMonies.Extensions;
-using DiscordMonies.Lobby;
 using DiscordMonies.Remora;
 
 using Remora.Discord.API.Abstractions.Objects;
@@ -23,30 +22,53 @@ internal class GameCommandPreExecutionEvent(GameService service, GameStateInject
             return Result.Success;
         }
 
-        var commandType = context.Command.Command.Node.GroupType;
-        if (commandType == typeof(LobbyCommands) || commandType == typeof(LobbyInteractions))
-        {
-            await SendDeferredResponseIfNeeded(interactionCommandContext, ct);
-            return Result.Success;
-        }
+        var playerType = context.Command.Command.Node
+            .FindCustomAttributeOnLocalTree<RequiresPlayerAttribute>()?.PlayerType ?? PlayerType.None;
 
-        if (ctx.TryGetChannelID(out var channelId) && service.GetGameState(channelId) is GameState gameState)
+        if (playerType != PlayerType.None)
         {
-            await SendDeferredResponseIfNeeded(interactionCommandContext, ct);
-            injector.GameState = gameState;
+            // The command must at least run inside a game thread
+            if (!ctx.TryGetUserID(out var userId) || !ctx.TryGetChannelID(out var channelId) || service.GetGameState(channelId) is not GameState gameState)
+            {
+                return await Failed("You can't use this command outside of a game.", ct);
+            }
+
+            // We take the lock here so that we don't have to repeat the following checks in the post-execution event
             await service.AcquireGameLock(gameState);
-            return Result.Success;
+
+            injector.GameState = gameState;
+
+            if (playerType != PlayerType.PlayerOrSpectator)
+            {
+                // The command must at least be run by a player in the game
+                if (!gameState.PlayerIds.Contains(userId))
+                {
+                    return await Failed("You can only use this command if you're a player in this game.", ct);
+                }
+
+                if (playerType == PlayerType.CurrentPlayer)
+                {
+                    if (gameState.CurrentPlayer.Id != userId)
+                    {
+                        return await Failed("You can only use this command if it's your turn.", ct);
+                    }
+                }
+            }
         }
 
-        // Returing a failed result from this method prevents the command from running.
-        // OperationCanceledException suppresses the warning log
-        await feedback.SendContextualAsync("You can't use this command outside of a game.", options: MessageOptions.Ephemeral, ct: ct).AsThrowing();
+        await SendDeferredResponseIfNeeded(interactionCommandContext, ct);
+        return Result.Success;
+    }
+
+    private async Task<Result> Failed(string message, CancellationToken ct)
+    {
+        await feedback.SendContextualAsync(message, options: MessageOptions.Ephemeral, ct: ct).AsThrowing();
         return new OperationCanceledException();
     }
 
     private static readonly InteractionMessageCallbackData Ephemeral = new(Flags: MessageFlags.Ephemeral);
 
-    private async Task<IResult> SendDeferredResponseIfNeeded(InteractionCommandContext commandContext, CancellationToken ct)
+    private async Task<Result> SendDeferredResponseIfNeeded(InteractionCommandContext commandContext, CancellationToken ct)
     {
         var preparedCommand = commandContext.Command;
         var suppress = commandContext.Command.Command.Node
@@ -82,9 +104,10 @@ internal class GameCommandPostExecutionEvent(GameService service, IInteractionCo
 {
     public Task<Result> AfterExecutionAsync(ICommandContext context, IResult commandResult, CancellationToken ct = default)
     {
-        if (ctx.TryGetChannelID(out var channelId) && service.GetGameState(channelId) is GameState state)
+        // Use the same conditions as the pre-execution event so we don't end up with an unbalanced count on the semaphore
+        if (ctx.TryGetUserID(out _) && ctx.TryGetChannelID(out var channelId) && service.GetGameState(channelId) is GameState gameState)
         {
-            service.ReleaseGameLock(state);
+            service.ReleaseGameLock(gameState);
         }
 
         return Task.FromResult(Result.Success);
