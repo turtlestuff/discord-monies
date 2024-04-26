@@ -33,9 +33,6 @@ internal class GameCommandPreExecutionEvent(GameService service, GameStateInject
                 return await Failed("You can't use this command outside of a game.", ct);
             }
 
-            // We take the lock here so that we don't have to repeat the following checks in the post-execution event
-            await service.AcquireGameLock(gameState);
-
             injector.GameState = gameState;
 
             if (playerType != PlayerType.PlayerOrSpectator)
@@ -54,6 +51,8 @@ internal class GameCommandPreExecutionEvent(GameService service, GameStateInject
                     }
                 }
             }
+
+            await service.AcquireGameLock(gameState);
         }
 
         await SendDeferredResponseIfNeeded(interactionCommandContext, ct);
