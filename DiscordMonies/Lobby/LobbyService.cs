@@ -10,41 +10,25 @@ namespace DiscordMonies.Lobby;
 
 public sealed class LobbyService
 {
-    private sealed class Lobby(int lobbyId, Snowflake creatorId)
+    private sealed class Lobby(int lobbyId, Snowflake guildId, Snowflake creatorId)
     {
         public int LobbyId { get; } = lobbyId;
 
+        public Snowflake GuildId { get; } = guildId;
+
         public Snowflake CreatorId { get; } = creatorId;
 
-        private readonly List<Snowflake> playerIds = [];
-
-        public bool JoinPlayer(Snowflake playerId)
-        {
-            if (playerIds.Contains(playerId))
-            {
-                return false;
-            }
-
-            playerIds.Add(playerId);
-            return true;
-        }
-
-        public bool DropPlayer(Snowflake playerId)
-        {
-            return playerIds.Remove(playerId);
-        }
-
-        public ImmutableArray<Snowflake> GetPlayerIds() => playerIds.ToImmutableArray();
+        public List<Snowflake> PlayerIds { get; } = [creatorId];
     }
 
     private readonly ConcurrentDictionary<int, Lobby> lobbies = new();
 
     private int currentLobbyId;
 
-    public int OpenLobby(Snowflake creatorId)
+    public int OpenLobby(Snowflake guildId, Snowflake creatorId)
     {
         var lobbyId = Interlocked.Increment(ref currentLobbyId);
-        if (!lobbies.TryAdd(lobbyId, new Lobby(lobbyId, creatorId)))
+        if (!lobbies.TryAdd(lobbyId, new Lobby(lobbyId, guildId, creatorId)))
         {
             throw new UnreachableException();
         }
@@ -61,11 +45,12 @@ public sealed class LobbyService
 
         lock (lobby)
         {
-            if (!lobby.JoinPlayer(playerId))
+            if (lobby.PlayerIds.Contains(playerId))
             {
                 return Result.FromError(new UserCannotJoinDropClose());
             }
 
+            lobby.PlayerIds.Add(playerId);
             return Result.Success;
         }
     }
@@ -79,7 +64,7 @@ public sealed class LobbyService
 
         lock (lobby)
         {
-            if (!lobby.DropPlayer(playerId))
+            if (!lobby.PlayerIds.Remove(playerId))
             {
                 return Result.FromError(new UserCannotJoinDropClose());
             }
@@ -100,12 +85,12 @@ public sealed class LobbyService
             return Result<ClosedLobby>.FromError(new UserCannotJoinDropClose());
         }
 
-        var result = new ClosedLobby(lobby.LobbyId, lobby.GetPlayerIds());
+        var result = new ClosedLobby(lobby.LobbyId, lobby.GuildId, lobby.PlayerIds);
         return Result<ClosedLobby>.FromSuccess(result);
     }
 }
 
-public sealed record ClosedLobby(int LobbyId, ImmutableArray<Snowflake> Players);
+public sealed record ClosedLobby(int LobbyId, Snowflake GuildId, List<Snowflake> Players);
 
 public class LobbyIsClosed : ResultErrorBase;
 

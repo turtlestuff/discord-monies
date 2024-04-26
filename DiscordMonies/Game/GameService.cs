@@ -1,23 +1,23 @@
-﻿using Remora.Rest.Core;
+﻿using DiscordMonies.Extensions;
+
+using Remora.Discord.API.Abstractions.Rest;
+using Remora.Rest.Core;
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace DiscordMonies.Game;
 
-public class GameService
+public class GameService(IDiscordRestGuildAPI guildApi)
 {
     private readonly ConcurrentDictionary<Snowflake, (GameState State, SemaphoreSlim Lock)> games = [];
 
-    public GameState OpenGame(int lobbyId, Snowflake threadId, IEnumerable<Snowflake> players)
+    public void OpenGame(GameState gameState)
     {
-        var state = new GameState(lobbyId, threadId, players);
-        if (!games.TryAdd(threadId, (state, new SemaphoreSlim(initialCount: 1, maxCount: 1))))
+        if (!games.TryAdd(gameState.ThreadId, (gameState, new SemaphoreSlim(initialCount: 1, maxCount: 1))))
         {
             throw new UnreachableException();
         }
-
-        return state;
     }
 
     public GameState? GetGameState(Snowflake threadId)
@@ -28,6 +28,21 @@ public class GameService
         }
 
         return null;
+    }
+
+    public async Task UpdateGameState(GameState gameState)
+    {
+        // Since we enabled caching, these API calls will be served from cache when possible
+        foreach (var player in gameState.Players)
+        {
+            var member = await guildApi.GetGuildMemberAsync(gameState.GuildId, player.Id).AsThrowing();
+            var user = member.User.Value;
+
+            player.GuildMember = member;
+            player.User = user;
+
+            player.DisplayName = member.Nickname.OrDefault() ?? user.Username;
+        }
     }
 
     public async Task AcquireGameLock(GameState state)

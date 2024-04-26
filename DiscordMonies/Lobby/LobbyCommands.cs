@@ -13,6 +13,7 @@ using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Extensions.Embeds;
 using Remora.Discord.Extensions.Formatting;
 using Remora.Discord.Interactivity;
+using Remora.Rest.Core;
 using Remora.Results;
 
 using System.Diagnostics;
@@ -28,9 +29,8 @@ public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackS
     public async Task<IResult> OpenLobby()
     {
         var creatorId = ctx.Interaction.Member.Value.User.Value.ID;
-        var lobbyId = lobbyService.OpenLobby(creatorId);
-
-        lobbyService.JoinLobby(lobbyId, creatorId);
+        var guildId = ctx.Interaction.GuildID.Value;
+        var lobbyId = lobbyService.OpenLobby(guildId, creatorId);
 
         var embed = new EmbedBuilder()
         {
@@ -59,7 +59,7 @@ public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackS
     }
 }
 
-public class LobbyInteractions(LobbyService lobbyService, GameService gameService, IFeedbackService feedbackService, IInteractionContext ctx, IDiscordRestChannelAPI channelApi) : InteractionGroup
+public class LobbyInteractions(LobbyService lobbyService, GameService gameService, IFeedbackService feedbackService, IDiscordRestGuildAPI guildApi, IInteractionContext ctx, IDiscordRestChannelAPI channelApi) : InteractionGroup
 {
     private static FeedbackMessageOptions Ephemeral = new(MessageFlags: MessageFlags.Ephemeral);
 
@@ -129,8 +129,39 @@ public class LobbyInteractions(LobbyService lobbyService, GameService gameServic
         var thread = await channelApi.StartThreadFromMessageAsync(channel.ID.Value, message.ID, $"Game #{lobbyId}", AutoArchiveDuration.Hour).AsThrowing();
 
         var lobby = result.Entity;
-        gameService.OpenGame(lobbyId, thread.ID, lobby.Players);
 
+        foreach (var player in lobby.Players)
+        {
+            await channelApi.AddThreadMemberAsync(thread.ID, player);
+        }
+
+        GameState gameState = await BuildNewGameState(lobby.Players, thread, lobby);
+        gameService.OpenGame(gameState);
         return Result.Success;
+    }
+
+    private async Task<GameState> BuildNewGameState(List<Snowflake> playerIds, IChannel thread, ClosedLobby lobby)
+    {
+        var players = await Task.WhenAll(lobby.Players.Select(async playerId =>
+        {
+            var member = await guildApi.GetGuildMemberAsync(lobby.GuildId, playerId).AsThrowing();
+            var user = member.User.Value;
+            var displayName = member.Nickname.OrDefault() ?? user.Username;
+            return new GamePlayer(member, user, displayName, playerId);
+        }));
+
+        var balances = players.ToDictionary(p => p, _ => 0);
+
+        var gameState = new GameState
+        {
+            ThreadId = thread.ID,
+            GuildId = lobby.GuildId,
+            GameId = lobby.LobbyId,
+            PlayerIds = playerIds,
+            Players = players.ToList(),
+            Balances = balances
+        };
+
+        return gameState;
     }
 }
