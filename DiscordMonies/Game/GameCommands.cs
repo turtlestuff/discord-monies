@@ -1,20 +1,26 @@
-﻿using DiscordMonies.Remora;
+﻿using DiscordMonies.Extensions;
+using DiscordMonies.Remora;
 
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
+using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.Commands.Attributes;
+using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
 using Remora.Results;
 
 namespace DiscordMonies.Game;
 
 [RequiresPlayer(PlayerType.PlayerOrSpectator)]
-public class GameCommands(GameState state, IFeedbackService feedback) : CommandGroup
+public class GameCommands(GameState gameState, IFeedbackService feedback, IInteractionCommandContext ctx) : CommandGroup
 {
     [Command("balance")]
-    public async Task<Result> Balance()
+    [Ephemeral]
+    public async Task<Result> Balance(IUser? user = null)
     {
-        var bal = state.Balances[state.CurrentPlayer];
-        await feedback.SendContextualAsync(bal.ToString());
+        var player = gameState.GetById(user?.ID ?? ctx.GetUserId());
+        var state = gameState.PlayerStates[player];
+        await feedback.SendContextualAsync($"{player.DisplayName}'s balance: {Formatting.MoneyString(state.Money)}");
         return Result.Success;
     }
 
@@ -23,7 +29,7 @@ public class GameCommands(GameState state, IFeedbackService feedback) : CommandG
     public async Task<IResult> Roll()
     {
         await feedback.SendContextualAsync("Roll");
-        state.AdvanceTurn();
+        gameState.AdvanceTurn();
         return Result.Success;
     }
 }

@@ -150,7 +150,10 @@ public class LobbyInteractions(LobbyService lobbyService, GameService gameServic
             return new GamePlayer(member, user, displayName, playerId);
         }));
 
-        var balances = players.ToDictionary(p => p, _ => 0);
+        var balances = players.ToDictionary(p => p, _ => new PlayerState
+        {
+            Money = 1500
+        });
 
         var gameState = new GameState
         {
@@ -159,7 +162,7 @@ public class LobbyInteractions(LobbyService lobbyService, GameService gameServic
             GameId = lobby.LobbyId,
             PlayerIds = playerIds,
             Players = players.ToList(),
-            Balances = balances
+            PlayerStates = balances
         };
 
         return gameState;

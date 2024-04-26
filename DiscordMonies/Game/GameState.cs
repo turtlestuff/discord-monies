@@ -1,4 +1,5 @@
 ﻿using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.API.Objects;
 using Remora.Rest.Core;
 
 namespace DiscordMonies.Game;
@@ -19,13 +20,18 @@ public partial class GameState
     public int CurrentPlayerIndex { get; set; } = 0;
     public GamePlayer CurrentPlayer => Players[CurrentPlayerIndex];
 
+    public GamePlayer GetById(Snowflake userId) 
+        => Players.First(p => p.Id == userId);
+
+    public GamePlayer GetById(IUser user) => GetById(user.ID);
+
     public GamePlayer AdvanceTurn()
     {
         CurrentPlayerIndex = (CurrentPlayerIndex + 1) % Players.Count;
         return Players[CurrentPlayerIndex];
     }
 
-    public required Dictionary<GamePlayer, int> Balances { get; init; }
+    public required Dictionary<GamePlayer, PlayerState> PlayerStates { get; init; }
 }
 
 public sealed record GamePlayer(IGuildMember GuildMember, IUser User, string DisplayName, Snowflake Id)
