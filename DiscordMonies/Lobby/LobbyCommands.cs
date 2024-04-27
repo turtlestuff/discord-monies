@@ -1,4 +1,5 @@
-﻿using DiscordMonies.Extensions;
+﻿using DiscordMonies.Board;
+using DiscordMonies.Extensions;
 using DiscordMonies.Game;
 using DiscordMonies.Remora;
 
@@ -59,7 +60,14 @@ public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackS
     }
 }
 
-public class LobbyInteractions(LobbyService lobbyService, GameService gameService, IFeedbackService feedbackService, IDiscordRestGuildAPI guildApi, IInteractionContext ctx, IDiscordRestChannelAPI channelApi) : InteractionGroup
+public class LobbyInteractions(
+    LobbyService lobbyService,
+    GameService gameService,
+    BoardService boardService,
+    IFeedbackService feedbackService,
+    IDiscordRestGuildAPI guildApi,
+    IInteractionContext ctx,
+    IDiscordRestChannelAPI channelApi) : InteractionGroup
 {
     private static FeedbackMessageOptions Ephemeral = new(MessageFlags: MessageFlags.Ephemeral);
 
@@ -162,7 +170,8 @@ public class LobbyInteractions(LobbyService lobbyService, GameService gameServic
             GameId = lobby.LobbyId,
             PlayerIds = playerIds,
             Players = players.ToList(),
-            PlayerStates = balances
+            PlayerStates = balances,
+            Board = new(boardService.GetBoard("Standard"))
         };
 
         return gameState;

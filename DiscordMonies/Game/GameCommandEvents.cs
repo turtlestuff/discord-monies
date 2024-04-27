@@ -109,6 +109,27 @@ internal class GameCommandPostExecutionEvent(GameService service, IInteractionCo
             service.ReleaseGameLock(gameState);
         }
 
-        return Task.FromResult(Result.Success);
+        if (commandResult.IsSuccess)
+        {
+            return Task.FromResult(Result.Success);
+        }
+
+        return Task.FromResult(Result.FromError(new CommandFailedError(context, commandResult.Error), commandResult));
+    }
+}
+
+public class CommandFailedError(ICommandContext context, IResultError error) : IResultError
+{
+    public string Message
+    {
+        get
+        {
+            var commandName = context.Command.Command.Node.Key;
+            return error switch
+            {
+                ExceptionError { Exception: var ex } => $"The command '{commandName}' failed with an exception:{Environment.NewLine}{ex}",
+                _ => $"The command '{commandName}' failed:{Environment.NewLine}{error.Message}"
+            };
+        }
     }
 }

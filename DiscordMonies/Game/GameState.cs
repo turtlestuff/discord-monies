@@ -1,4 +1,6 @@
-﻿using Remora.Discord.API.Abstractions.Objects;
+﻿using DiscordMonies.Board;
+
+using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
 using Remora.Rest.Core;
 
@@ -32,6 +34,8 @@ public partial class GameState
     }
 
     public required Dictionary<GamePlayer, PlayerState> PlayerStates { get; init; }
+
+    public required GameBoard Board { get; init; }
 }
 
 public sealed record GamePlayer(IGuildMember GuildMember, IUser User, string DisplayName, Snowflake Id)

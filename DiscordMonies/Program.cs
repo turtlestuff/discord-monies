@@ -9,6 +9,7 @@ using Remora.Rest.Core;
 using DiscordMonies.Lobby;
 using DiscordMonies.Game;
 using Remora.Discord.Commands.Responders;
+using DiscordMonies.Board;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -28,6 +29,7 @@ builder.Services
 builder.Services
     .AddSingleton<LobbyService>()
     .AddSingleton<GameService>()
+    .AddSingleton<BoardService>()
     .AddScoped<GameStateInjector>();
 
 builder.Services
