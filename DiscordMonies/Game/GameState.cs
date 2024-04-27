@@ -3,6 +3,8 @@
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Rest.Core;
 
+using System.Drawing;
+
 namespace DiscordMonies.Game;
 
 public partial class GameState
@@ -42,7 +44,7 @@ public partial class GameState
     public required GameBoard Board { get; init; }
 }
 
-public sealed record GamePlayer(IGuildMember GuildMember, IUser User, string DisplayName, Snowflake Id)
+public sealed record GamePlayer(IGuildMember GuildMember, IUser User, string DisplayName, Snowflake Id) : IUser
 {
     public IGuildMember GuildMember { get; set; } = GuildMember;
 
@@ -61,4 +63,38 @@ public sealed record GamePlayer(IGuildMember GuildMember, IUser User, string Dis
     {
         return Id.GetHashCode();
     }
+
+    public Snowflake ID => User.ID;
+
+    public string Username => User.Username;
+
+    public ushort Discriminator => User.Discriminator;
+
+    public Optional<string?> GlobalName => User.GlobalName;
+
+    public IImageHash? Avatar => User.Avatar;
+
+    public Optional<bool> IsBot => User.IsBot;
+
+    public Optional<bool> IsSystem => User.IsSystem;
+
+    public Optional<bool> IsMFAEnabled => User.IsMFAEnabled;
+
+    public Optional<IImageHash?> Banner => User.Banner;
+
+    public Optional<Color?> AccentColour => User.AccentColour;
+
+    public Optional<string> Locale => User.Locale;
+
+    public Optional<bool> IsVerified => User.IsVerified;
+
+    public Optional<string?> Email => User.Email;
+
+    public Optional<UserFlags> Flags => User.Flags;
+
+    public Optional<PremiumType> PremiumType => User.PremiumType;
+
+    public Optional<UserFlags> PublicFlags => User.PublicFlags;
+
+    public Optional<IImageHash?> AvatarDecoration => User.AvatarDecoration;
 }
