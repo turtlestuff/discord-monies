@@ -10,6 +10,8 @@ using DiscordMonies.Lobby;
 using DiscordMonies.Game;
 using Remora.Discord.Commands.Responders;
 using DiscordMonies.Board;
+using DiscordMonies.Remora;
+using Remora.Commands.Extensions;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -24,6 +26,7 @@ builder.Services
     .AddInteractionGroup<LobbyInteractions>()
     .AddPreExecutionEvent<GameCommandPreExecutionEvent>()
     .AddPostExecutionEvent<GameCommandPostExecutionEvent>()
+    .AddParser<GamePlayerParser>()
     .Configure<InteractionResponderOptions>(o => o.SuppressAutomaticResponses = true);
 
 builder.Services

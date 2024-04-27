@@ -8,8 +8,8 @@ internal sealed class RequiresPlayerAttribute(PlayerType playerType) : Attribute
 
 internal enum PlayerType
 {
-    None,
-    PlayerOrSpectator,
+    None, // Anyone in any channel
+    PlayerOrSpectator, // Anyone in a game channel
     Player,
     CurrentPlayer
 }

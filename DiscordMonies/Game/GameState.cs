@@ -22,7 +22,12 @@ public partial class GameState
     public int CurrentPlayerIndex { get; set; } = 0;
     public GamePlayer CurrentPlayer => Players[CurrentPlayerIndex];
 
-    public GamePlayer GetById(Snowflake userId) 
+    public GamePlayer? TryGetById(Snowflake userId) 
+        => Players.FirstOrDefault(p => p.Id == userId);
+
+    public GamePlayer? TryGetById(IUser user) => TryGetById(user.ID);
+
+    public GamePlayer GetById(Snowflake userId)
         => Players.First(p => p.Id == userId);
 
     public GamePlayer GetById(IUser user) => GetById(user.ID);

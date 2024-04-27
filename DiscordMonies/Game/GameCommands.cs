@@ -3,7 +3,6 @@ using DiscordMonies.Remora;
 
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
-using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.Commands.Attributes;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
@@ -17,9 +16,9 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
 {
     [Command("balance")]
     [Ephemeral]
-    public async Task<Result> Balance(IUser? user = null)
+    public async Task<Result> Balance(GamePlayer? player = null)
     {
-        var player = gameState.GetById(user?.ID ?? ctx.GetUserId());
+        player ??= gameState.CurrentPlayer;
         var state = gameState.PlayerStates[player];
         await feedback.SendContextualAsync($"{player.DisplayName}'s balance: {Formatting.MoneyString(state.Money)}");
         return Result.Success;

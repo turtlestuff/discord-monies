@@ -1,6 +1,8 @@
 ﻿using DiscordMonies.Extensions;
 
 using Remora.Discord.API.Abstractions.Rest;
+using Remora.Discord.Commands.Contexts;
+using Remora.Discord.Commands.Extensions;
 using Remora.Rest.Core;
 
 using System.Collections.Concurrent;
@@ -28,6 +30,16 @@ public class GameService(IDiscordRestGuildAPI guildApi)
         }
 
         return null;
+    }
+
+    public GameState? GetGameState(IInteractionContext ctx)
+    {
+        if (!ctx.TryGetChannelID(out var channelId) || GetGameState(channelId) is not { } state)
+        {
+            return null;
+        }
+
+        return state;
     }
 
     public async Task UpdateGameState(GameState gameState)
