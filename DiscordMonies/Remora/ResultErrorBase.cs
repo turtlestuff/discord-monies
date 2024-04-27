@@ -1,6 +1,6 @@
 ﻿using Remora.Results;
 
-namespace DiscordMonies.Extensions;
+namespace DiscordMonies.Remora;
 
 public class ResultErrorBase : IResultError
 {

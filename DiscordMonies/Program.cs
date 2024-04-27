@@ -8,7 +8,6 @@ using Remora.Discord.Commands.Services;
 using Remora.Rest.Core;
 using DiscordMonies.Lobby;
 using DiscordMonies.Game;
-using Remora.Discord.Commands.Responders;
 using DiscordMonies.Board;
 using DiscordMonies.Remora;
 using Remora.Commands.Extensions;
@@ -27,7 +26,7 @@ builder.Services
     .AddPreExecutionEvent<GameCommandPreExecutionEvent>()
     .AddPostExecutionEvent<GameCommandPostExecutionEvent>()
     .AddParser<GamePlayerParser>()
-    .Configure<InteractionResponderOptions>(o => o.SuppressAutomaticResponses = true);
+    .AddCondition<RequiresPlayerCondition>();
 
 builder.Services
     .AddSingleton<LobbyService>()

@@ -1,5 +1,4 @@
 ﻿using DiscordMonies.Board;
-using DiscordMonies.Extensions;
 using DiscordMonies.Game;
 using DiscordMonies.Remora;
 
@@ -23,7 +22,6 @@ using System.Drawing;
 namespace DiscordMonies.Lobby;
 
 [Group("lobby")]
-[RequiresPlayer(PlayerType.None)]
 public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup
 {
     [Command("open")]
@@ -36,7 +34,7 @@ public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackS
         var embed = new EmbedBuilder()
         {
             Title = "Ready to play Discord Monies?",
-            Description = 
+            Description =
                 $"""
                 {Mention.User(creatorId)} has opened **Lobby #{lobbyId}**!
                 """,

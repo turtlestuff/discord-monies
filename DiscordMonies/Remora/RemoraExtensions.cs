@@ -1,9 +1,11 @@
-﻿using Remora.Discord.Commands.Contexts;
+﻿using DiscordMonies.Remora;
+
+using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Extensions;
 using Remora.Rest.Core;
 using Remora.Results;
 
-namespace DiscordMonies.Extensions;
+namespace DiscordMonies.Remora;
 
 internal static class RemoraExtensions
 {

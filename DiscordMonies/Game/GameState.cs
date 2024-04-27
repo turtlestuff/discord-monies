@@ -1,7 +1,6 @@
 ﻿using DiscordMonies.Board;
 
 using Remora.Discord.API.Abstractions.Objects;
-using Remora.Discord.API.Objects;
 using Remora.Rest.Core;
 
 namespace DiscordMonies.Game;

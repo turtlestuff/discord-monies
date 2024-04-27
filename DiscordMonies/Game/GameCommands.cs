@@ -1,5 +1,4 @@
-﻿using DiscordMonies.Extensions;
-using DiscordMonies.Remora;
+﻿using DiscordMonies.Remora;
 
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
@@ -11,10 +10,10 @@ using Remora.Results;
 
 namespace DiscordMonies.Game;
 
-[RequiresPlayer(PlayerType.PlayerOrSpectator)]
 public class GameCommands(GameState gameState, IFeedbackService feedback, IInteractionCommandContext ctx) : CommandGroup
 {
     [Command("balance")]
+    [RequiresPlayer(PlayerType.PlayerOrSpectator)]
     [Ephemeral]
     public async Task<Result> Balance(GamePlayer? player = null)
     {
@@ -34,6 +33,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     }
 
     [Command("nudge")]
+    [RequiresPlayer(PlayerType.Player)]
     public async Task<Result> Nudge()
     {
         var current = gameState.CurrentPlayer;
