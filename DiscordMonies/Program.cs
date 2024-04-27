@@ -26,6 +26,7 @@ builder.Services
     .AddPreExecutionEvent<GameCommandPreExecutionEvent>()
     .AddPostExecutionEvent<GameCommandPostExecutionEvent>()
     .AddParser<GamePlayerParser>()
+    .AddPreparationErrorEvent<GameCommandPreparationErrorEvent>()
     .AddCondition<RequiresPlayerCondition>();
 
 builder.Services

@@ -45,11 +45,6 @@ public sealed class RequiresPlayerCondition(GameService gameService, IInteractio
     }
 }
 
-internal sealed record NotPlayerInGameError() : ResultError("You can only use this command if you're a player in this game.");
-
-internal sealed record NotCurrentPlayerError() : ResultError("You can only use this command if it's your turn.");
-
-
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class RequiresPlayerAttribute(PlayerType playerType) : ConditionAttribute
 {

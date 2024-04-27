@@ -7,10 +7,6 @@ using Remora.Results;
 
 namespace DiscordMonies.Remora;
 
-internal sealed record NotGameChannelError() : ResultError("You can't use this command outside of a game.");
-
-internal sealed record NotGamePlayerError() : ResultError("You must specify a player in this game.");
-
 public sealed class GamePlayerParser(GameService gameService, IInteractionContext ctx, ITypeParser<IUser> userParser) : AbstractTypeParser<GamePlayer>
 {
     public override async ValueTask<Result<GamePlayer>> TryParseAsync(string token, CancellationToken ct = default)
