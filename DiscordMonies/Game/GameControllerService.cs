@@ -118,10 +118,10 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task MovePlayerRelative(GamePlayer player, int spaces, bool passGoBonus = true)
     {
-        var position = (player.State.Position + spaces) % state.Board.BoardInfo.BoardSpaces.Length;
+        var position = (player.State.Position + spaces) % state.Board.Info.BoardSpaces.Length;
         while (position < 0)
         {
-            position = state.Board.BoardInfo.BoardSpaces.Length + position;
+            position = state.Board.Info.BoardSpaces.Length + position;
         }
         await MovePlayer(player, position, passGoBonus);
     }
@@ -151,7 +151,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task ProcessPlayerLand()
     {
-        var currentSpace = state.Board.BoardInfo.BoardSpaces[state.CurrentPlayer.State.Position];
+        var currentSpace = state.Board.Info.BoardSpaces[state.CurrentPlayer.State.Position];
         await service.SendAsync(state.ThreadId,
             $"{state.CurrentPlayer.DisplayName} landed on {currentSpace.Name}");
 

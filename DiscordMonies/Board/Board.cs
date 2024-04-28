@@ -22,25 +22,40 @@ public sealed record LuckCard(
     string Description,
     string Command);
 
+public sealed class Space
+{
+    public required BoardSpace Info { get; init; }
+
+    public required TitleDeed? TitleDeed { get; init;  }
+
+    public GamePlayer? Owner { get; set; }
+
+    public bool IsMortgaged
+    {
+        get => BuiltHouses == -1;
+    }
+
+    public int BuiltHouses { get; set; }
+}
+
 public sealed record GameBoard
 {
-    public Board BoardInfo { get; }
+    public Board Info { get; }
+
     public ImmutableArray<TitleDeed> TitleDeeds { get; }
     public ImmutableArray<LuckCard> AllChanceCards { get; }
     public Stack<LuckCard> UnusedChanceCards { get; }
     public ImmutableArray<LuckCard> AllChestCards { get; }
     public Stack<LuckCard> UnusedChestCards { get; }
 
-    public Dictionary<PropertySpace, SpaceState> SpaceStates { get; }
-    public Dictionary<RoadSpace, int> HouseCounts { get; }
+    public ImmutableArray<Space> Spaces { get; }
 
-    public int VisitingJailPosition { get; }
     public int PassGoValue { get; }
 
     public GameBoard(
         BoardInfo info)
     {
-        BoardInfo = info.Board;
+        Info = info.Board;
         TitleDeeds = info.TitleDeeds;
         AllChanceCards = info.ChanceCards;
         AllChestCards = info.ChestCards;
@@ -48,16 +63,12 @@ public sealed record GameBoard
         UnusedChanceCards = new(info.ChanceCards);
         UnusedChestCards = new(info.ChestCards);
 
-        VisitingJailPosition = BoardInfo.BoardSpaces.Select((s, i) => (Space: s, Index: i)).First(e => e.Space.Name == "Visiting Jail").Index;
-        PassGoValue = BoardInfo.BoardSpaces.OfType<GoSpace>().First().Value;
+        PassGoValue = Info.BoardSpaces.OfType<GoSpace>().First().Value;
 
-        SpaceStates = info.Board.BoardSpaces.OfType<PropertySpace>().ToDictionary(p => p, _ => new SpaceState());
-        HouseCounts = info.Board.BoardSpaces.OfType<RoadSpace>().ToDictionary(p => p, _ => 0);
+        Spaces = [ .. 
+            from space in info.Board.BoardSpaces.Select((s, i) => (Space: s, Index: i))
+            join deed in info.TitleDeeds on space.Index equals deed.Position into spaceDeed
+            from deed in spaceDeed.DefaultIfEmpty()
+            select new Space { Info = space.Space, TitleDeed = deed }];
     }
-}
-
-public sealed class SpaceState
-{
-    public GamePlayer? Owner { get; set; }
-    public bool IsMortgaged { get; set; }
 }
