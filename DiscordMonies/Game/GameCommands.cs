@@ -19,7 +19,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     public async Task<Result> Balance(GamePlayer? player = null)
     {
         player ??= gameState.GetById(ctx.GetUserId());
-        await feedback.SendContextualAsync($"{player.DisplayName}'s balance: {player.State.Money.MoneyString()}");
+        await feedback.SendContextualAsync($"{player}'s balance: {player.Money.MoneyString()}");
         return Result.Success;
     }
 

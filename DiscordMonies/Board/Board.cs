@@ -30,17 +30,15 @@ public sealed class Space
 
     public GamePlayer? Owner { get; set; }
 
-    public bool IsMortgaged
-    {
-        get => BuiltHouses == -1;
-    }
-
     public int BuiltHouses { get; set; }
+    public bool IsMortgaged => BuiltHouses == -1;
+
+    public override string ToString() => Info.Name;
 }
 
 public sealed record GameBoard
 {
-    public Board Info { get; }
+    private Board Info { get; }
 
     public ImmutableArray<TitleDeed> TitleDeeds { get; }
     public ImmutableArray<LuckCard> AllChanceCards { get; }

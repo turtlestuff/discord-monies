@@ -67,7 +67,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
         // TODO: Jail logic
         var spaces = state.Die.Roll();
-        await service.SendContextualAsync($"{state.CurrentPlayer.Username} rolled {state.Die.Die1} and {state.Die.Die2}");
+        await service.SendContextualAsync($"{state.CurrentPlayer} rolled {state.Die.Die1} and {state.Die.Die2}");
         
         if (state.Die is { BothDiesHaveSameValue: true, SpeedingCount: 3 })
         {
@@ -97,13 +97,13 @@ public class GameControllerService(GameState state, IFeedbackService service)
         // Decrease the money of the payer if he/she exists
         if (from != null)
         {
-            from.State.Money -= value;
+            from.Money -= value;
         }
 
         // Increase the money of the payee if he/she exists
         if (to != null)
         {
-            to.State.Money += value;
+            to.Money += value;
         }
 
         await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
@@ -118,10 +118,11 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task MovePlayerRelative(GamePlayer player, int spaces, bool passGoBonus = true)
     {
-        var position = (player.State.Position + spaces) % state.Board.Info.BoardSpaces.Length;
+        var boardLength = state.Board.Spaces.Length;
+        var position = (player.Position + spaces) % boardLength;
         while (position < 0)
         {
-            position = state.Board.Info.BoardSpaces.Length + position;
+            position = boardLength + position;
         }
         await MovePlayer(player, position, passGoBonus);
     }
@@ -135,14 +136,14 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task MovePlayer(GamePlayer player, int position, bool passGoBonus)
     {
-        if (position < player.State.Position && passGoBonus)
+        if (position < player.Position && passGoBonus)
         {
             await Pay(null, player, state.Board.PassGoValue);
 
-            await service.SendAsync(state.ThreadId, $"{player.Username} was given {state.Board.PassGoValue.MoneyString()} for passing GO!");
+            await service.SendAsync(state.ThreadId, $"{player} was given {state.Board.PassGoValue.MoneyString()} for passing GO!");
         }
 
-        player.State.Position = position;
+        player.Position = position;
     }
 
     /// <summary>
@@ -151,11 +152,11 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task ProcessPlayerLand()
     {
-        var currentSpace = state.Board.Info.BoardSpaces[state.CurrentPlayer.State.Position];
+        var currentSpace = state.CurrentPlayer.CurrentSpace;
         await service.SendAsync(state.ThreadId,
-            $"{state.CurrentPlayer.DisplayName} landed on {currentSpace.Name}");
+            $"{state.CurrentPlayer} landed on {currentSpace.Info}");
 
-        switch (currentSpace)
+        switch (currentSpace.Info)
         {
             case PropertySpace ps:
                 break;

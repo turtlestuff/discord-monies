@@ -11,7 +11,6 @@
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Remora.Discord" Version="2024.1.0" />
-    <PackageReference Include="Stateless" Version="5.15.0" />
   </ItemGroup>
 
   <ItemGroup>

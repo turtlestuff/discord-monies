@@ -148,16 +148,7 @@ public class LobbyInteractions(
 
     private async Task<GameState> BuildNewGameState(List<Snowflake> playerIds, IChannel thread, ClosedLobby lobby)
     {
-        var players = await Task.WhenAll(lobby.Players.Select(async playerId =>
-        {
-            var member = await guildApi.GetGuildMemberAsync(lobby.GuildId, playerId).AsThrowing();
-            var user = member.User.Value;
-            var displayName = member.Nickname.OrDefault() ?? user.Username;
-            return new GamePlayer(member, user, displayName, playerId, new()
-            {
-                Money = 1500
-            });
-        }));
+        var board = boardService.GetBoard("Standard");
 
         var gameState = new GameState
         {
@@ -165,9 +156,25 @@ public class LobbyInteractions(
             GuildId = lobby.GuildId,
             GameId = lobby.LobbyId,
             PlayerIds = playerIds,
-            Players = players.ToList(),
-            Board = new(boardService.GetBoard("Standard"))
+            Board = new(board)
         };
+
+        foreach (var playerId in lobby.Players)
+        {
+            var member = await guildApi.GetGuildMemberAsync(lobby.GuildId, playerId).AsThrowing();
+            var user = member.User.Value;
+            var displayName = member.Nickname.OrDefault() ?? user.Username;
+
+            gameState.Players.Add(new GamePlayer
+            {
+                GuildMember = member,
+                User = user,
+                Id = playerId,
+                DisplayName = displayName,
+                GameState = gameState,
+                Money = board.Board.StartingMoney
+            });
+        }
 
         return gameState;
     }
