@@ -155,6 +155,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
         switch (currentSpace.Info)
         {
             case PropertySpace ps:
+                if (!await ProcessPropertySpaceLand()) return;
                 break;
             case TaxSpace ts:
                 await Pay(state.CurrentPlayer, null, ts.Value);
@@ -165,6 +166,63 @@ public class GameControllerService(GameState state, IFeedbackService service)
         }
         
         await AdvanceTurn();
+    }
+
+    private async Task<bool> ProcessPropertySpaceLand()
+    {
+        var space = state.CurrentPlayer.CurrentSpace;
+        if (space.Owner is null)
+        {
+            // Purchase this property?
+            
+            return false;
+        }
+
+        if (space.Owner == state.CurrentPlayer)
+        {
+            
+        }
+        else if (space.IsMortgaged)
+        {
+            // Nothing happens because this space is mortgaged
+        }
+        else
+        {
+            // Pay rent!
+            await Pay(state.CurrentPlayer, space.Owner, await CalculateRent(space));
+        }
+
+        return true;
+    }
+
+    public async Task<int> CalculateRent(Space ps)
+    {
+        return ps.Info switch
+        {
+            RoadSpace rs when await ColourSetOwner(rs) == ps.Owner && ps.BuiltHouses == 0 => ps.TitleDeed!.RentValues[0] * 2,
+            RoadSpace => ps.TitleDeed!.RentValues[ps.BuiltHouses],
+            
+            TrainStationSpace ts => ps.TitleDeed!.RentValues[0] << (state.Board.Spaces
+                .Where(space => space.Info is TrainStationSpace)
+                .Select(space => space.Owner)
+                .Count(owner => owner == ps.Owner) - 1),
+            UtilitySpace => state.Board.Spaces
+                .Where(space => space.Info is UtilitySpace)
+                .Select(space => space.Owner)
+                .Count(owner => owner == ps.Owner) == 1 ?
+                state.Die * 4 : state.Die * 10,
+            _ => throw new InvalidOperationException()
+        };
+    }
+
+    public async Task<GamePlayer?> ColourSetOwner(RoadSpace ps)
+    {
+        var owners = state.Board.Spaces
+            .Where(space => space.Info is RoadSpace rs && rs.Group == ps.Group)
+            .Select(space => space.Owner)
+            .Distinct().ToList();
+
+        return owners.Count == 1 ? owners[0] : null;
     }
 
     /// <summary>

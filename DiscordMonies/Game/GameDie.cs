@@ -24,4 +24,9 @@ public class GameDie
     {
         SpeedingCount = 0;
     }
+    
+    public static implicit operator int(GameDie d)
+    {
+        return d.Die1 + d.Die2;
+    }
 }
