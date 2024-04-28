@@ -1,5 +1,5 @@
 using DiscordMonies.Board;
-
+using DiscordMonies.Extensions;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Feedback.Services;
@@ -171,9 +171,26 @@ public class GameControllerService(GameState state, IFeedbackService service)
     private async Task<bool> ProcessPropertySpaceLand()
     {
         var space = state.CurrentPlayer.CurrentSpace;
+        var property = (PropertySpace) space.Info;
         if (space.Owner is null)
         {
             // Purchase this property?
+            await service.SendAsync(state.ThreadId,
+                $"{Mention.User(state.CurrentPlayer)} - **{space}** is available for purchase! Do you want to purchase it?",
+                embeds: new([space.TitleDeedEmbed()]),
+                options: new()
+                {
+                    MessageComponents = new([
+                        new ActionRowComponent([
+                            new ButtonComponent(ButtonComponentStyle.Success, $"Purchase {space} for {property.Value.MoneyString(false)}",
+                                CustomID: CustomIDHelpers.CreateButtonID("purchase")),
+                            new ButtonComponent(ButtonComponentStyle.Danger, "Send to Auction",
+                                CustomID: CustomIDHelpers.CreateButtonID("auction"))
+                        ])
+                    ])
+                });
+            
+            state.NextRequiredAction = GameAction.PurchaseDecision;
             
             return false;
         }
@@ -202,7 +219,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
             RoadSpace rs when await ColourSetOwner(rs) == ps.Owner && ps.BuiltHouses == 0 => ps.TitleDeed!.RentValues[0] * 2,
             RoadSpace => ps.TitleDeed!.RentValues[ps.BuiltHouses],
             
-            TrainStationSpace ts => ps.TitleDeed!.RentValues[0] << (state.Board.Spaces
+            TrainStationSpace => ps.TitleDeed!.RentValues[0] << (state.Board.Spaces
                 .Where(space => space.Info is TrainStationSpace)
                 .Select(space => space.Owner)
                 .Count(owner => owner == ps.Owner) - 1),
