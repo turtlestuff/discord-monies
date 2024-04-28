@@ -3,6 +3,7 @@ using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Feedback.Messages;
 using Remora.Discord.Commands.Feedback.Services;
+using Remora.Discord.Extensions.Formatting;
 using Remora.Discord.Interactivity;
 
 namespace DiscordMonies.Game;
@@ -18,7 +19,15 @@ public class GameControllerService(GameState state, IFeedbackService service)
         state.State = GameState.StateMachineState.Idle;
         if (state.Die.BothDiesHaveSameValue)
         {
-            await service.SendAsync(state.ThreadId, $"{state.CurrentPlayer.DisplayName} rolled doubles so it's their turn to roll again!");
+            await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)} rolled doubles so it's their turn to roll again!", options: new()
+            {
+                MessageComponents = new([
+                    new ActionRowComponent([
+                        new ButtonComponent(ButtonComponentStyle.Primary, "Roll",
+                            CustomID: CustomIDHelpers.CreateButtonID("roll")),
+                    ])
+                ])
+            });
             return;
         }
         
@@ -31,14 +40,16 @@ public class GameControllerService(GameState state, IFeedbackService service)
                 CustomID: CustomIDHelpers.CreateButtonID("roll")),
         ];
 
+/*
         if (false)
         {
             buttons.Insert(0, 
                 new ButtonComponent(ButtonComponentStyle.Danger, "Bail",
                     CustomID: CustomIDHelpers.CreateButtonID("bail")));
         }
+*/
         
-        await service.SendAsync(state.ThreadId, $"It is now the turn of {state.CurrentPlayer.DisplayName}", options: new()
+        await service.SendAsync(state.ThreadId, $"It is now the turn of {Mention.User(state.CurrentPlayer)}", options: new()
         {
             MessageComponents = new([
                 new ActionRowComponent(buttons)
@@ -144,12 +155,16 @@ public class GameControllerService(GameState state, IFeedbackService service)
         await service.SendAsync(state.ThreadId,
             $"{state.CurrentPlayer.DisplayName} landed on {currentSpace.Name}");
 
-        if (currentSpace is PropertySpace ps)
+        switch (currentSpace)
         {
-            
-        } else if (currentSpace is GoToJailSpace)
-        {
-            await SendToJail();
+            case PropertySpace ps:
+                break;
+            case TaxSpace ts:
+                await Pay(state.CurrentPlayer, null, ts.Value);
+                break;
+            case GoToJailSpace:
+                await SendToJail();
+                break;
         }
         
         await AdvanceTurn();

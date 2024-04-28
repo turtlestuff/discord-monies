@@ -259,7 +259,7 @@
       }
     },
     {
-      "Type": "Simple",
+      "Type": "FreeParking",
       "Name": "Free Parking",
       "Value": null,
       "Group": null,
