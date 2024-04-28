@@ -30,7 +30,8 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [NextRequiredAction(GameAction.Roll, ErrorMessage = "You can't roll now.")]
     public async Task<Result> Roll()
     {
-        return await gameControllerService.RollDie();
+        await gameControllerService.RollDie();
+        return Result.Success;
     }
 
     [Command("nudge")]
@@ -53,6 +54,30 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     }
 }
 
+[Group("property")]
+public class GamePropertyCommands(
+    GameControllerService gameControllerService) : CommandGroup
+{
+    [Command("purchase")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.PurchaseDecision, ErrorMessage = "There's nothing to purchase right now")]
+    [Ephemeral]
+    public async Task<Result> Purchase()
+    {
+        await gameControllerService.BuyProperty();
+        return Result.Success;
+    }
+    
+    [Command("sendToAuction")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.PurchaseDecision, ErrorMessage = "There's nothing to send to auction right now")]
+    public async Task<Result> SendToAuction()
+    {
+        await gameControllerService.SendPropertyToAuction();
+        return Result.Success;
+    }
+}
+
 public class GameInteractions(GameControllerService gameControllerService) : InteractionGroup
 {
     [Button("roll")]
@@ -61,6 +86,25 @@ public class GameInteractions(GameControllerService gameControllerService) : Int
     public async Task<Result> Roll()
     {
         await gameControllerService.RollDie();
+        return Result.Success;
+    }
+
+    [Button("purchase")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.PurchaseDecision, ErrorMessage = "There's nothing to purchase right now")]
+    [Ephemeral]
+    public async Task<Result> Purchase()
+    {
+        await gameControllerService.BuyProperty();
+        return Result.Success;
+    }
+    
+    [Button("auction")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.PurchaseDecision, ErrorMessage = "There's nothing to send to auction right now")]
+    public async Task<Result> SendToAuction()
+    {
+        await gameControllerService.SendPropertyToAuction();
         return Result.Success;
     }
 }

@@ -1,8 +1,10 @@
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
+using DiscordMonies.Remora;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Feedback.Services;
+using Remora.Discord.Extensions.Embeds;
 using Remora.Discord.Extensions.Formatting;
 using Remora.Discord.Interactivity;
 using Remora.Results;
@@ -58,7 +60,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
         });
     }
 
-    public async Task<Result> RollDie()
+    public async Task RollDie()
     {
         // TODO: Jail logic
         var spaces = state.Die.Roll();
@@ -69,13 +71,63 @@ public class GameControllerService(GameState state, IFeedbackService service)
             // Caught speeding!
             await SendToJail();
             await AdvanceTurn();
-            return Result.Success;
         }
         
         await MovePlayerRelative(state.CurrentPlayer, spaces);
 
         await ProcessPlayerLand();
-        return Result.Success;
+    }
+
+    public async Task BuyProperty()
+    {
+        var space = state.CurrentPlayer.CurrentSpace;
+        var value = ((ValueSpace)space.Info).Value;
+        if (!await TryPay(state.CurrentPlayer, null, value))
+        {
+            await service.SendContextualAsync(
+                $"Your balance is too low to buy {space}. You have {state.CurrentPlayer.MoneyString()}. You need {value.MoneyString()}.");
+            return;
+        }
+        
+        await service.SendContextualAsync($"Purchasing {space}...");
+
+        space.Owner = state.CurrentPlayer;
+        await service.SendEmbedAsync(state.ThreadId, Embeds.PropertyObtained(state.CurrentPlayer, space));
+        
+        await AdvanceTurn();
+    }
+
+    /// <summary>
+    /// Attempts to pay a specified amount from one player to another.
+    /// </summary>
+    /// <param name="from">The player who is paying. If null, the payment is made by the bank.</param>
+    /// <param name="to">The player who is receiving the payment. If null, the payment is made to the bank.</param>
+    /// <param name="value">The amount of money to be paid.</param>
+    /// <returns>True if the player has enough funds to complete the transaction</returns>
+    public async Task<bool> TryPay(GamePlayer? from, GamePlayer? to, int value)
+    {
+        var payer = from?.DisplayName ?? "The Bank";
+        var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
+
+        // Decrease the money of the payer if he/she exists
+        if (from != null)
+        {
+            if (from.Money < value)
+            {
+                return false;
+            }
+
+            from.Money -= value;
+        }
+
+        // Increase the money of the payee if he/she exists
+        if (to != null)
+        {
+            to.Money += value;
+        }
+
+        await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
+        return true;
     }
 
     /// <summary>
@@ -154,7 +206,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
         switch (currentSpace.Info)
         {
-            case PropertySpace ps:
+            case PropertySpace:
                 if (!await ProcessPropertySpaceLand()) return;
                 break;
             case TaxSpace ts:
@@ -247,6 +299,11 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task SendToJail()
+    {
+        
+    }
+
+    public async Task SendPropertyToAuction()
     {
         
     }
