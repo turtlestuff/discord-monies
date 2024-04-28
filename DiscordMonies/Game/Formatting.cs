@@ -1,6 +1,6 @@
 ﻿namespace DiscordMonies.Game;
 
-internal class Formatting
+internal static class Formatting
 {
-    public static string MoneyString(int money) => $"`{money:Ð#,0}`";
+    public static string MoneyString(this int money) => $"`{money:Ð#,0}`";
 }

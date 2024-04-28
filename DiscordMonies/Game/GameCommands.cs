@@ -10,7 +10,7 @@ using Remora.Results;
 
 namespace DiscordMonies.Game;
 
-public class GameCommands(GameState gameState, IFeedbackService feedback, IInteractionCommandContext ctx) : CommandGroup
+public class GameCommands(GameState gameState, IFeedbackService feedback, IInteractionCommandContext ctx, GameControllerService gameControllerService) : CommandGroup
 {
     [Command("balance")]
     [RequiresPlayer(PlayerType.PlayerOrSpectator)]
@@ -18,8 +18,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     public async Task<Result> Balance(GamePlayer? player = null)
     {
         player ??= gameState.GetById(ctx.GetUserId());
-        var state = gameState.PlayerStates[player];
-        await feedback.SendContextualAsync($"{player.DisplayName}'s balance: {Formatting.MoneyString(state.Money)}");
+        await feedback.SendContextualAsync($"{player.DisplayName}'s balance: {player.State.Money.MoneyString()}");
         return Result.Success;
     }
 
@@ -28,7 +27,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     public async Task<Result> Roll()
     {
         await feedback.SendContextualAsync("Roll");
-        gameState.AdvanceTurn();
+        await gameControllerService.RollDie();
         return Result.Success;
     }
 

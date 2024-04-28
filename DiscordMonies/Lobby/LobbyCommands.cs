@@ -141,7 +141,7 @@ public class LobbyInteractions(
             await channelApi.AddThreadMemberAsync(thread.ID, player);
         }
 
-        GameState gameState = await BuildNewGameState(lobby.Players, thread, lobby);
+        var gameState = await BuildNewGameState(lobby.Players, thread, lobby);
         gameService.OpenGame(gameState);
         return Result.Success;
     }
@@ -153,13 +153,11 @@ public class LobbyInteractions(
             var member = await guildApi.GetGuildMemberAsync(lobby.GuildId, playerId).AsThrowing();
             var user = member.User.Value;
             var displayName = member.Nickname.OrDefault() ?? user.Username;
-            return new GamePlayer(member, user, displayName, playerId);
+            return new GamePlayer(member, user, displayName, playerId, new()
+            {
+                Money = 1500
+            });
         }));
-
-        var balances = players.ToDictionary(p => p, _ => new PlayerState
-        {
-            Money = 1500
-        });
 
         var gameState = new GameState
         {
@@ -168,7 +166,6 @@ public class LobbyInteractions(
             GameId = lobby.LobbyId,
             PlayerIds = playerIds,
             Players = players.ToList(),
-            PlayerStates = balances,
             Board = new(boardService.GetBoard("Standard"))
         };
 

@@ -4,6 +4,7 @@ using Remora.Discord.API.Abstractions.Objects;
 using Remora.Rest.Core;
 
 using System.Drawing;
+using Stateless;
 
 namespace DiscordMonies.Game;
 
@@ -14,7 +15,6 @@ public partial class GameState
     public required Snowflake ThreadId { get; init; }
 
     public required Snowflake GuildId { get; init; }
-
 
     public required List<Snowflake> PlayerIds { get; init; }
 
@@ -32,19 +32,25 @@ public partial class GameState
         => Players.First(p => p.Id == userId);
 
     public GamePlayer GetById(IUser user) => GetById(user.ID);
+    
+    public required GameBoard Board { get; init; }
 
-    public GamePlayer AdvanceTurn()
+    public GameDie Die { get; } = new();
+
+    public enum StateMachineState
     {
-        CurrentPlayerIndex = (CurrentPlayerIndex + 1) % Players.Count;
-        return Players[CurrentPlayerIndex];
+        Idle,
+        ForAuctionOrBuyDecision,
+        ForAuctionToFinish,
+        ForOtherJailDecision,
+        ForArrearsPay,
+        ForTakeCardOrPayDecision
     }
 
-    public required Dictionary<GamePlayer, PlayerState> PlayerStates { get; init; }
-
-    public required GameBoard Board { get; init; }
+    public StateMachineState State { get; set; }
 }
 
-public sealed record GamePlayer(IGuildMember GuildMember, IUser User, string DisplayName, Snowflake Id) : IUser
+public sealed record GamePlayer(IGuildMember GuildMember, IUser User, string DisplayName, Snowflake Id, PlayerState State) : IUser
 {
     public IGuildMember GuildMember { get; set; } = GuildMember;
 

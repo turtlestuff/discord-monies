@@ -33,6 +33,7 @@ builder.Services
     .AddSingleton<LobbyService>()
     .AddSingleton<GameService>()
     .AddSingleton<BoardService>()
+    .AddScoped<GameControllerService>()
     .AddScoped<GameStateInjector>();
 
 builder.Services
