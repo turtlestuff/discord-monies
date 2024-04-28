@@ -139,7 +139,7 @@
       }
     },
     {
-      "Type": "Simple",
+      "Type": "Jail",
       "Name": "Visiting Jail",
       "Value": null,
       "Group": null,

@@ -7,6 +7,7 @@ namespace DiscordMonies.Board;
 [JsonDerivedType(typeof(DrawChestSpace), "Chest")]
 [JsonDerivedType(typeof(DrawChanceSpace), "Chance")]
 [JsonDerivedType(typeof(GoToJailSpace), "GoToJail")]
+[JsonDerivedType(typeof(JailSpace), "Jail")]
 [JsonDerivedType(typeof(GoSpace), "Start")]
 [JsonDerivedType(typeof(TaxSpace), "Tax")]
 [JsonDerivedType(typeof(TrainStationSpace), "TrainStation")]
@@ -22,6 +23,7 @@ public record BoardSpace
 
 public sealed record GoToJailSpace : BoardSpace;
 public sealed record FreeParkingSpace : BoardSpace;
+public sealed record JailSpace : BoardSpace;
 public abstract record DrawCardSpace : BoardSpace;
 public sealed record DrawChanceSpace : DrawCardSpace;
 public sealed record DrawChestSpace : DrawCardSpace;
