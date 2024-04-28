@@ -41,10 +41,10 @@ public sealed record GameBoard
     private Board Info { get; }
 
     public ImmutableArray<TitleDeed> TitleDeeds { get; }
-    public ImmutableArray<LuckCard> AllChanceCards { get; }
-    public Stack<LuckCard> UnusedChanceCards { get; }
-    public ImmutableArray<LuckCard> AllChestCards { get; }
-    public Stack<LuckCard> UnusedChestCards { get; }
+    
+    public CardStack TreasureCards { get; }
+    
+    public CardStack GambleCards { get; }
 
     public ImmutableArray<Space> Spaces { get; }
 
@@ -55,11 +55,9 @@ public sealed record GameBoard
     {
         Info = info.Board;
         TitleDeeds = info.TitleDeeds;
-        AllChanceCards = info.ChanceCards;
-        AllChestCards = info.ChestCards;
 
-        UnusedChanceCards = new(info.ChanceCards);
-        UnusedChestCards = new(info.ChestCards);
+        GambleCards = new(info.ChanceCards);
+        TreasureCards = new(info.ChestCards);
 
         PassGoValue = Info.BoardSpaces.OfType<GoSpace>().First().Value;
 

@@ -75,7 +75,10 @@ public class GameControllerService(GameState state, IFeedbackService service)
         
         await MovePlayerRelative(state.CurrentPlayer, spaces);
 
-        await ProcessPlayerLand();
+        if (await ProcessPlayerLand())
+        {
+            await AdvanceTurn();
+        }
     }
 
     public async Task BuyProperty()
@@ -172,7 +175,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
         {
             position = boardLength + position;
         }
-        await MovePlayer(player, position, passGoBonus);
+        await MovePlayer(player, position, passGoBonus && spaces >= 0);
     }
 
     /// <summary>
@@ -182,7 +185,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <param name="position">The position on the board to move the player to.</param>
     /// <param name="passGoBonus">A flag indicating whether the player should receive a pass Go bonus if passing Go. Default is true.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task MovePlayer(GamePlayer player, int position, bool passGoBonus)
+    private async Task MovePlayer(GamePlayer player, int position, bool passGoBonus = true)
     {
         if (position < player.Position && passGoBonus)
         {
@@ -197,8 +200,8 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <summary>
     /// Processes the landing of the current player on a board space.
     /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task ProcessPlayerLand()
+    /// <returns>True if the turn needs to be advanced afterwards</returns>
+    private async Task<bool> ProcessPlayerLand(bool bigRent = false)
     {
         var currentSpace = state.CurrentPlayer.CurrentSpace;
         await service.SendAsync(state.ThreadId,
@@ -206,9 +209,10 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
         switch (currentSpace.Info)
         {
+            case DrawCardSpace:
+                return await ProcessDrawCardSpaceLand();
             case PropertySpace:
-                if (!await ProcessPropertySpaceLand()) return;
-                break;
+                return await ProcessPropertySpaceLand(bigRent);
             case TaxSpace ts:
                 await Pay(state.CurrentPlayer, null, ts.Value);
                 break;
@@ -216,11 +220,123 @@ public class GameControllerService(GameState state, IFeedbackService service)
                 await SendToJail();
                 break;
         }
-        
-        await AdvanceTurn();
+
+        return true;
     }
 
-    private async Task<bool> ProcessPropertySpaceLand()
+    private async Task<bool> ProcessDrawCardSpaceLand()
+    {
+        var space = state.CurrentPlayer.CurrentSpace;
+        
+        return await DrawCard(space.Info switch
+        {
+            DrawChanceSpace => state.Board.GambleCards,
+            DrawChestSpace => state.Board.TreasureCards,
+            _ => throw new ArgumentOutOfRangeException()
+        });
+    }
+
+    private async Task<bool> DrawCard(CardStack stack)
+    {
+        var card = stack.DrawCard();
+        await service.SendEmbedAsync(state.ThreadId,
+            Embeds.CardDrawn(state.CurrentPlayer, stack == state.Board.GambleCards, state.Board, card));
+
+        // Complete the action
+        var parts = card.Command.Split(' ');
+        switch (parts[0])
+            {
+                case "arrest":
+                    await SendToJail();
+                    return true;
+
+                case "give":
+                    await Pay(null, state.CurrentPlayer, int.Parse(parts[1]));
+                    return true;
+
+                case "pay":
+                    await Pay(state.CurrentPlayer, null, int.Parse(parts[1]));
+                    return true;
+
+                case "repairs":
+                    {
+                        var houseValue = int.Parse(parts[1]);
+                        var hotelValue = int.Parse(parts[2]);
+
+                        var total = state.Board.Spaces.Aggregate(0, (currentTotal, space) =>
+                        {
+                            if (space.Info is not RoadSpace)
+                            {
+                                return currentTotal;
+                            }
+                            
+                            if (space.Owner != state.CurrentPlayer)
+                            {
+                                return currentTotal;
+                            }
+
+                            if (space.BuiltHouses == 5)
+                            {
+                                return currentTotal + hotelValue;
+                            }
+
+                            return currentTotal + space.BuiltHouses * houseValue;
+                        });
+
+                        await Pay(state.CurrentPlayer, null, total);
+                        return true;
+                    }
+
+                case "warp":
+                    await MovePlayer(state.CurrentPlayer, int.Parse(parts[1]));
+                    return await ProcessPlayerLand();
+
+                case "warprel":
+                    await MovePlayerRelative(state.CurrentPlayer, int.Parse(parts[1]));
+                    return await ProcessPlayerLand();
+
+                case "jailfree":
+                    // TODO: Implement Get Out of Jail Free cards
+                    return true;
+
+                case "paychance":
+                    // TODO: Implement Take Card or Pay
+                    // waiting = Waiting.ForTakeCardOrPayDecision;
+                    // payOrTakeCardVal = int.Parse(parts[1]);
+                    // payOrTakeCardType = CardType.Chance;
+                    return true;
+
+                case "advance":
+                    int loc;
+                    if (parts[1] == "utility")
+                    {
+                        loc = state.Board.Spaces.FirstIndexAfterIndex(state.CurrentPlayer.Position, s => s.Info is UtilitySpace);
+                    }
+                    else if (parts[1] == "station")
+                    {
+                        loc = state.Board.Spaces.FirstIndexAfterIndex(state.CurrentPlayer.Position, s => s.Info is TrainStationSpace);
+                    }
+                    else
+                    {   
+                        throw new ArgumentException("Invalid type for `advance`");
+                    }
+
+                    await MovePlayer(state.CurrentPlayer, loc);
+                    return await ProcessPlayerLand(true);
+
+                case "recvall":
+                    var paymentAmount = int.Parse(parts[1]);
+                    foreach (var player in state.Players.Where(x => x != state.CurrentPlayer))
+                    {
+                        await Pay(player, state.CurrentPlayer, paymentAmount);
+                    }
+                    return true;
+                default:
+                    return true;
+            }
+    }
+
+    private async Task<bool> ProcessPropertySpaceLand(bool bigRent)
     {
         var space = state.CurrentPlayer.CurrentSpace;
         var property = (PropertySpace) space.Info;
@@ -249,7 +365,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
         if (space.Owner == state.CurrentPlayer)
         {
-            
+            // Nothing happens because this player owns this space
         }
         else if (space.IsMortgaged)
         {
@@ -258,23 +374,26 @@ public class GameControllerService(GameState state, IFeedbackService service)
         else
         {
             // Pay rent!
-            await Pay(state.CurrentPlayer, space.Owner, await CalculateRent(space));
+            await Pay(state.CurrentPlayer, space.Owner, await CalculateRent(space, bigRent));
         }
 
         return true;
     }
 
-    public async Task<int> CalculateRent(Space ps)
+    public async Task<int> CalculateRent(Space ps, bool bigRent)
     {
         return ps.Info switch
         {
             RoadSpace rs when await ColourSetOwner(rs) == ps.Owner && ps.BuiltHouses == 0 => ps.TitleDeed!.RentValues[0] * 2,
             RoadSpace => ps.TitleDeed!.RentValues[ps.BuiltHouses],
             
+            TrainStationSpace when bigRent => await CalculateRent(ps, false) * 2,
             TrainStationSpace => ps.TitleDeed!.RentValues[0] << (state.Board.Spaces
                 .Where(space => space.Info is TrainStationSpace)
                 .Select(space => space.Owner)
                 .Count(owner => owner == ps.Owner) - 1),
+            
+            UtilitySpace when bigRent => state.Die * 10,
             UtilitySpace => state.Board.Spaces
                 .Where(space => space.Info is UtilitySpace)
                 .Select(space => space.Owner)
@@ -305,6 +424,12 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
     public async Task SendPropertyToAuction()
     {
+        var space = state.CurrentPlayer.CurrentSpace;
+        await service.SendContextualAsync($"Sending {space} to auction...");
+
+        await service.SendAsync(state.ThreadId,
+            $"Auction is currently not supported. Advancing the turn to the next player...");
         
+        await AdvanceTurn();
     }
 }
