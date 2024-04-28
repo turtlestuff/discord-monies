@@ -1,4 +1,6 @@
-﻿using DiscordMonies.Remora;
+﻿using DiscordMonies.Board;
+using DiscordMonies.Extensions;
+using DiscordMonies.Remora;
 
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
@@ -38,6 +40,15 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
         var current = gameState.CurrentPlayer;
         await feedback.SendContextualAsync(
             $"{Mention.User(current.Id)}, {gameState.GetById(ctx.GetUserId()).DisplayName} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
+        return Result.Success;
+    }
+
+    [Command("deed")]
+    [RequiresPlayer(PlayerType.PlayerOrSpectator)]
+    [Ephemeral]
+    public async Task<Result> Deed(Space space)
+    {
+        await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
         return Result.Success;
     }
 }

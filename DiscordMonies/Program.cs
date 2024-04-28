@@ -29,7 +29,8 @@ builder.Services
     .AddPreparationErrorEvent<GameCommandPreparationErrorEvent>()
     .AddCondition<RequiresPlayerCondition>()
     .AddCondition<NextRequiredActionCondition>()
-    .AddParser<GamePlayerParser>();
+    .AddParser<GamePlayerParser>()
+    .AddParser<SpaceParser>();
 
 builder.Services
     .AddSingleton<LobbyService>()
