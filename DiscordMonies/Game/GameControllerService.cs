@@ -1,3 +1,4 @@
+using DiscordMonies.Board;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Feedback.Messages;
@@ -8,6 +9,10 @@ namespace DiscordMonies.Game;
 
 public class GameControllerService(GameState state, IFeedbackService service)
 {
+    /// <summary>
+    /// Advances the turn to the next player and performs necessary actions.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task AdvanceTurn()
     {
         state.State = GameState.StateMachineState.Idle;
@@ -66,11 +71,40 @@ public class GameControllerService(GameState state, IFeedbackService service)
         await ProcessPlayerLand();
     }
 
+    /// <summary>
+    /// Pays a specified amount from one player to another.
+    /// </summary>
+    /// <param name="from">The player who is paying. If null, the payment is made by the bank.</param>
+    /// <param name="to">The player who is receiving the payment. If null, the payment is made to the bank.</param>
+    /// <param name="value">The amount of money to be paid.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task Pay(GamePlayer? from, GamePlayer? to, int value)
     {
-        
+        var payer = from?.DisplayName ?? "The Bank";
+        var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
+
+        // Decrease the money of the payer if he/she exists
+        if (from != null)
+        {
+            from.State.Money -= value;
+        }
+
+        // Increase the money of the payee if he/she exists
+        if (to != null)
+        {
+            to.State.Money += value;
+        }
+
+        await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
     }
 
+    /// <summary>
+    /// Moves the player a relative number of spaces on the game board.
+    /// </summary>
+    /// <param name="player">The player to move.</param>
+    /// <param name="spaces">The number of spaces to move relative to the player's current position.</param>
+    /// <param name="passGoBonus">A flag indicating whether the player should receive a pass Go bonus if passing Go. Default is true.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task MovePlayerRelative(GamePlayer player, int spaces, bool passGoBonus = true)
     {
         var position = (player.State.Position + spaces) % state.Board.BoardInfo.BoardSpaces.Length;
@@ -81,6 +115,13 @@ public class GameControllerService(GameState state, IFeedbackService service)
         await MovePlayer(player, position, passGoBonus);
     }
 
+    /// <summary>
+    /// Moves the player to a specified position on the game board.
+    /// </summary>
+    /// <param name="player">The player to move.</param>
+    /// <param name="position">The position on the board to move the player to.</param>
+    /// <param name="passGoBonus">A flag indicating whether the player should receive a pass Go bonus if passing Go. Default is true.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task MovePlayer(GamePlayer player, int position, bool passGoBonus)
     {
         if (position < player.State.Position && passGoBonus)
@@ -93,14 +134,31 @@ public class GameControllerService(GameState state, IFeedbackService service)
         player.State.Position = position;
     }
 
+    /// <summary>
+    /// Processes the landing of the current player on a board space.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task ProcessPlayerLand()
     {
+        var currentSpace = state.Board.BoardInfo.BoardSpaces[state.CurrentPlayer.State.Position];
         await service.SendAsync(state.ThreadId,
-            $"{state.CurrentPlayer.DisplayName} landed on {state.Board.BoardInfo.BoardSpaces[state.CurrentPlayer.State.Position].Name}");
+            $"{state.CurrentPlayer.DisplayName} landed on {currentSpace.Name}");
+
+        if (currentSpace is PropertySpace ps)
+        {
+            
+        } else if (currentSpace is GoToJailSpace)
+        {
+            await SendToJail();
+        }
         
         await AdvanceTurn();
     }
 
+    /// <summary>
+    /// Sends the current player to jail. Does not advance the turn.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task SendToJail()
     {
         
