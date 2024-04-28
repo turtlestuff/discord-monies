@@ -14,13 +14,11 @@ internal class GameCommandPreExecutionEvent(GameService service, GameStateInject
             return Result.Success;
         }
 
-        if (!ctx.TryGetChannelID(out var channelId) || service.GetGameState(channelId) is not GameState gameState)
+        if (ctx.TryGetChannelID(out var channelId) && service.GetGameState(channelId) is { } gameState)
         {
-            return Result.Success;
+            injector.GameState = gameState;
+            await service.AcquireGameLock(gameState);
         }
-
-        injector.GameState = gameState;
-        await service.AcquireGameLock(gameState);
 
         return Result.Success;
     }
@@ -30,8 +28,13 @@ internal class GameCommandPostExecutionEvent(GameService service, IInteractionCo
 {
     public Task<Result> AfterExecutionAsync(ICommandContext context, IResult commandResult, CancellationToken ct = default)
     {
+        if (context is not InteractionCommandContext)
+        {
+            return Task.FromResult(Result.Success);
+        }
+
         // Use the same conditions as the pre-execution event so we don't end up with an unbalanced count on the semaphore
-        if (ctx.TryGetChannelID(out var channelId) && service.GetGameState(channelId) is GameState gameState)
+        if (ctx.TryGetChannelID(out var channelId) && service.GetGameState(channelId) is { } gameState)
         {
             service.ReleaseGameLock(gameState);
         }
