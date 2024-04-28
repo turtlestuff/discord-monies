@@ -6,6 +6,7 @@ using Remora.Discord.Commands.Attributes;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Extensions.Formatting;
+using Remora.Discord.Interactivity;
 using Remora.Results;
 
 namespace DiscordMonies.Game;
@@ -38,6 +39,17 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
         var current = gameState.CurrentPlayer;
         await feedback.SendContextualAsync(
             $"{Mention.User(current.Id)}, {gameState.GetById(ctx.GetUserId()).DisplayName} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
+        return Result.Success;
+    }
+}
+
+public class GameInteractions(GameControllerService gameControllerService) : InteractionGroup
+{
+    [Button("roll")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    public async Task<Result> Roll()
+    {
+        await gameControllerService.RollDie();
         return Result.Success;
     }
 }

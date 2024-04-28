@@ -23,6 +23,7 @@ builder.Services
     .AddInteractivity()
     .AddCommandGroupsFromAssembly(typeof(Program).Assembly)
     .AddInteractionGroup<LobbyInteractions>()
+    .AddInteractionGroup<GameInteractions>()
     .AddPreExecutionEvent<GameCommandPreExecutionEvent>()
     .AddPostExecutionEvent<GameCommandPostExecutionEvent>()
     .AddParser<GamePlayerParser>()

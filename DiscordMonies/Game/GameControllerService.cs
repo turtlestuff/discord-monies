@@ -1,4 +1,8 @@
+using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.API.Objects;
+using Remora.Discord.Commands.Feedback.Messages;
 using Remora.Discord.Commands.Feedback.Services;
+using Remora.Discord.Interactivity;
 
 namespace DiscordMonies.Game;
 
@@ -9,16 +13,32 @@ public class GameControllerService(GameState state, IFeedbackService service)
         state.State = GameState.StateMachineState.Idle;
         if (state.Die.BothDiesHaveSameValue)
         {
-            await service.SendAsync(state.ThreadId, $"{state.Players[state.CurrentPlayerIndex].Username} rolled doubles so it's their turn to roll again!");
+            await service.SendAsync(state.ThreadId, $"{state.CurrentPlayer.DisplayName} rolled doubles so it's their turn to roll again!");
             return;
         }
         
         state.Die.Reset();
         state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
-        var currentPlayer = state.Players[state.CurrentPlayerIndex];
 
         // TODO: Render map and send embed
-        await service.SendAsync(state.ThreadId, $"It is now the turn of {currentPlayer.Username}");
+        List<IMessageComponent> buttons = [
+            new ButtonComponent(ButtonComponentStyle.Primary, "Roll",
+                CustomID: CustomIDHelpers.CreateButtonID("roll")),
+        ];
+
+        if (false)
+        {
+            buttons.Insert(0, 
+                new ButtonComponent(ButtonComponentStyle.Danger, "Bail",
+                    CustomID: CustomIDHelpers.CreateButtonID("bail")));
+        }
+        
+        await service.SendAsync(state.ThreadId, $"It is now the turn of {state.CurrentPlayer.DisplayName}", options: new()
+        {
+            MessageComponents = new([
+                new ActionRowComponent(buttons)
+            ])
+        });
     }
 
     public async Task RollDie()
@@ -77,7 +97,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
     private async Task ProcessPlayerLand()
     {
         await service.SendAsync(state.ThreadId,
-            $"{state.CurrentPlayer.Username} landed on {state.Board.BoardInfo.BoardSpaces[state.CurrentPlayer.State.Position].Name}");
+            $"{state.CurrentPlayer.DisplayName} landed on {state.Board.BoardInfo.BoardSpaces[state.CurrentPlayer.State.Position].Name}");
         
         await AdvanceTurn();
     }
