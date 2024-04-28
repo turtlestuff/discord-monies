@@ -51,8 +51,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
         // TODO: Jail logic
         var spaces = state.Die.Roll();
-        await service.SendAsync(state.ThreadId,
-            $"{state.CurrentPlayer.Username} rolled {state.Die.Die1} and {state.Die.Die2}");
+        await service.SendContextualAsync($"{state.CurrentPlayer.Username} rolled {state.Die.Die1} and {state.Die.Die2}");
         
         if (state.Die is { BothDiesHaveSameValue: true, SpeedingCount: 3 })
         {

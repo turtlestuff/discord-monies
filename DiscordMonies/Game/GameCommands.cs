@@ -27,7 +27,6 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [RequiresPlayer(PlayerType.CurrentPlayer)]
     public async Task<Result> Roll()
     {
-        await feedback.SendContextualAsync("Roll");
         await gameControllerService.RollDie();
         return Result.Success;
     }
