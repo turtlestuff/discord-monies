@@ -25,10 +25,10 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
 
     [Command("roll")]
     [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.Roll, ErrorMessage = "You can't roll now.")]
     public async Task<Result> Roll()
     {
-        await gameControllerService.RollDie();
-        return Result.Success;
+        return await gameControllerService.RollDie();
     }
 
     [Command("nudge")]
@@ -46,6 +46,7 @@ public class GameInteractions(GameControllerService gameControllerService) : Int
 {
     [Button("roll")]
     [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.Roll, ErrorMessage = "You can't roll now.")]
     public async Task<Result> Roll()
     {
         await gameControllerService.RollDie();

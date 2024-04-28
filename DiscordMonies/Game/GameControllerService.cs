@@ -1,10 +1,11 @@
 using DiscordMonies.Board;
+
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
-using Remora.Discord.Commands.Feedback.Messages;
 using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Extensions.Formatting;
 using Remora.Discord.Interactivity;
+using Remora.Results;
 
 namespace DiscordMonies.Game;
 
@@ -16,7 +17,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task AdvanceTurn()
     {
-        state.State = GameState.StateMachineState.Idle;
+        state.NextRequiredAction = GameAction.Roll;
         if (state.Die.BothDiesHaveSameValue)
         {
             await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)} rolled doubles so it's their turn to roll again!", options: new()
@@ -57,14 +58,8 @@ public class GameControllerService(GameState state, IFeedbackService service)
         });
     }
 
-    public async Task RollDie()
+    public async Task<Result> RollDie()
     {
-        if (state.State != GameState.StateMachineState.Idle)
-        {
-            await service.SendContextualAsync("You can't roll now.");
-            return;
-        }
-
         // TODO: Jail logic
         var spaces = state.Die.Roll();
         await service.SendContextualAsync($"{state.CurrentPlayer} rolled {state.Die.Die1} and {state.Die.Die2}");
@@ -74,12 +69,13 @@ public class GameControllerService(GameState state, IFeedbackService service)
             // Caught speeding!
             await SendToJail();
             await AdvanceTurn();
-            return;
+            return Result.Success;
         }
         
         await MovePlayerRelative(state.CurrentPlayer, spaces);
 
         await ProcessPlayerLand();
+        return Result.Success;
     }
 
     /// <summary>
@@ -154,7 +150,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
     {
         var currentSpace = state.CurrentPlayer.CurrentSpace;
         await service.SendAsync(state.ThreadId,
-            $"{state.CurrentPlayer} landed on {currentSpace.Info}");
+            $"{state.CurrentPlayer} landed on {currentSpace}");
 
         switch (currentSpace.Info)
         {

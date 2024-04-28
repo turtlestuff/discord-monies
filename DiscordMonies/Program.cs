@@ -26,9 +26,10 @@ builder.Services
     .AddInteractionGroup<GameInteractions>()
     .AddPreExecutionEvent<GameCommandPreExecutionEvent>()
     .AddPostExecutionEvent<GameCommandPostExecutionEvent>()
-    .AddParser<GamePlayerParser>()
     .AddPreparationErrorEvent<GameCommandPreparationErrorEvent>()
-    .AddCondition<RequiresPlayerCondition>();
+    .AddCondition<RequiresPlayerCondition>()
+    .AddCondition<NextRequiredActionCondition>()
+    .AddParser<GamePlayerParser>();
 
 builder.Services
     .AddSingleton<LobbyService>()

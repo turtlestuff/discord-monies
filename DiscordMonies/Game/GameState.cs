@@ -34,15 +34,15 @@ public partial class GameState
 
     public GameDie Die { get; } = new();
 
-    public enum StateMachineState
-    {
-        Idle,
-        ForAuctionOrBuyDecision,
-        ForAuctionToFinish,
-        ForOtherJailDecision,
-        ForArrearsPay,
-        ForTakeCardOrPayDecision
-    }
+    public GameAction NextRequiredAction { get; set; }
+}
 
-    public StateMachineState State { get; set; }
+public enum GameAction
+{
+    Roll,
+    PurchaseDecision,
+    AuctionBid,
+    RequiredBailPayment,
+    BankruptcyResolution,
+    TakeCardOrPayDecision
 }

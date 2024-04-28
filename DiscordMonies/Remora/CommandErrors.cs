@@ -2,7 +2,7 @@
 
 namespace DiscordMonies.Remora;
 
-internal abstract record DiscordMoniesError(string Message) : ResultError(Message);
+internal record DiscordMoniesError(string Message) : ResultError(Message);
 
 internal sealed record NotGameChannelError() : DiscordMoniesError("You can't use this command outside of a game.");
 
