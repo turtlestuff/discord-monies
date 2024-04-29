@@ -200,7 +200,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <summary>
     /// Processes the landing of the current player on a board space.
     /// </summary>
-    /// <returns>True if the turn needs to be advanced afterwards</returns>
+    /// <returns>A task representing the asynchronous operation. Returns true if the turn should be advanced, false otherwise.</returns>
     private async Task<bool> ProcessPlayerLand(bool bigRent = false)
     {
         var currentSpace = state.CurrentPlayer.CurrentSpace;
@@ -236,6 +236,11 @@ public class GameControllerService(GameState state, IFeedbackService service)
         });
     }
 
+    /// <summary>
+    /// Draws a card from the specified card stack and performs the corresponding action.
+    /// </summary>
+    /// <param name="stack">The card stack from which to draw the card.</param>
+    /// <returns>A task representing the asynchronous operation. Returns true if the turn should be advanced, false otherwise.</returns>
     private async Task<bool> DrawCard(CardStack stack)
     {
         var card = stack.DrawCard();
@@ -336,6 +341,11 @@ public class GameControllerService(GameState state, IFeedbackService service)
             }
     }
 
+    /// <summary>
+    /// Processes the landing of a player on a property space and performs the necessary actions.
+    /// </summary>
+    /// <param name="bigRent">A boolean indicating if rent is doubled for train stations, or if the rent is 10 times the amount shown on the die for utilities.</param>
+    /// <returns>A task representing the asynchronous operation. Returns true if the turn should be advanced, false otherwise.</returns>
     private async Task<bool> ProcessPropertySpaceLand(bool bigRent)
     {
         var space = state.CurrentPlayer.CurrentSpace;
@@ -380,6 +390,12 @@ public class GameControllerService(GameState state, IFeedbackService service)
         return true;
     }
 
+    /// <summary>
+    /// Calculates the rent for a given space.
+    /// </summary>
+    /// <param name="ps">The space for which to calculate the rent.</param>
+    /// <param name="bigRent">A boolean indicating if rent is doubled for train stations, or if the rent is 10 times the amount shown on the die for utilities.</param>
+    /// <returns>The calculated rent amount.</returns>
     public async Task<int> CalculateRent(Space ps, bool bigRent)
     {
         return ps.Info switch
@@ -403,6 +419,11 @@ public class GameControllerService(GameState state, IFeedbackService service)
         };
     }
 
+    /// <summary>
+    /// Determines the owner of a colour set.
+    /// </summary>
+    /// <param name="ps">The road space whose colour group is being checked.</param>
+    /// <returns>The owner of the colour set, or null if there is no owner.</returns>
     public async Task<GamePlayer?> ColourSetOwner(RoadSpace ps)
     {
         var owners = state.Board.Spaces
