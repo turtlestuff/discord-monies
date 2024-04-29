@@ -3,6 +3,7 @@ using DiscordMonies.Extensions;
 using DiscordMonies.Remora;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
+using Remora.Discord.Commands.Feedback.Messages;
 using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Extensions.Embeds;
 using Remora.Discord.Extensions.Formatting;
@@ -26,8 +27,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
             {
                 MessageComponents = new([
                     new ActionRowComponent([
-                        new ButtonComponent(ButtonComponentStyle.Primary, "Roll",
-                            CustomID: CustomIDHelpers.CreateButtonID("roll")),
+                        Buttons.Roll()
                     ])
                 ])
             });
@@ -39,8 +39,7 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
         // TODO: Render map and send embed
         List<IMessageComponent> buttons = [
-            new ButtonComponent(ButtonComponentStyle.Primary, "Roll",
-                CustomID: CustomIDHelpers.CreateButtonID("roll")),
+            Buttons.Roll()
         ];
 
 /*
@@ -360,10 +359,8 @@ public class GameControllerService(GameState state, IFeedbackService service)
                 {
                     MessageComponents = new([
                         new ActionRowComponent([
-                            new ButtonComponent(ButtonComponentStyle.Success, $"Purchase {space} for {property.Value.MoneyString(false)}",
-                                CustomID: CustomIDHelpers.CreateButtonID("purchase")),
-                            new ButtonComponent(ButtonComponentStyle.Danger, "Send to Auction",
-                                CustomID: CustomIDHelpers.CreateButtonID("auction"))
+                            Buttons.Purchase(space.ToString(), property.Value),
+                            Buttons.SendToAuction()
                         ])
                     ])
                 });
