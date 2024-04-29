@@ -1,4 +1,5 @@
-﻿using DiscordMonies.Board;
+﻿using System.ComponentModel;
+using DiscordMonies.Board;
 using DiscordMonies.Game;
 using DiscordMonies.Remora;
 
@@ -25,6 +26,7 @@ namespace DiscordMonies.Lobby;
 public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup
 {
     [Command("open")]
+    [Description("Open a new lobby and start playing Discord Monies")]
     public async Task<IResult> OpenLobby()
     {
         var creatorId = ctx.Interaction.Member.Value.User.Value.ID;
