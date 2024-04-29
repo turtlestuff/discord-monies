@@ -19,4 +19,8 @@ public static class Buttons
     public static ButtonComponent SendToAuction() =>
         new(ButtonComponentStyle.Danger, "Send to Auction",
             CustomID: CustomIDHelpers.CreateButtonID("auction"));
+    
+    public static ButtonComponent Bail(int bailPrice) => 
+        new(ButtonComponentStyle.Danger, $"Bail for {bailPrice.MoneyString(false)}",
+            CustomID: CustomIDHelpers.CreateButtonID("bail"));
 }

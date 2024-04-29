@@ -11,14 +11,16 @@ public sealed record GamePlayer : IUser
 {
     public required IGuildMember GuildMember { get; set; }
     public required IUser User { get; set; }
-    public required Snowflake Id { get; set; }
+    public required Snowflake Id { get; init; }
 
     public required string DisplayName { get; set; }
 
-    public required GameState GameState { get; set; }
+    public required GameState GameState { get; init; }
 
+    public int JailTurns { get; set; } = -1;
 
-    public int Position { get; set; } = 0;
+    public int Position { get; set; }
+    
     public Space CurrentSpace => GameState.Board.Spaces[Position];
 
     public required int Money { get; set; }

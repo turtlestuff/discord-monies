@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Text.RegularExpressions;
 using DiscordMonies.Board;
 using DiscordMonies.Remora;
@@ -8,11 +9,29 @@ namespace DiscordMonies.Game;
 
 public partial class Embeds
 {
+    private static readonly string[] Dies = [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+    ];
+
     public static Embed PropertyObtained(GamePlayer player, Space space)
     {
         return new EmbedBuilder()
             .WithTitle("Property Obtained")
             .WithDescription($"{player} has obtained {space} for {((ValueSpace) space.Info).Value.MoneyString()}")
+            .Build().Get();
+    }
+
+    public static Embed SentToJail(GamePlayer victim)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Jail \ufffd") // oncoming police car
+            .WithDescription($"**{victim}** has been sent to jail.")
+            .WithColour(Color.Red)
             .Build().Get();
     }
 
@@ -49,10 +68,93 @@ public partial class Embeds
         return new EmbedBuilder()
             .WithTitle(deck)
             .WithDescription($"**{victim}** takes a deep breath and draws a {deck} card...")
+            .WithColour(Color.Yellow)
             .AddField($"{deck} card", humanReadableDescription).Get()
+            .Build().Get();
+    }
+
+    public static Embed TurnAdvanced(GamePlayer currentPlayer)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Next Round")
+            .WithDescription($"It's {currentPlayer}'s turn.")
+            .Build().Get();
+    }
+    public static Embed TurnAdvancedDoubles(GamePlayer currentPlayer)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Next Round")
+            .WithDescription($"It's {currentPlayer}'s turn again because they rolled doubles.")
+            .Build().Get();
+    }
+    
+
+    public static Embed DieRolled(GamePlayer player, GameDie die, Space landingSpace)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Roll")
+            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and landed on **{landingSpace}**")
+            .Build().Get();
+    }
+    
+    public static Embed JailDieRolled(GamePlayer player, GameDie die, int attempts)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Jail Roll")
+            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]}.")
+            .AddField("Attempts Remaining", $"{attempts} attempts remaining").Get()
             .Build().Get();
     }
 
     [GeneratedRegex("{(moneyValue|boardSpace) ([^}]+)}")]
     private static partial Regex CardDescriptionRegex();
+
+    public static Embed SpeedingDieRolled(GamePlayer player, GameDie die)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Roll")
+            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]}. The policemen are on their way!")
+            .Build().Get();
+    }
+
+    public static Embed FinalJailDieRolled(GamePlayer player, GameDie die)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Jail Roll")
+            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]}.")
+            .AddField("Attempts Remaining", "0 attempts remaining.").Get()
+            .Build().Get();
+    }
+
+    public static Embed JailDieDoublesRolled(GamePlayer player, GameDie die, Space landingSpace)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Roll")
+            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and left jail. They landed on **{landingSpace}**")
+            .Build().Get();
+    }
+
+    public static Embed JailBail(GamePlayer player, int bailFine)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Jail Fine")
+            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and has been released from Jail")
+            .Build().Get();
+    }
+    
+    public static Embed JailBail(GamePlayer player, int bailFine, Space landingSpace)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Jail Fine")
+            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and has been released from Jail. They landed on **{landingSpace}**")
+            .Build().Get();
+    }
+    
+    public static Embed GenericLanding(GamePlayer player, Space landingSpace)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Player Moved")
+            .WithDescription($"**{player}** landed on **{landingSpace}**")
+            .Build().Get();
+    }
 }

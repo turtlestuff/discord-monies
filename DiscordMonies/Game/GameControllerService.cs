@@ -1,18 +1,14 @@
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
-using DiscordMonies.Remora;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
-using Remora.Discord.Commands.Feedback.Messages;
+using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
-using Remora.Discord.Extensions.Embeds;
 using Remora.Discord.Extensions.Formatting;
-using Remora.Discord.Interactivity;
-using Remora.Results;
 
 namespace DiscordMonies.Game;
 
-public class GameControllerService(GameState state, IFeedbackService service)
+public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context)
 {
     /// <summary>
     /// Advances the turn to the next player and performs necessary actions.
@@ -23,7 +19,9 @@ public class GameControllerService(GameState state, IFeedbackService service)
         state.NextRequiredAction = GameAction.Roll;
         if (state.Die.BothDiesHaveSameValue)
         {
-            await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)} rolled doubles so it's their turn to roll again!", options: new()
+            await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
+                embeds: new([Embeds.TurnAdvancedDoubles(state.CurrentPlayer)]),
+                options: new()
             {
                 MessageComponents = new([
                     new ActionRowComponent([
@@ -41,17 +39,17 @@ public class GameControllerService(GameState state, IFeedbackService service)
         List<IMessageComponent> buttons = [
             Buttons.Roll()
         ];
-
-/*
-        if (false)
-        {
-            buttons.Insert(0, 
-                new ButtonComponent(ButtonComponentStyle.Danger, "Bail",
-                    CustomID: CustomIDHelpers.CreateButtonID("bail")));
-        }
-*/
         
-        await service.SendAsync(state.ThreadId, $"It is now the turn of {Mention.User(state.CurrentPlayer)}", options: new()
+        if (state.CurrentPlayer.JailTurns != -1)
+        {
+            buttons.Insert(0, Buttons.Bail(state.Board.JailFine));
+            
+            // TODO: Get out of jail free card
+        }
+        
+        await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
+            embeds: new([Embeds.TurnAdvanced(state.CurrentPlayer)]),
+            options: new()
         {
             MessageComponents = new([
                 new ActionRowComponent(buttons)
@@ -61,18 +59,66 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
     public async Task RollDie()
     {
-        // TODO: Jail logic
         var spaces = state.Die.Roll();
-        await service.SendContextualAsync($"{state.CurrentPlayer} rolled {state.Die.Die1} and {state.Die.Die2}");
+
+        if (state.CurrentPlayer.JailTurns != -1 && !state.Die.BothDiesHaveSameValue)
+        {
+            // Jail logic
+            state.CurrentPlayer.JailTurns++;
+            if (state.CurrentPlayer.JailTurns == 3)
+            {
+                await service.SendContextualEmbedAsync(Embeds.FinalJailDieRolled(state.CurrentPlayer, state.Die), new()
+                {
+                    MessageComponents = new([
+                        new ActionRowComponent([
+                            Buttons.Bail(state.Board.JailFine)                        
+                        ])
+                    ])
+                });
+                state.NextRequiredAction = GameAction.RequiredBailPayment;
+            }
+            else
+            {
+                await service.SendContextualEmbedAsync(Embeds.JailDieRolled(state.CurrentPlayer, state.Die,
+                    3 - state.CurrentPlayer.JailTurns));
+                
+                state.Die.Reset();
+
+                await AdvanceTurn();
+            }
+            return;
+        }
         
         if (state.Die is { BothDiesHaveSameValue: true, SpeedingCount: 3 })
         {
             // Caught speeding!
+            await service.SendContextualEmbedAsync(Embeds.SpeedingDieRolled(state.CurrentPlayer, state.Die));
             await SendToJail();
+            
+            // Reset the die so that they don't get another Doubles roll
+            state.Die.Reset();
+            
             await AdvanceTurn();
+            return;
         }
         
         await MovePlayerRelative(state.CurrentPlayer, spaces);
+
+        if (state.CurrentPlayer.JailTurns != -1)
+        {
+            // Rolled doubles to get out of jail!
+            await service.SendContextualEmbedAsync(Embeds.JailDieDoublesRolled(state.CurrentPlayer, state.Die,
+                state.CurrentPlayer.CurrentSpace));
+            state.CurrentPlayer.JailTurns = -1;
+            
+            // Reset the die so that they don't get another Doubles roll
+            state.Die.Reset();
+        }
+        else
+        {
+            await service.SendContextualEmbedAsync(Embeds.DieRolled(state.CurrentPlayer, state.Die,
+                state.CurrentPlayer.CurrentSpace));
+        }
 
         if (await ProcessPlayerLand())
         {
@@ -87,11 +133,14 @@ public class GameControllerService(GameState state, IFeedbackService service)
         if (!await TryPay(state.CurrentPlayer, null, value))
         {
             await service.SendContextualAsync(
-                $"Your balance is too low to buy {space}. You have {state.CurrentPlayer.MoneyString()}. You need {value.MoneyString()}.");
+                Strings.BalanceTooLow($"Your balance is too low to buy {space}", state.CurrentPlayer.Money, value));
             return;
         }
         
-        await service.SendContextualAsync($"Purchasing {space}...");
+        if (!context.Interaction.Message.HasValue)
+        {
+            await service.SendContextualAsync($"Purchasing {space}...");
+        }
 
         space.Owner = state.CurrentPlayer;
         await service.SendEmbedAsync(state.ThreadId, Embeds.PropertyObtained(state.CurrentPlayer, space));
@@ -203,8 +252,6 @@ public class GameControllerService(GameState state, IFeedbackService service)
     private async Task<bool> ProcessPlayerLand(bool bigRent = false)
     {
         var currentSpace = state.CurrentPlayer.CurrentSpace;
-        await service.SendAsync(state.ThreadId,
-            $"{state.CurrentPlayer} landed on {currentSpace}");
 
         switch (currentSpace.Info)
         {
@@ -293,10 +340,14 @@ public class GameControllerService(GameState state, IFeedbackService service)
 
                 case "warp":
                     await MovePlayer(state.CurrentPlayer, int.Parse(parts[1]));
+                    await service.SendEmbedAsync(state.ThreadId,
+                        Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
                     return await ProcessPlayerLand();
 
                 case "warprel":
                     await MovePlayerRelative(state.CurrentPlayer, int.Parse(parts[1]));
+                    await service.SendEmbedAsync(state.ThreadId,
+                        Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
                     return await ProcessPlayerLand();
 
                 case "jailfree":
@@ -326,6 +377,8 @@ public class GameControllerService(GameState state, IFeedbackService service)
                     }
 
                     await MovePlayer(state.CurrentPlayer, loc);
+                    await service.SendEmbedAsync(state.ThreadId,
+                        Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
                     return await ProcessPlayerLand(true);
 
                 case "recvall":
@@ -437,7 +490,12 @@ public class GameControllerService(GameState state, IFeedbackService service)
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task SendToJail()
     {
-        
+        await MovePlayer(state.CurrentPlayer, state.Board.Spaces.Select((space, i) => (space, i))
+            .First(x => x.space.Info is JailSpace).i, false);
+
+        state.CurrentPlayer.JailTurns = 0;
+
+        await service.SendEmbedAsync(state.ThreadId, Embeds.SentToJail(state.CurrentPlayer));
     }
 
     public async Task SendPropertyToAuction()
@@ -449,5 +507,56 @@ public class GameControllerService(GameState state, IFeedbackService service)
             $"Auction is currently not supported. Advancing the turn to the next player...");
         
         await AdvanceTurn();
+    }
+
+    public async Task Bail()
+    {
+        if (state.CurrentPlayer.JailTurns == -1)
+        {
+            await service.SendContextualAsync("You can't bail from jail right now");
+            return;
+        }
+        
+        if (state.NextRequiredAction == GameAction.RequiredBailPayment)
+        {
+            if (!context.Interaction.Message.HasValue)
+            {
+                await service.SendContextualAsync("Bailing from jail...");
+            }
+
+            state.CurrentPlayer.JailTurns = -1;
+            await Pay(state.CurrentPlayer, null, state.Board.JailFine);
+            await MovePlayerRelative(state.CurrentPlayer, state.Die.Total);
+            await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(state.CurrentPlayer, state.Board.JailFine, state.CurrentPlayer.CurrentSpace));
+            if (await ProcessPlayerLand())
+            {
+                await AdvanceTurn();
+            }
+        }
+        else
+        {
+            if (!await TryPay(state.CurrentPlayer, null, state.Board.JailFine))
+            {
+                await service.SendContextualAsync(Strings.BalanceTooLow("Your balance is too low to bail from jail", state.CurrentPlayer.Money, state.Board.JailFine));
+                return;
+            }
+
+            if (!context.Interaction.Message.HasValue)
+            {
+                await service.SendContextualAsync("Bailing from jail...");
+            }
+            
+            state.CurrentPlayer.JailTurns = -1;
+
+            await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(state.CurrentPlayer, state.Board.JailFine),
+                new()
+                {
+                    MessageComponents = new([
+                        new ActionRowComponent([
+                            Buttons.Roll()
+                        ])
+                    ])
+                });
+        }
     }
 }

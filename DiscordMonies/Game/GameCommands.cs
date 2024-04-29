@@ -52,6 +52,16 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
         await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
         return Result.Success;
     }
+    
+    [Command("bail")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.Roll, GameAction.RequiredBailPayment, ErrorMessage = "You can't bail from jail right now")]
+    [Ephemeral]
+    public async Task<Result> Bail()
+    {
+        await gameControllerService.Bail();
+        return Result.Success;
+    }
 }
 
 [Group("property")]
@@ -105,6 +115,16 @@ public class GameInteractions(GameControllerService gameControllerService) : Int
     public async Task<Result> SendToAuction()
     {
         await gameControllerService.SendPropertyToAuction();
+        return Result.Success;
+    }
+    
+    [Button("bail")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.Roll, GameAction.RequiredBailPayment, ErrorMessage = "You can't bail from jail right now")]
+    [Ephemeral]
+    public async Task<Result> Bail()
+    {
+        await gameControllerService.Bail();
         return Result.Success;
     }
 }

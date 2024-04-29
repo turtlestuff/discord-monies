@@ -50,6 +50,8 @@ public sealed record GameBoard
 
     public int PassGoValue { get; }
 
+    public int JailFine => Info.JailFine;
+
     public GameBoard(
         BoardInfo info)
     {
