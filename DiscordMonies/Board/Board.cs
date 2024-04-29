@@ -24,6 +24,8 @@ public sealed record LuckCard(
 
 public sealed class Space
 {
+    public required GameBoard Board { get; init; }
+    
     public required BoardSpace Info { get; init; }
 
     public required TitleDeed? TitleDeed { get; init;  }
@@ -31,9 +33,17 @@ public sealed class Space
     public GamePlayer? Owner { get; set; }
 
     public int BuiltHouses { get; set; }
+    
     public bool IsMortgaged => BuiltHouses == -1;
+    
+    public int Index { get; set; }
 
-    public override string ToString() => Info.Name;
+    public string PositionString => Index % 10 == 0 ? string.Empty : $" ({(char) ('A' + Index / 10)}{Index % 10})";
+
+    public string NameWithPositionString =>
+        ToString() + (string.IsNullOrEmpty(PositionString) ? string.Empty : PositionString);
+
+    public override string ToString() => $"{Info.Name}";
 }
 
 public sealed record GameBoard
@@ -52,6 +62,10 @@ public sealed record GameBoard
 
     public int JailFine => Info.JailFine;
 
+    public SpaceBounds JailBounds => Info.JailBounds;
+
+    public ImmutableArray<string> GroupNames => Info.GroupNames;
+
     public GameBoard(
         BoardInfo info)
     {
@@ -67,6 +81,6 @@ public sealed record GameBoard
             from space in info.Board.BoardSpaces.Select((s, i) => (Space: s, Index: i))
             join deed in info.TitleDeeds on space.Index equals deed.Position into spaceDeed
             from deed in spaceDeed.DefaultIfEmpty()
-            select new Space { Info = space.Space, TitleDeed = deed }];
+            select new Space { Board = this, Info = space.Space, Index = space.Index, TitleDeed = deed }];
     }
 }

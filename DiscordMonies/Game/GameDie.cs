@@ -21,9 +21,6 @@ public class GameDie
         
         Die1 = Random.Shared.Next(6) + 1;
         Die2 = Random.Shared.Next(6) + 1;
-
-        Die1 = 1;
-        Die2 = 2;
         
         return Die1 + Die2;
     }

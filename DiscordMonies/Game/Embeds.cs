@@ -77,23 +77,31 @@ public partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Next Round")
-            .WithDescription($"It's {currentPlayer}'s turn.")
+            .WithDescription($"It's **{currentPlayer}**'s turn.")
+            .WithImageUrl("attachment://board.png")
+            .AddField("Current Player", currentPlayer.ToString(), true).Get()
+            .AddField("Current Position", currentPlayer.CurrentSpace.NameWithPositionString, true).Get()
+            .AddField("Player Colour", currentPlayer.Color.Name, true).Get()
             .Build().Get();
     }
+    
     public static Embed TurnAdvancedDoubles(GamePlayer currentPlayer)
     {
         return new EmbedBuilder()
             .WithTitle("Next Round")
-            .WithDescription($"It's {currentPlayer}'s turn again because they rolled doubles.")
+            .WithDescription($"It's **{currentPlayer}**'s turn again because they rolled doubles.")
+            .WithImageUrl("attachment://board.png")
+            .AddField("Current Player", currentPlayer.ToString(), true).Get()
+            .AddField("Current Position", currentPlayer.CurrentSpace.NameWithPositionString, true).Get()
+            .AddField("Player Colour", currentPlayer.Color.Name, true).Get()
             .Build().Get();
     }
-    
 
     public static Embed DieRolled(GamePlayer player, GameDie die, Space landingSpace)
     {
         return new EmbedBuilder()
             .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and landed on **{landingSpace}**")
+            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and landed on **{landingSpace.NameWithPositionString}**")
             .Build().Get();
     }
     
@@ -130,7 +138,7 @@ public partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and left jail. They landed on **{landingSpace}**")
+            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and left jail. They landed on **{landingSpace.NameWithPositionString}**")
             .Build().Get();
     }
 
@@ -146,7 +154,7 @@ public partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Jail Fine")
-            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and has been released from Jail. They landed on **{landingSpace}**")
+            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and has been released from Jail. They landed on **{landingSpace.NameWithPositionString}**")
             .Build().Get();
     }
     
@@ -154,7 +162,7 @@ public partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Player Moved")
-            .WithDescription($"**{player}** landed on **{landingSpace}**")
+            .WithDescription($"**{player}** landed on **{landingSpace.NameWithPositionString}**")
             .Build().Get();
     }
 }

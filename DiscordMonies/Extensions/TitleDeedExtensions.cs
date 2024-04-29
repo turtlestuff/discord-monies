@@ -18,7 +18,7 @@ public static class SpaceExtensions
         return space.Info switch
         {
             RoadSpace roadSpace => new EmbedBuilder()
-                .WithTitle($"Title Deed for {space} (Group #{roadSpace.Group})")
+                .WithTitle($"Title Deed for {space} ({space.Board.GroupNames[roadSpace.Group]})")
                 .WithDescription($"Value: {valueSpace.Value.MoneyString()}")
                 .AddField("Rent Values", $"""
                                           RENT: {space.TitleDeed!.RentValues[0].MoneyString()}

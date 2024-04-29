@@ -159,20 +159,23 @@ public class LobbyInteractions(
             Board = new(board)
         };
 
-        foreach (var playerId in lobby.Players)
+        var shuffledColors = GamePlayer.ColorList.OrderBy(_ => Random.Shared.Next()).ToArray();
+
+        foreach (var (playerId, color) in lobby.Players.Select((player, i) => (player, shuffledColors[i])))
         {
             var member = await guildApi.GetGuildMemberAsync(lobby.GuildId, playerId).AsThrowing();
             var user = member.User.Value;
             var displayName = member.Nickname.OrDefault() ?? user.Username;
 
-            gameState.Players.Add(new GamePlayer
+            gameState.Players.Add(new()
             {
                 GuildMember = member,
                 User = user,
                 Id = playerId,
                 DisplayName = displayName,
                 GameState = gameState,
-                Money = board.Board.StartingMoney
+                Money = board.Board.StartingMoney,
+                Color = color
             });
         }
 

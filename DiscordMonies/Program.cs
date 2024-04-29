@@ -37,7 +37,8 @@ builder.Services
     .AddSingleton<GameService>()
     .AddSingleton<BoardService>()
     .AddScoped<GameControllerService>()
-    .AddScoped<GameStateInjector>();
+    .AddScoped<GameStateInjector>()
+    .AddScoped<BoardRenderer>();
 
 builder.Services
     .AddTransient<GameState>(s => s.GetRequiredService<GameStateInjector>().GameState!);

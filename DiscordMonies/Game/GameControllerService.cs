@@ -1,6 +1,7 @@
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
 using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
@@ -8,7 +9,7 @@ using Remora.Discord.Extensions.Formatting;
 
 namespace DiscordMonies.Game;
 
-public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context)
+public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context, BoardRenderer renderer)
 {
     /// <summary>
     /// Advances the turn to the next player and performs necessary actions.
@@ -23,6 +24,9 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 embeds: new([Embeds.TurnAdvancedDoubles(state.CurrentPlayer)]),
                 options: new()
             {
+                Attachments = new([
+                    new FileData("board.png", renderer.RenderToStream())
+                ]),
                 MessageComponents = new([
                     new ActionRowComponent([
                         Buttons.Roll()
@@ -51,6 +55,9 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             embeds: new([Embeds.TurnAdvanced(state.CurrentPlayer)]),
             options: new()
         {
+            Attachments = new([
+                new FileData("board.png", renderer.RenderToStream())
+            ]),
             MessageComponents = new([
                 new ActionRowComponent(buttons)
             ])

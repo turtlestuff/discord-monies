@@ -1,4 +1,5 @@
-﻿using DiscordMonies.Board;
+﻿using System.Collections.Immutable;
+using DiscordMonies.Board;
 
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Rest.Core;
@@ -7,8 +8,21 @@ using System.Drawing;
 
 namespace DiscordMonies.Game;
 
+public record NamedColor(string Name, Color Color);
+
 public sealed record GamePlayer : IUser
 {
+    public static readonly ImmutableArray<NamedColor> ColorList = [
+        new("red", System.Drawing.Color.FromArgb(255, 70, 70)),
+        new("orange", System.Drawing.Color.FromArgb(255, 163, 76)),
+        new("yellow", System.Drawing.Color.FromArgb(255, 251, 140)),
+        new("green", System.Drawing.Color.FromArgb(118, 202, 38)),
+        new("cyan", System.Drawing.Color.FromArgb(31, 255, 255)),
+        new("blue", System.Drawing.Color.FromArgb(140, 143, 232)),
+        new("pink", System.Drawing.Color.FromArgb(255, 136, 210)),
+        new("gray", System.Drawing.Color.FromArgb(192, 192, 192))
+    ];
+    
     public required IGuildMember GuildMember { get; set; }
     public required IUser User { get; set; }
     public required Snowflake Id { get; init; }
@@ -20,6 +34,8 @@ public sealed record GamePlayer : IUser
     public int JailTurns { get; set; } = -1;
 
     public int Position { get; set; }
+    
+    public required NamedColor Color { get; init; }
     
     public Space CurrentSpace => GameState.Board.Spaces[Position];
 
