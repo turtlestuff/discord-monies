@@ -30,7 +30,9 @@ builder.Services
     .AddCondition<RequiresPlayerCondition>()
     .AddCondition<NextRequiredActionCondition>()
     .AddParser<GamePlayerParser>()
-    .AddParser<SpaceParser>();
+    .AddParser<SpaceParser>()
+    .AddParser<ColorSetParser>()
+    .AddAutocompleteProvider<ColorSetAutocompleteProvider>();
 
 builder.Services
     .AddSingleton<LobbyService>()

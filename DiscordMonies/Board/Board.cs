@@ -22,6 +22,8 @@ public sealed record LuckCard(
     string Description,
     string Command);
 
+public record ColorSet(int Index);
+
 public sealed class Space
 {
     public required GameBoard Board { get; init; }
@@ -65,6 +67,10 @@ public sealed record GameBoard
     public SpaceBounds JailBounds => Info.JailBounds;
 
     public ImmutableArray<string> GroupNames => Info.GroupNames;
+
+    public int HotelsRemaining => 12 - Spaces.Select(x => x.BuiltHouses).Count(houses => houses == 5);
+    
+    public int HousesRemaining => 32 - Spaces.Select(x => x.BuiltHouses).Where(houses => houses != 5 && houses != -1).Sum();
 
     public GameBoard(
         BoardInfo info)

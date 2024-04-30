@@ -13,3 +13,5 @@ internal sealed record NotPlayerInGameError() : DiscordMoniesError("You can only
 internal sealed record NotCurrentPlayerError() : DiscordMoniesError("You can only use this command if it's your turn.");
 
 internal sealed record NotGameSpaceError() : DiscordMoniesError("That's not a valid space on the board.");
+
+internal sealed record NotColorSetError() : DiscordMoniesError("That's not a valid color set.");

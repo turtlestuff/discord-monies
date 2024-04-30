@@ -61,7 +61,6 @@ public static partial class Embeds
             }
 
             return value;
-
         });
 
         
@@ -80,7 +79,7 @@ public static partial class Embeds
             .WithDescription($"It's **{currentPlayer}**'s turn.")
             .WithImageUrl("attachment://board.png")
             .AddField("Current Player", currentPlayer.ToString(), true).Get()
-            .AddField("Current Position", currentPlayer.CurrentSpace.NameWithPositionString, true).Get()
+            .AddField("Current Position", currentPlayer.JailTurns != -1 ? "In Jail" : currentPlayer.CurrentSpace.NameWithPositionString, true).Get()
             .AddField("Player Colour", currentPlayer.Color.Name, true).Get()
             .Build().Get();
     }

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
 using DiscordMonies.Remora;
@@ -98,6 +99,42 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
         await gameControllerService.Bail();
         return Result.Success;
     }
+
+    [Command("develop")]
+    [Description("Build or demolish houses or hotels on properties")]
+    [RequiresPlayer(PlayerType.Player)]
+    [SuppressInteractionResponse(true)]
+    [CommandType(ApplicationCommandType.ChatInput)]
+    [Ephemeral]
+    public async Task<Result> Develop([Description("The colour set to build on")] [Autocomplete] ColorSet colorSet)
+    {
+        var player = gameState.GetById(ctx.GetUserId());
+        var options = await gameControllerService.DevelopOptions(player, colorSet);
+
+        if (options.Count == 0)
+        {
+            await feedback.SendContextualAsync(
+                Strings.UnableToDevelopOnColourSet(gameState.Board.GroupNames[colorSet.Index]));
+            return Result.Success;
+        }
+        
+        var response = await interactionApi.CreateInteractionResponseAsync(ctx.Interaction.ID, ctx.Interaction.Token,
+            new InteractionResponse(InteractionCallbackType.Modal, new(new InteractionModalCallbackData(
+                CustomIDHelpers.CreateModalIDWithState("do-develop", $"{colorSet.Index}"),
+                $"Develop properties - {gameState.Board.GroupNames[colorSet.Index]}",
+                options.Select((space, i) => space.IsMortgaged ? null : new ActionRowComponent([new TextInputComponent(
+                    $"space-{i}",
+                    TextInputStyle.Short,
+                    $"Houses on {(space.ToString().Length > 15 ? $"{space.ToString()[..15]}..." : space)} (5 for hotel)",
+                    1,
+                    1,
+                    true,
+                    $"{space.BuiltHouses}",
+                    "Number of houses"
+                )])).Where(component => component is not null).ToImmutableList()!
+            ))));
+        return response;
+    }
 }
 
 [Group("property")]
@@ -124,7 +161,7 @@ public class GamePropertyCommands(
     }
 }
 
-public class GameInteractions(GameControllerService gameControllerService) : InteractionGroup
+public class GameInteractions(GameState gameState, IInteractionCommandContext ctx, GameControllerService gameControllerService) : InteractionGroup
 {
     [Button("roll")]
     [RequiresPlayer(PlayerType.CurrentPlayer)]
@@ -174,6 +211,15 @@ public class GameInteractions(GameControllerService gameControllerService) : Int
         }
         
         // Drop the player from the game
+        return Result.Success;
+    }
+    
+    [Modal("do-develop")]
+    [RequiresPlayer(PlayerType.Player)]
+    public async Task<Result> DoDevelop(int state, int space0 = 0, int space1 = 0, int space2 = 0)
+    {
+        var player = gameState.GetById(ctx.GetUserId());
+        await gameControllerService.DevelopProperties(player, new(state), (IList<int>)[space0, space1, space2]);
         return Result.Success;
     }
 }

@@ -1,10 +1,12 @@
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
+using DiscordMonies.Remora;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
+using Remora.Discord.Extensions.Embeds;
 using Remora.Discord.Extensions.Formatting;
 
 namespace DiscordMonies.Game;
@@ -164,6 +166,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// <returns>True if the player has enough funds to complete the transaction</returns>
     public async Task<bool> TryPay(GamePlayer? from, GamePlayer? to, int value)
     {
+        if (value < 0) return await TryPay(to, from, -value);
+        
         var payer = from?.DisplayName ?? "The Bank";
         var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
 
@@ -197,6 +201,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task Pay(GamePlayer? from, GamePlayer? to, int value)
     {
+        if (value < 0)
+        {
+            await Pay(to, from, -value);
+            return;
+        }
+        
         var payer = from?.DisplayName ?? "The Bank";
         var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
 
@@ -563,5 +573,193 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                     ])
                 });
         }
+    }
+
+    public async Task<IList<Space>> DevelopOptions(GamePlayer player, ColorSet colorSet)
+    {
+        var spaces = state.Board.Spaces.Where(x => x.Info is RoadSpace rs && rs.Group == colorSet.Index).ToList();
+        if (await ColourSetOwner((RoadSpace) spaces.First().Info) != player)
+        {
+            return [];
+        }
+
+        return spaces;
+    }
+
+    public async Task DevelopProperties(GamePlayer player, ColorSet colorSet, IEnumerable<int> targets)
+    {
+        var spaces = state.Board.Spaces.Where(x => x.Info is RoadSpace rs && rs.Group == colorSet.Index).ToList();
+        var usableTargets = targets.Take(spaces.Count).ToList();
+        
+        // Ensure no target is more than 1 away
+        var min = usableTargets.Min();
+        var max = usableTargets.Max();
+        if (min < 0)
+        {
+            await service.SendContextualAsync(
+                "Unable to develop properties as per your request. You can have a minimum of 0 houses on any property.", options: new()
+                {
+                    MessageFlags = new(MessageFlags.Ephemeral)
+                });
+            return;
+        }
+
+        if (max > 5)
+        {
+            await service.SendContextualAsync("Unable to develop properties as per your request. You can have a maximum of 1 hotel on any property.", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return;
+        }
+        
+        if (min + 2 <= max)
+        {
+            await service.SendContextualAsync("Unable to develop properties as per your request. You must build evenly on all properties in the set (all properties must have 2 houses before you can build 3 houses on one property)", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return;
+        }
+        
+        if (await ColourSetOwner((RoadSpace) spaces.First().Info) != player)
+        {
+            await service.SendContextualAsync(Strings.UnableToDevelopOnColourSet(state.Board.GroupNames[colorSet.Index]));
+            return;
+        }
+
+        var hotelsRemaining = state.Board.HotelsRemaining;
+        var housesRemaining = state.Board.HousesRemaining;
+        var price = 0;
+
+        // Ignore mortgaged properties
+        var spaceHouses = spaces.Select(x => x.IsMortgaged ? 0 : x.BuiltHouses).ToList();
+        
+        // Plan the build
+        while (!spaceHouses.SequenceEqual(usableTargets))
+        {
+            // These two variables should always be within one of each other
+            var spaceMax = spaceHouses.Max();
+            var spaceMin = spaceHouses.Min();
+            foreach (var (space, index) in spaceHouses.Select((space, index) => (space, index)).ToList())
+            {
+                var target = usableTargets[index];
+                if (space == target) continue;
+                
+                if (space < target && (space != spaceMax || spaceMin == spaceMax))
+                {
+                    if (space == 4)
+                    {
+                        // About to build a hotel
+                        if (hotelsRemaining == 0)
+                        {
+                            // Fail: Need to build a hotel but there are no more hotels
+                            await service.SendContextualAsync("No more hotels are available to service your request. (No changes were made to your properties.)", options: new()
+                            {
+                                MessageFlags = new(MessageFlags.Ephemeral)
+                            });
+                            return;
+                        }
+
+                        spaceHouses[index] = space + 1;
+                        housesRemaining += 4;
+                        hotelsRemaining -= 1;
+
+                        price += spaces[index].TitleDeed!.HotelCost;
+                    }
+                    else
+                    {
+                        if (housesRemaining == 0)
+                        {
+                            // Fail: Need to build a house but there are no more houses
+                            await service.SendContextualAsync("No more houses are available to service your request. (No changes were made to your properties.)", options: new()
+                            {
+                                MessageFlags = new(MessageFlags.Ephemeral)
+                            });
+                            return;
+                        }
+
+                        spaceHouses[index] = space + 1;
+                        housesRemaining -= 1;
+                        price += spaces[index].TitleDeed!.HouseCost;
+                    }
+                }
+                else if (space > target && space != spaceMin || spaceMin == spaceMax)
+                {
+                    if (space == 5)
+                    {
+                        // About to demolish a hotel
+                        if (housesRemaining < 4)
+                        {
+                            // Fail: Need to demolish a hotel but there are no more houses
+                            await service.SendContextualAsync("No more houses are available to service your request because demolishing a hotel requires 4 houses to be available. (No changes were made to your properties.)", options: new()
+                            {
+                                MessageFlags = new(MessageFlags.Ephemeral)
+                            });
+                            return;
+                        }
+
+                        spaceHouses[index] = space - 1;
+                        housesRemaining -= 4;
+                        hotelsRemaining += 1;
+
+                        price -= spaces[index].TitleDeed!.HotelCost / 2;
+                    }
+                    else
+                    {
+                        // About to demolish a house
+                        spaceHouses[index] = space - 1;
+                        housesRemaining += 1;
+                        price -= spaces[index].TitleDeed!.HouseCost / 2;
+                    }
+                }
+            }
+        }
+
+        if (!await TryPay(player, null, price))
+        {
+            await service.SendContextualAsync(
+                Strings.BalanceTooLow("Your balance is too low to complete the required development", player.Money,
+                    price), options: new()
+                {
+                    MessageFlags = new(MessageFlags.Ephemeral)
+                });
+            return;
+        }
+        
+        // Everything is okay!
+
+        var embedBuilder = new EmbedBuilder()
+            .WithTitle($"Development on {state.Board.GroupNames[colorSet.Index]}")
+            .WithDescription($"Development on {state.Board.GroupNames[colorSet.Index]} has been completed by **{player}**. The changes are as follows:");
+        
+        foreach (var (target, index) in usableTargets.Select((x, i) => (x, i)))
+        {
+            string FormatHouseNumber(int houseNumber)
+            {
+                return houseNumber switch
+                {
+                    0 => "0 houses",
+                    1 => "1 house",
+                    2 => "2 houses",
+                    3 => "3 houses",
+                    4 => "4 houses",
+                    5 => "Hotel",
+                    _ => throw new ArgumentOutOfRangeException(nameof(houseNumber), houseNumber, null)
+                };
+            }
+            
+            var space = spaces[index];
+            if (space.IsMortgaged)
+            {
+                embedBuilder.AddField(space.ToString(), "Mortgaged", true);
+                continue;
+            }
+            
+            embedBuilder.AddField(space.ToString(), $"**Was:** {FormatHouseNumber(space.BuiltHouses)}\n**Now:** {FormatHouseNumber(target)}", true);
+            space.BuiltHouses = target;
+        }
+
+        await service.SendContextualEmbedAsync(embedBuilder.Build().Get());
     }
 }
