@@ -167,7 +167,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         var payer = from?.DisplayName ?? "The Bank";
         var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
 
-        // Decrease the money of the payer if he/she exists
+        // Decrease the money of the payer if they exist
         if (from != null)
         {
             if (from.Money < value)
@@ -178,7 +178,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             from.Money -= value;
         }
 
-        // Increase the money of the payee if he/she exists
+        // Increase the money of the payee if they exist
         if (to != null)
         {
             to.Money += value;
@@ -200,13 +200,13 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         var payer = from?.DisplayName ?? "The Bank";
         var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
 
-        // Decrease the money of the payer if he/she exists
+        // Decrease the money of the payer if they exist
         if (from != null)
         {
             from.Money -= value;
         }
 
-        // Increase the money of the payee if he/she exists
+        // Increase the money of the payee if they exist
         if (to != null)
         {
             to.Money += value;
@@ -303,101 +303,96 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         // Complete the action
         var parts = card.Command.Split(' ');
         switch (parts[0])
-            {
-                case "arrest":
-                    await SendToJail();
-                    return true;
+        {
+            case "arrest":
+                await SendToJail();
+                return true;
 
-                case "give":
-                    await Pay(null, state.CurrentPlayer, int.Parse(parts[1]));
-                    return true;
+            case "give":
+                await Pay(null, state.CurrentPlayer, int.Parse(parts[1]));
+                return true;
 
-                case "pay":
-                    await Pay(state.CurrentPlayer, null, int.Parse(parts[1]));
-                    return true;
+            case "pay":
+                await Pay(state.CurrentPlayer, null, int.Parse(parts[1]));
+                return true;
 
-                case "repairs":
+            case "repairs":
+                {
+                    var houseValue = int.Parse(parts[1]);
+                    var hotelValue = int.Parse(parts[2]);
+
+                    var total = state.Board.Spaces.Aggregate(0, (currentTotal, space) =>
                     {
-                        var houseValue = int.Parse(parts[1]);
-                        var hotelValue = int.Parse(parts[2]);
-
-                        var total = state.Board.Spaces.Aggregate(0, (currentTotal, space) =>
+                        if (space.Info is not RoadSpace)
                         {
-                            if (space.Info is not RoadSpace)
-                            {
-                                return currentTotal;
-                            }
-                            
-                            if (space.Owner != state.CurrentPlayer)
-                            {
-                                return currentTotal;
-                            }
+                            return currentTotal;
+                        }
+                        
+                        if (space.Owner != state.CurrentPlayer)
+                        {
+                            return currentTotal;
+                        }
 
-                            if (space.BuiltHouses == 5)
-                            {
-                                return currentTotal + hotelValue;
-                            }
+                        if (space.BuiltHouses == 5)
+                        {
+                            return currentTotal + hotelValue;
+                        }
 
-                            return currentTotal + space.BuiltHouses * houseValue;
-                        });
+                        return currentTotal + space.BuiltHouses * houseValue;
+                    });
 
-                        await Pay(state.CurrentPlayer, null, total);
-                        return true;
-                    }
-
-                case "warp":
-                    await MovePlayer(state.CurrentPlayer, int.Parse(parts[1]));
-                    await service.SendEmbedAsync(state.ThreadId,
-                        Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
-                    return await ProcessPlayerLand();
-
-                case "warprel":
-                    await MovePlayerRelative(state.CurrentPlayer, int.Parse(parts[1]));
-                    await service.SendEmbedAsync(state.ThreadId,
-                        Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
-                    return await ProcessPlayerLand();
-
-                case "jailfree":
-                    // TODO: Implement Get Out of Jail Free cards
+                    await Pay(state.CurrentPlayer, null, total);
                     return true;
+                }
 
-                case "paychance":
-                    // TODO: Implement Take Card or Pay
-                    // waiting = Waiting.ForTakeCardOrPayDecision;
-                    // payOrTakeCardVal = int.Parse(parts[1]);
-                    // payOrTakeCardType = CardType.Chance;
-                    return true;
+            case "warp":
+                await MovePlayer(state.CurrentPlayer, int.Parse(parts[1]));
+                await service.SendEmbedAsync(state.ThreadId,
+                    Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
+                return await ProcessPlayerLand();
 
-                case "advance":
-                    int loc;
-                    if (parts[1] == "utility")
-                    {
-                        loc = state.Board.Spaces.FirstIndexAfterIndex(state.CurrentPlayer.Position, s => s.Info is UtilitySpace);
-                    }
-                    else if (parts[1] == "station")
-                    {
-                        loc = state.Board.Spaces.FirstIndexAfterIndex(state.CurrentPlayer.Position, s => s.Info is TrainStationSpace);
-                    }
-                    else
-                    {   
-                        throw new ArgumentException("Invalid type for `advance`");
-                    }
+            case "warprel":
+                await MovePlayerRelative(state.CurrentPlayer, int.Parse(parts[1]));
+                await service.SendEmbedAsync(state.ThreadId,
+                    Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
+                return await ProcessPlayerLand();
 
-                    await MovePlayer(state.CurrentPlayer, loc);
-                    await service.SendEmbedAsync(state.ThreadId,
-                        Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
-                    return await ProcessPlayerLand(true);
+            case "jailfree":
+                // TODO: Implement Get Out of Jail Free cards
+                return true;
 
-                case "recvall":
-                    var paymentAmount = int.Parse(parts[1]);
-                    foreach (var player in state.Players.Where(x => x != state.CurrentPlayer))
-                    {
-                        await Pay(player, state.CurrentPlayer, paymentAmount);
-                    }
-                    return true;
-                default:
-                    return true;
-            }
+            case "paychance":
+                // TODO: Implement Take Card or Pay
+                // waiting = Waiting.ForTakeCardOrPayDecision;
+                // payOrTakeCardVal = int.Parse(parts[1]);
+                // payOrTakeCardType = CardType.Chance;
+                return true;
+
+            case "advance":
+                var loc = parts[1] switch
+                {
+                    "utility" => state.Board.Spaces.FirstIndexAfterIndex(state.CurrentPlayer.Position,
+                        s => s.Info is UtilitySpace),
+                    "station" => state.Board.Spaces.FirstIndexAfterIndex(state.CurrentPlayer.Position,
+                        s => s.Info is TrainStationSpace),
+                    _ => throw new ArgumentException("Invalid type for `advance`")
+                };
+
+                await MovePlayer(state.CurrentPlayer, loc);
+                await service.SendEmbedAsync(state.ThreadId,
+                    Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
+                return await ProcessPlayerLand(true);
+
+            case "recvall":
+                var paymentAmount = int.Parse(parts[1]);
+                foreach (var player in state.Players.Where(x => x != state.CurrentPlayer))
+                {
+                    await Pay(player, state.CurrentPlayer, paymentAmount);
+                }
+                return true;
+            default:
+                return true;
+        }
     }
 
     /// <summary>
@@ -461,19 +456,22 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             RoadSpace => ps.TitleDeed!.RentValues[ps.BuiltHouses],
             
             TrainStationSpace when bigRent => await CalculateRent(ps, false) * 2,
-            TrainStationSpace => ps.TitleDeed!.RentValues[0] << (state.Board.Spaces
-                .Where(space => space.Info is TrainStationSpace)
-                .Select(space => space.Owner)
-                .Count(owner => owner == ps.Owner) - 1),
+            TrainStationSpace => ps.TitleDeed!.RentValues[0] << (CountOwned<TrainStationSpace>(ps.Owner) - 1),
             
             UtilitySpace when bigRent => state.Die * 10,
-            UtilitySpace => state.Board.Spaces
-                .Where(space => space.Info is UtilitySpace)
-                .Select(space => space.Owner)
-                .Count(owner => owner == ps.Owner) == 1 ?
-                state.Die * 4 : state.Die * 10,
+            UtilitySpace => CountOwned<UtilitySpace>(ps.Owner) switch
+            {
+                1 => state.Die * 4,
+                _ => state.Die * 10
+            },
             _ => throw new InvalidOperationException()
         };
+        
+        int CountOwned<T>(GamePlayer? player) where T : BoardSpace =>
+            state.Board.Spaces
+                .Where(space => space.Info is T)
+                .Select(space => space.Owner)
+                .Count(owner => owner == player);
     }
 
     /// <summary>
