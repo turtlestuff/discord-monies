@@ -7,7 +7,7 @@ using Remora.Discord.Extensions.Embeds;
 
 namespace DiscordMonies.Game;
 
-public partial class Embeds
+public static partial class Embeds
 {
     private static readonly string[] Dies = [
         "1",
@@ -97,19 +97,19 @@ public partial class Embeds
             .Build().Get();
     }
 
-    public static Embed DieRolled(GamePlayer player, GameDie die, Space landingSpace)
+    public static Embed DieRolled(GamePlayer player, GameDice dice, Space landingSpace)
     {
         return new EmbedBuilder()
             .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and landed on **{landingSpace.NameWithPositionString}**")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]} and landed on **{landingSpace.NameWithPositionString}**")
             .Build().Get();
     }
     
-    public static Embed JailDieRolled(GamePlayer player, GameDie die, int attempts)
+    public static Embed JailDieRolled(GamePlayer player, GameDice dice, int attempts)
     {
         return new EmbedBuilder()
             .WithTitle("Jail Roll")
-            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]}.")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}.")
             .AddField("Attempts Remaining", $"{attempts} attempts remaining").Get()
             .Build().Get();
     }
@@ -117,28 +117,28 @@ public partial class Embeds
     [GeneratedRegex("{(moneyValue|boardSpace) ([^}]+)}")]
     private static partial Regex CardDescriptionRegex();
 
-    public static Embed SpeedingDieRolled(GamePlayer player, GameDie die)
+    public static Embed SpeedingDieRolled(GamePlayer player, GameDice dice)
     {
         return new EmbedBuilder()
             .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]}. The policemen are on their way!")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}. The policemen are on their way!")
             .Build().Get();
     }
 
-    public static Embed FinalJailDieRolled(GamePlayer player, GameDie die)
+    public static Embed FinalJailDieRolled(GamePlayer player, GameDice dice)
     {
         return new EmbedBuilder()
             .WithTitle("Jail Roll")
-            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]}.")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}.")
             .AddField("Attempts Remaining", "0 attempts remaining.").Get()
             .Build().Get();
     }
 
-    public static Embed JailDieDoublesRolled(GamePlayer player, GameDie die, Space landingSpace)
+    public static Embed JailDieDoublesRolled(GamePlayer player, GameDice dice, Space landingSpace)
     {
         return new EmbedBuilder()
             .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[die.Die1 - 1]} {Dies[die.Die2 - 1]} and left jail. They landed on **{landingSpace.NameWithPositionString}**")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]} and left jail. They landed on **{landingSpace.NameWithPositionString}**")
             .Build().Get();
     }
 

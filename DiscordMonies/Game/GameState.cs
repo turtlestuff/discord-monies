@@ -32,7 +32,7 @@ public partial class GameState
     
     public required GameBoard Board { get; init; }
 
-    public GameDie Die { get; } = new();
+    public GameDice Dice { get; } = new();
 
     public GameAction NextRequiredAction { get; set; }
 }

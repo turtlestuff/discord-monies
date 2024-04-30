@@ -1,12 +1,12 @@
 namespace DiscordMonies.Game;
 
-public class GameDie
+public class GameDice
 {
-    public int Die1 { get; set; } = 1;
+    public int Die1 { get; private set; } = 1;
 
-    public int Die2 { get; set; } = 1;
+    public int Die2 { get; private set; } = 1;
     
-    public bool BothDiesHaveSameValue => Die1 == Die2 && !WasReset;
+    public bool DoubleRoll => Die1 == Die2 && !WasReset;
 
     public int SpeedingCount { get; private set; }
     
@@ -31,7 +31,7 @@ public class GameDie
         SpeedingCount = 0;
     }
     
-    public static implicit operator int(GameDie d)
+    public static implicit operator int(GameDice d)
     {
         return d.Die1 + d.Die2;
     }

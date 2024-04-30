@@ -18,7 +18,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     private async Task AdvanceTurn()
     {
         state.NextRequiredAction = GameAction.Roll;
-        if (state.Die.BothDiesHaveSameValue)
+        if (state.Dice.DoubleRoll)
         {
             await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
                 embeds: new([Embeds.TurnAdvancedDoubles(state.CurrentPlayer)]),
@@ -36,7 +36,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             return;
         }
         
-        state.Die.Reset();
+        state.Dice.Reset();
         state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
 
         // TODO: Render map and send embed
@@ -66,15 +66,15 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
     public async Task RollDie()
     {
-        var spaces = state.Die.Roll();
+        var spaces = state.Dice.Roll();
 
-        if (state.CurrentPlayer.JailTurns != -1 && !state.Die.BothDiesHaveSameValue)
+        if (state.CurrentPlayer.JailTurns != -1 && !state.Dice.DoubleRoll)
         {
             // Jail logic
             state.CurrentPlayer.JailTurns++;
             if (state.CurrentPlayer.JailTurns == 3)
             {
-                await service.SendContextualEmbedAsync(Embeds.FinalJailDieRolled(state.CurrentPlayer, state.Die), new()
+                await service.SendContextualEmbedAsync(Embeds.FinalJailDieRolled(state.CurrentPlayer, state.Dice), new()
                 {
                     MessageComponents = new([
                         new ActionRowComponent([
@@ -86,24 +86,24 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             }
             else
             {
-                await service.SendContextualEmbedAsync(Embeds.JailDieRolled(state.CurrentPlayer, state.Die,
+                await service.SendContextualEmbedAsync(Embeds.JailDieRolled(state.CurrentPlayer, state.Dice,
                     3 - state.CurrentPlayer.JailTurns));
                 
-                state.Die.Reset();
+                state.Dice.Reset();
 
                 await AdvanceTurn();
             }
             return;
         }
         
-        if (state.Die is { BothDiesHaveSameValue: true, SpeedingCount: 3 })
+        if (state.Dice is { DoubleRoll: true, SpeedingCount: 3 })
         {
             // Caught speeding!
-            await service.SendContextualEmbedAsync(Embeds.SpeedingDieRolled(state.CurrentPlayer, state.Die));
+            await service.SendContextualEmbedAsync(Embeds.SpeedingDieRolled(state.CurrentPlayer, state.Dice));
             await SendToJail();
             
             // Reset the die so that they don't get another Doubles roll
-            state.Die.Reset();
+            state.Dice.Reset();
             
             await AdvanceTurn();
             return;
@@ -114,16 +114,16 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         if (state.CurrentPlayer.JailTurns != -1)
         {
             // Rolled doubles to get out of jail!
-            await service.SendContextualEmbedAsync(Embeds.JailDieDoublesRolled(state.CurrentPlayer, state.Die,
+            await service.SendContextualEmbedAsync(Embeds.JailDieDoublesRolled(state.CurrentPlayer, state.Dice,
                 state.CurrentPlayer.CurrentSpace));
             state.CurrentPlayer.JailTurns = -1;
             
             // Reset the die so that they don't get another Doubles roll
-            state.Die.Reset();
+            state.Dice.Reset();
         }
         else
         {
-            await service.SendContextualEmbedAsync(Embeds.DieRolled(state.CurrentPlayer, state.Die,
+            await service.SendContextualEmbedAsync(Embeds.DieRolled(state.CurrentPlayer, state.Dice,
                 state.CurrentPlayer.CurrentSpace));
         }
 
@@ -458,11 +458,11 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             TrainStationSpace when bigRent => await CalculateRent(ps, false) * 2,
             TrainStationSpace => ps.TitleDeed!.RentValues[0] << (CountOwned<TrainStationSpace>(ps.Owner) - 1),
             
-            UtilitySpace when bigRent => state.Die * 10,
+            UtilitySpace when bigRent => state.Dice * 10,
             UtilitySpace => CountOwned<UtilitySpace>(ps.Owner) switch
             {
-                1 => state.Die * 4,
-                _ => state.Die * 10
+                1 => state.Dice * 4,
+                _ => state.Dice * 10
             },
             _ => throw new InvalidOperationException()
         };
@@ -531,7 +531,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
             state.CurrentPlayer.JailTurns = -1;
             await Pay(state.CurrentPlayer, null, state.Board.JailFine);
-            await MovePlayerRelative(state.CurrentPlayer, state.Die.Total);
+            await MovePlayerRelative(state.CurrentPlayer, state.Dice.Total);
             await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(state.CurrentPlayer, state.Board.JailFine, state.CurrentPlayer.CurrentSpace));
             if (await ProcessPlayerLand())
             {
