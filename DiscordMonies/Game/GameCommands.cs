@@ -18,7 +18,7 @@ using Remora.Results;
 
 namespace DiscordMonies.Game;
 
-public class GameCommands(GameState gameState, IFeedbackService feedback, IInteractionCommandContext ctx, GameControllerService gameControllerService, IDiscordRestInteractionAPI interactionApi) : CommandGroup
+public class GameCommands(GameState gameState, IFeedbackService feedback, IInteractionCommandContext ctx, GameControllerService gameControllerService, IDiscordRestInteractionAPI interactionApi, BoardRenderer renderer) : CommandGroup
 {
     [Command("drop")]
     [Description("Leave the game")]
@@ -83,9 +83,24 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [Description("View the title deed for a property")]
     [RequiresPlayer(PlayerType.PlayerOrSpectator)]
     [Ephemeral]
-    public async Task<Result> Deed([Description("The space to view the title deed for")] Space space)
+    public async Task<Result> Deed([Description("The space to view the title deed for")] [Autocomplete] Space space)
     {
         await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
+        return Result.Success;
+    }
+
+    [Command("board")]
+    [Description("View the current state of the board")]
+    [RequiresPlayer(PlayerType.PlayerOrSpectator)]
+    [Ephemeral]
+    public async Task<Result> Board()
+    {
+        await feedback.SendContextualAsync("", options: new()
+        {
+            Attachments = new([
+                new FileData("board.png", renderer.RenderToStream())
+            ])
+        });
         return Result.Success;
     }
     

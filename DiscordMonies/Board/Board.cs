@@ -40,7 +40,9 @@ public sealed class Space
     
     public int Index { get; set; }
 
-    public string PositionString => Index % 10 == 0 ? string.Empty : $" ({(char) ('A' + Index / 10)}{Index % 10})";
+    public string PositionCode => $"{(char)('A' + Index / 10)}{Index % 10}";
+
+    public string PositionString => Index % 10 == 0 ? string.Empty : $" ({PositionCode})";
 
     public string NameWithPositionString =>
         ToString() + (string.IsNullOrEmpty(PositionString) ? string.Empty : PositionString);

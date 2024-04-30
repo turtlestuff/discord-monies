@@ -1,6 +1,10 @@
+using System.Collections.Immutable;
 using DiscordMonies.Board;
 using DiscordMonies.Game;
 using Remora.Commands.Parsers;
+using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.API.Objects;
+using Remora.Discord.Commands.Autocomplete;
 using Remora.Discord.Commands.Contexts;
 using Remora.Results;
 
@@ -27,5 +31,23 @@ public sealed class SpaceParser(GameService gameService, IInteractionContext ctx
         }
 
         return Result<Space>.FromSuccess(gameState.Board.Spaces[position]);
+    }
+}
+
+public sealed class SpaceAutocompleteProvider(GameService gameService, IInteractionContext ctx)
+    : IAutocompleteProvider<Space>
+{
+    public async ValueTask<IReadOnlyList<IApplicationCommandOptionChoice>> GetSuggestionsAsync(
+        IReadOnlyList<IApplicationCommandInteractionDataOption> options,
+        string userInput,
+        CancellationToken ct = new CancellationToken())
+    {
+        if (gameService.GetGameState(ctx) is not { } gameState)
+        {
+            return [];
+        }
+
+        return gameState.Board.Spaces.Where(space => space.NameWithPositionString.Contains(userInput, StringComparison.InvariantCultureIgnoreCase))
+            .Select(space => new ApplicationCommandOptionChoice(space.NameWithPositionString, space.PositionCode)).ToImmutableList();
     }
 }

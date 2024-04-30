@@ -44,6 +44,6 @@ public sealed class ColorSetAutocompleteProvider(GameService gameService, IInter
             return [];
         }
 
-        return gameState.Board.GroupNames.Select(name => new ApplicationCommandOptionChoice(name, name)).ToImmutableList();
+        return gameState.Board.GroupNames.Where(name => name.StartsWith(userInput, StringComparison.InvariantCultureIgnoreCase)).Select(name => new ApplicationCommandOptionChoice(name, name)).ToImmutableList();
     }
 }

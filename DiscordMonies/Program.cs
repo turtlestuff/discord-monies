@@ -32,6 +32,7 @@ builder.Services
     .AddParser<GamePlayerParser>()
     .AddParser<SpaceParser>()
     .AddParser<ColorSetParser>()
+    .AddAutocompleteProvider<SpaceAutocompleteProvider>()
     .AddAutocompleteProvider<ColorSetAutocompleteProvider>();
 
 builder.Services
