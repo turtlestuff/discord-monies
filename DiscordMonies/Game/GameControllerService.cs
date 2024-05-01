@@ -462,7 +462,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     {
         return ps.Info switch
         {
-            RoadSpace rs when await ColourSetOwner(rs) == ps.Owner && ps.BuiltHouses == 0 => ps.TitleDeed!.RentValues[0] * 2,
+            RoadSpace rs when ColourSetOwner(rs) == ps.Owner && ps.BuiltHouses == 0 => ps.TitleDeed!.RentValues[0] * 2,
             RoadSpace => ps.TitleDeed!.RentValues[ps.BuiltHouses],
             
             TrainStationSpace when bigRent => await CalculateRent(ps, false) * 2,
@@ -489,7 +489,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// </summary>
     /// <param name="ps">The road space whose colour group is being checked.</param>
     /// <returns>The owner of the colour set, or null if there is no owner.</returns>
-    public async Task<GamePlayer?> ColourSetOwner(RoadSpace ps)
+    public GamePlayer? ColourSetOwner(RoadSpace ps)
     {
         var owners = state.Board.Spaces
             .Where(space => space.Info is RoadSpace rs && rs.Group == ps.Group)
@@ -575,20 +575,35 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         }
     }
 
-    public async Task<IList<Space>> DevelopOptions(GamePlayer player, ColorSet colorSet)
+    public enum NotDevelopableReason
     {
-        var spaces = state.Board.Spaces.Where(x => x.Info is RoadSpace rs && rs.Group == colorSet.Index).ToList();
-        if (await ColourSetOwner((RoadSpace) spaces.First().Info) != player)
+        Developable,
+        NotOwned,
+        Mortgaged
+    }
+
+    public IList<Space> DevelopOptions(GamePlayer player, ColorSet colorSet, out NotDevelopableReason reason)
+    {
+        var spaces = SpacesInColorSet(colorSet).ToList();
+        if (ColourSetOwner((RoadSpace) spaces.First().Info) != player)
         {
+            reason = NotDevelopableReason.NotOwned;
             return [];
         }
 
+        if (spaces.Any(x => x.IsMortgaged))
+        {
+            reason = NotDevelopableReason.Mortgaged;
+            return [];
+        }
+
+        reason = NotDevelopableReason.Developable;
         return spaces;
     }
 
     public async Task DevelopProperties(GamePlayer player, ColorSet colorSet, IEnumerable<int> targets)
     {
-        var spaces = state.Board.Spaces.Where(x => x.Info is RoadSpace rs && rs.Group == colorSet.Index).ToList();
+        var spaces = SpacesInColorSet(colorSet).ToList();
         var usableTargets = targets.Take(spaces.Count).ToList();
         
         // Ensure no target is more than 1 away
@@ -622,7 +637,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             return;
         }
         
-        if (await ColourSetOwner((RoadSpace) spaces.First().Info) != player)
+        if (ColourSetOwner((RoadSpace) spaces.First().Info) != player)
         {
             await service.SendContextualAsync(Strings.UnableToDevelopOnColourSet(state.Board.GroupNames[colorSet.Index]));
             return;
@@ -761,5 +776,53 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         }
 
         await service.SendContextualEmbedAsync(embedBuilder.Build().Get());
+    }
+
+    private IEnumerable<Space> SpacesInColorSet(ColorSet colorSet)
+    {
+        return state.Board.Spaces.Where(x => x.Info is RoadSpace rs && rs.Group == colorSet.Index);
+    }
+
+    public async Task Mortgage(GamePlayer player, Space space)
+    {
+        if (space.Owner != player)
+        {
+            await service.SendContextualAsync($"Unable to mortgage **{space}** because you don't own it.");
+            return;
+        }
+
+        if (space.BuiltHouses > 0)
+        {
+            await service.SendContextualAsync($"Unable to mortgage **{space}** because houses are currently built on it.");
+            return;
+        }
+
+        if (space.Info is RoadSpace rs)
+        {
+            if (SpacesInColorSet(new(rs.Group)).Any(property => property.BuiltHouses > 0))
+            {
+                await service.SendContextualAsync($"Unable to mortgage **{space}** because houses are currently built on other spaces in the same color set.");
+                return;
+            }
+        }
+
+        if (space.BuiltHouses == 0)
+        {
+            await service.SendContextualAsync($"Mortgaging property {space}...");
+            
+            space.BuiltHouses = -1;
+            await Pay(null, player, space.TitleDeed!.MortgageValue);
+
+            await service.SendEmbedAsync(state.ThreadId, Embeds.Mortgage(space));
+        }
+        else
+        {
+            await service.SendContextualAsync($"Unmortgaging mortgaged property {space}...");
+            
+            space.BuiltHouses = 0;
+            await Pay(player, null, space.TitleDeed!.UnmortgageValue);
+
+            await service.SendEmbedAsync(state.ThreadId, Embeds.Unmortgage(space));
+        }
     }
 }

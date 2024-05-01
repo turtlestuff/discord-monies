@@ -4,6 +4,7 @@ using DiscordMonies.Board;
 using DiscordMonies.Remora;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Extensions.Embeds;
+using Remora.Rest.Core;
 
 namespace DiscordMonies.Game;
 
@@ -162,6 +163,24 @@ public static partial class Embeds
         return new EmbedBuilder()
             .WithTitle("Player Moved")
             .WithDescription($"**{player}** landed on **{landingSpace.NameWithPositionString}**")
+            .Build().Get();
+    }
+
+    public static Embed Mortgage(Space space)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Mortgage")
+            .WithDescription(
+                $"**{space.Owner}** has mortgaged **{space.NameWithPositionString}** for {space.TitleDeed!.MortgageValue.MoneyString()}")
+            .Build().Get();
+    }
+
+    public static Embed Unmortgage(Space space)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Mortgage")
+            .WithDescription(
+                $"**{space.Owner}** has unmortgaged **{space.NameWithPositionString}** for {space.TitleDeed!.UnmortgageValue.MoneyString()}")
             .Build().Get();
     }
 }

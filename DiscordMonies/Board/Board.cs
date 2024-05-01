@@ -16,7 +16,10 @@ public sealed record TitleDeed(
     ImmutableArray<int> RentValues,
     int MortgageValue,
     int HouseCost,
-    int HotelCost);
+    int HotelCost)
+{
+    public int UnmortgageValue => (int)(MortgageValue * 1.1);
+};
 
 public sealed record LuckCard(
     string Description,

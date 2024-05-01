@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Diagnostics;
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
 using DiscordMonies.Remora;
@@ -124,19 +125,28 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     public async Task<Result> Develop([Description("The colour set to build on")] [Autocomplete] ColorSet colorSet)
     {
         var player = gameState.GetById(ctx.GetUserId());
-        var options = await gameControllerService.DevelopOptions(player, colorSet);
+        var options = gameControllerService.DevelopOptions(player, colorSet, out var notDevelopableReason);
 
+        var boardGroupName = gameState.Board.GroupNames[colorSet.Index];
         if (options.Count == 0)
         {
-            await feedback.SendContextualAsync(
-                Strings.UnableToDevelopOnColourSet(gameState.Board.GroupNames[colorSet.Index]));
+            await feedback.SendContextualAsync(notDevelopableReason switch
+            {
+                GameControllerService.NotDevelopableReason.Developable => throw new UnreachableException(),
+                GameControllerService.NotDevelopableReason.NotOwned => $"You can't develop on the {boardGroupName} color set because you don't own the entire set.",
+                GameControllerService.NotDevelopableReason.Mortgaged => $"You can't develop on the {boardGroupName} color set because there are mortgaged properties on the set.",
+                _ => throw new ArgumentOutOfRangeException()
+            }, options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
             return Result.Success;
         }
         
         var response = await interactionApi.CreateInteractionResponseAsync(ctx.Interaction.ID, ctx.Interaction.Token,
             new InteractionResponse(InteractionCallbackType.Modal, new(new InteractionModalCallbackData(
                 CustomIDHelpers.CreateModalIDWithState("do-develop", $"{colorSet.Index}"),
-                $"Develop properties - {gameState.Board.GroupNames[colorSet.Index]}",
+                $"Develop properties - {boardGroupName}",
                 options.Select((space, i) => space.IsMortgaged ? null : new ActionRowComponent([new TextInputComponent(
                     $"space-{i}",
                     TextInputStyle.Short,
@@ -149,6 +159,17 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
                 )])).Where(component => component is not null).ToImmutableList()!
             ))));
         return response;
+    }
+
+    [Command("mortgage")]
+    [Description("Mortgage/demortgage a property")]
+    [RequiresPlayer(PlayerType.Player)]
+    [Ephemeral]
+    public async Task<Result> Mortgage([Description("The space to mortgage/demortgage")] [Autocomplete] Space space)
+    {
+        var player = gameState.GetById(ctx.GetUserId());
+        await gameControllerService.Mortgage(player, space);
+        return Result.Success;
     }
 }
 
@@ -234,7 +255,7 @@ public class GameInteractions(GameState gameState, IInteractionCommandContext ct
     public async Task<Result> DoDevelop(int state, int space0 = 0, int space1 = 0, int space2 = 0)
     {
         var player = gameState.GetById(ctx.GetUserId());
-        await gameControllerService.DevelopProperties(player, new(state), (IList<int>)[space0, space1, space2]);
+        await gameControllerService.DevelopProperties(player, new(state), [space0, space1, space2]);
         return Result.Success;
     }
 }
