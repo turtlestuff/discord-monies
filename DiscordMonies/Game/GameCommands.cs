@@ -301,8 +301,26 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
             return Result.Success;
         }
         
-        // Drop the player from the game
         var player = gameState.GetById(ctx.GetUserId());
+        if (gameState.NextRequiredAction == GameAction.AuctionBid)
+        {
+            await feedback.SendContextualAsync("Please wait for the auction to complete before you drop.", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return Result.Success;
+        }
+        
+        if (gameState.NextRequiredAction != GameAction.Roll && gameState.NextRequiredAction != GameAction.BankruptcyResolution && gameState.CurrentPlayer == player)
+        {
+            await feedback.SendContextualAsync("Please complete your turn before you drop.", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return Result.Success;
+        }
+        
+        // Drop the player from the game
         await gameControllerService.DropPlayer(player);
         return Result.Success;
     }
