@@ -183,4 +183,49 @@ public static partial class Embeds
                 $"**{space.Owner}** has unmortgaged **{space.NameWithPositionString}** for {space.TitleDeed!.UnmortgageValue.MoneyString()}")
             .Build().Get();
     }
+
+    public static Embed BankruptcyResolutionRequired(IEnumerable<GamePlayer> bankruptPlayers)
+    {
+        var gamePlayers = bankruptPlayers.ToList();
+        if (gamePlayers.Count == 1)
+        {
+            return new EmbedBuilder()
+                .WithTitle("Player is in arrears!")
+                .WithDescription($"**{gamePlayers[0].DisplayName}** is in debt! Before the game can continue, they must clear their debt by selling houses, mortgaging or trading. If they are unable to clear their debt, they must declare bankruptcy.")
+                .WithColour(Color.Red)
+                .Build().Get();
+        }
+        
+        return new EmbedBuilder()
+            .WithTitle("Some players are in arrears!")
+            .WithDescription($"{string.Join(", ", gamePlayers.Select(x => $"**{x.DisplayName}**"))} are in debt! Before the game can continue, they must clear their debt by selling houses, mortgaging or trading. If they are unable to clear their debt, they must declare bankruptcy.")
+            .WithColour(Color.Red)
+            .Build().Get();
+    }
+
+    public static Embed Dropped(GamePlayer player, GamePlayer? transferTo, IEnumerable<string> billOfMaterials)
+    {
+        var builder = new EmbedBuilder()
+            .WithTitle("Bankruptcy")
+            .WithDescription($"**{player}** has been declared bankrupt and has been removed from the game. All of their remaining assets will be transferred to **{transferTo?.DisplayName ?? "the bank"}**.")
+            .WithColour(Color.Red);
+
+        var materials = billOfMaterials.ToList();
+        if (materials.Count != 0)
+        {
+            builder = builder.AddField("Transferred Assets", string.Join("\n", materials)).Get();
+        }
+        
+        return builder.Build().Get();
+    }
+
+    public static Embed Victory(GamePlayer player)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Victory!")
+            .WithDescription($"The game has ended in a victory for **{player}**! The game is now closed.")
+            .WithImageUrl("attachment://board.png")
+            .WithColour(Color.LimeGreen)
+            .Build().Get();
+    }
 }

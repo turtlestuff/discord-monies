@@ -11,7 +11,7 @@ using Remora.Discord.Extensions.Formatting;
 
 namespace DiscordMonies.Game;
 
-public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context, BoardRenderer renderer)
+public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context, BoardRenderer renderer, GameService gameService)
 {
     /// <summary>
     /// Advances the turn to the next player and performs necessary actions.
@@ -19,7 +19,32 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task AdvanceTurn()
     {
+        if (state.Players.Any(x => x.Money < 0))
+        {
+            if (state.NextRequiredAction != GameAction.BankruptcyResolution)
+            {
+                await service.SendEmbedAsync(state.ThreadId,
+                    Embeds.BankruptcyResolutionRequired(state.Players.Where(x => x.Money < 0)), options: new()
+                    {
+                        MessageComponents = new([
+                            new ActionRowComponent([
+                                Buttons.DeclareBankruptcy()                            
+                            ])
+                        ])
+                    });
+            }
+            state.NextRequiredAction = GameAction.BankruptcyResolution;
+            return;
+        }
+        
         state.NextRequiredAction = GameAction.Roll;
+
+        // No one is in danger of being bankrupt any more
+        foreach (var player in state.Players)
+        {
+            player.LastPaid = null;
+        }
+        
         if (state.Dice.DoubleRoll)
         {
             await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
@@ -189,6 +214,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         }
 
         await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
+
+        if (state.NextRequiredAction == GameAction.BankruptcyResolution)
+        {
+            await AdvanceTurn();
+        }
+        
         return true;
     }
 
@@ -223,6 +254,20 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         }
 
         await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
+
+        if (state.NextRequiredAction == GameAction.BankruptcyResolution)
+        {
+            await AdvanceTurn();
+        }
+        else
+        {
+            // Track for bankruptcy
+            if (from is not null)
+            {
+                from.LastPaid = to;
+            }
+        }
+
     }
 
     /// <summary>
@@ -823,6 +868,51 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             await Pay(player, null, space.TitleDeed!.UnmortgageValue);
 
             await service.SendEmbedAsync(state.ThreadId, Embeds.Unmortgage(space));
+        }
+    }
+
+    public async Task DropPlayer(GamePlayer player)
+    {
+        var transferredAssets = player.Money < 0 ? player.LastPaid : null;
+        var transferredName = transferredAssets?.DisplayName ?? "the bank";
+        
+        // Transfer all of player's assets to transferredAssets
+        List<string> billOfMaterials = [];
+        await Pay(player, transferredAssets, player.Money);
+        billOfMaterials.Add($"{player.Money.MoneyString()} -> **{transferredName}**");
+        foreach (var space in state.Board.Spaces.Where(space => space.Owner == player))
+        {
+            space.Owner = transferredAssets;
+            billOfMaterials.Add($"**{space.NameWithPositionString}** -> **{transferredName}**");
+        }
+        
+        // TODO: Transfer get out of jail free cards
+        // TODO: Require the recipient to pay a 10% fee for transferring any mortgaged properties
+
+        // Remove the player from the game
+        // Advance the player pointer if necessary
+        if (state.CurrentPlayer == player)
+        {
+            state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
+        }
+
+        var nextPlayer = state.CurrentPlayer;
+        state.Players.Remove(player);
+        state.CurrentPlayerIndex = state.Players.IndexOf(nextPlayer);
+
+        await service.SendEmbedAsync(state.ThreadId, Embeds.Dropped(player, transferredAssets, billOfMaterials));
+
+        if (state.Players.Count == 1)
+        {
+            // End of game!
+            await service.SendEmbedAsync(state.ThreadId, Embeds.Victory(state.Players[0]),
+                options: new()
+                {
+                    Attachments = new([
+                        new FileData("board.png", renderer.RenderToStream())
+                    ]),
+                });
+            gameService.CloseGame(state);
         }
     }
 }

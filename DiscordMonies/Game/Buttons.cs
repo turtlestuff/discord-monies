@@ -23,4 +23,7 @@ public static class Buttons
     public static ButtonComponent Bail(int bailPrice) => 
         new(ButtonComponentStyle.Danger, $"Bail for {bailPrice.MoneyString(false)}",
             CustomID: CustomIDHelpers.CreateButtonID("bail"));
+
+    public static ButtonComponent DeclareBankruptcy() => new(ButtonComponentStyle.Danger, $"Declare Bankruptcy",
+        CustomID: CustomIDHelpers.CreateButtonID("declare-bankruptcy"));
 }

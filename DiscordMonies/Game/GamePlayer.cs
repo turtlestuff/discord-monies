@@ -41,6 +41,8 @@ public sealed record GamePlayer : IUser
 
     public required int Money { get; set; }
     public string MoneyString() => Money.MoneyString();
+    
+    public GamePlayer? LastPaid { get; set; }
    
     public bool Equals(GamePlayer? other)
     {

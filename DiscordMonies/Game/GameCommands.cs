@@ -4,7 +4,7 @@ using System.Diagnostics;
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
 using DiscordMonies.Remora;
-
+using OneOf.Types;
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
@@ -197,7 +197,7 @@ public class GamePropertyCommands(
     }
 }
 
-public class GameInteractions(GameState gameState, IInteractionCommandContext ctx, GameControllerService gameControllerService) : InteractionGroup
+public class GameInteractions(GameState gameState, IFeedbackService feedback, IInteractionCommandContext ctx, GameControllerService gameControllerService, IDiscordRestInteractionAPI interactionApi) : InteractionGroup
 {
     [Button("roll")]
     [RequiresPlayer(PlayerType.CurrentPlayer)]
@@ -236,6 +236,42 @@ public class GameInteractions(GameState gameState, IInteractionCommandContext ct
         await gameControllerService.Bail();
         return Result.Success;
     }
+    
+    [Button("declare-bankruptcy")]
+    [RequiresPlayer(PlayerType.Player)]
+    [Ephemeral]
+    [SuppressInteractionResponse(true)]
+    public async Task<Result> DeclareBankruptcy()
+    {
+        var player = gameState.GetById(ctx.GetUserId());
+        if (player.Money >= 0)
+        {
+            await feedback.SendContextualAsync("You cannot declare bankruptcy because you are not in debt.", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return Result.Success;
+        }
+        
+        return await interactionApi.CreateInteractionResponseAsync(ctx.Interaction.ID, ctx.Interaction.Token,
+            new InteractionResponse(InteractionCallbackType.Modal, new(new InteractionModalCallbackData(
+                CustomIDHelpers.CreateModalID("do-drop"),
+                "Declare Bankruptcy",
+                [
+                    new ActionRowComponent([
+                        new TextInputComponent(
+                            "drop-response",
+                            TextInputStyle.Short,
+                            "Do you want to declare bankruptcy? (Y/N)",
+                            1,
+                            1,
+                            true,
+                            default,
+                            "Y"
+                        )])
+                ]
+            ))));
+    }
 
     [Modal("do-drop")]
     [RequiresPlayer(PlayerType.Player)]
@@ -247,6 +283,8 @@ public class GameInteractions(GameState gameState, IInteractionCommandContext ct
         }
         
         // Drop the player from the game
+        var player = gameState.GetById(ctx.GetUserId());
+        await gameControllerService.DropPlayer(player);
         return Result.Success;
     }
     

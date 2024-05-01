@@ -22,6 +22,14 @@ public class GameService(IDiscordRestGuildAPI guildApi)
         }
     }
 
+    public void CloseGame(GameState gameState)
+    {
+        if (!games.TryRemove(gameState.ThreadId, out _))
+        {
+            throw new InvalidOperationException();
+        }
+    }
+
     public GameState? GetGameState(Snowflake threadId)
     {
         if (games.TryGetValue(threadId, out var game))
