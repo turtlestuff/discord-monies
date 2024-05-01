@@ -28,6 +28,25 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [SuppressInteractionResponse(true)]
     public async Task<Result> Drop()
     {
+        var player = gameState.GetById(ctx.GetUserId());
+        if (gameState.NextRequiredAction == GameAction.AuctionBid)
+        {
+            await feedback.SendContextualAsync("Please wait for the auction to complete before you drop.", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return Result.Success;
+        }
+        
+        if (gameState.NextRequiredAction != GameAction.Roll && gameState.NextRequiredAction != GameAction.BankruptcyResolution && gameState.CurrentPlayer == player)
+        {
+            await feedback.SendContextualAsync("Please complete your turn before you drop.", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return Result.Success;
+        }
+        
         return await interactionApi.CreateInteractionResponseAsync(ctx.Interaction.ID, ctx.Interaction.Token,
             new InteractionResponse(InteractionCallbackType.Modal, new(new InteractionModalCallbackData(
                 CustomIDHelpers.CreateModalID("do-drop"),
