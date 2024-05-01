@@ -891,6 +891,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
         // Remove the player from the game
         // Advance the player pointer if necessary
+        var playerAdvanceRequired = state.CurrentPlayer == player && state.NextRequiredAction == GameAction.Roll;
         if (state.CurrentPlayer == player)
         {
             state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
@@ -913,6 +914,13 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                     ]),
                 });
             gameService.CloseGame(state);
+        }
+
+        // Advance the turn if the current player is waiting to roll so that the next player gets the prompt
+        if (playerAdvanceRequired)
+        {
+            state.CurrentPlayerIndex -= 1;
+            await AdvanceTurn();
         }
     }
 }
