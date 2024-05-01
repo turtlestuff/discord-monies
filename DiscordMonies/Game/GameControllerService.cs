@@ -914,6 +914,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                     ]),
                 });
             gameService.CloseGame(state);
+            return;
         }
 
         // Advance the turn if the current player is waiting to roll so that the next player gets the prompt
