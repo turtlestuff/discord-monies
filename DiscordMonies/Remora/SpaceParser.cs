@@ -51,3 +51,26 @@ public sealed class SpaceAutocompleteProvider(GameService gameService, IInteract
             .Select(space => new ApplicationCommandOptionChoice(space.NameWithPositionString, space.PositionCode)).ToImmutableList();
     }
 }
+
+public sealed class OwnedSpaceAutocompleteProvider(GameService gameService, IInteractionContext ctx)
+    : IAutocompleteProvider
+{
+    public string Identity => "autocomplete::spaces:owned";
+
+    public async ValueTask<IReadOnlyList<IApplicationCommandOptionChoice>> GetSuggestionsAsync(
+        IReadOnlyList<IApplicationCommandInteractionDataOption> options,
+        string userInput,
+        CancellationToken ct = new CancellationToken())
+    {
+        if (gameService.GetGameState(ctx) is not { } gameState)
+        {
+            return [];
+        }
+
+        var player = gameState.GetById(ctx.GetUserId());
+
+        return gameState.Board.Spaces.Where(space => space.NameWithPositionString.Contains(userInput, StringComparison.InvariantCultureIgnoreCase))
+            .Where(space => space.Owner == player)
+            .Select(space => new ApplicationCommandOptionChoice(space.NameWithPositionString, space.PositionCode)).ToImmutableList();
+    }
+}

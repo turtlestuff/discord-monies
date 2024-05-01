@@ -91,6 +91,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [Command("nudge")]
     [Description("Ping the current player and ask them to complete their turn")]
     [RequiresPlayer(PlayerType.Player)]
+    [SuppressInteractionResponse(true)]
     public async Task<Result> Nudge()
     {
         var current = gameState.CurrentPlayer;
@@ -184,7 +185,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [Description("Mortgage/demortgage a property")]
     [RequiresPlayer(PlayerType.Player)]
     [Ephemeral]
-    public async Task<Result> Mortgage([Description("The space to mortgage/demortgage")] [Autocomplete] Space space)
+    public async Task<Result> Mortgage([Description("The space to mortgage/demortgage")] [AutocompleteProvider("autocomplete::spaces:owned")] Space space)
     {
         var player = gameState.GetById(ctx.GetUserId());
         await gameControllerService.Mortgage(player, space);

@@ -33,6 +33,7 @@ builder.Services
     .AddParser<SpaceParser>()
     .AddParser<ColorSetParser>()
     .AddAutocompleteProvider<SpaceAutocompleteProvider>()
+    .AddAutocompleteProvider<OwnedSpaceAutocompleteProvider>()
     .AddAutocompleteProvider<ColorSetAutocompleteProvider>();
 
 builder.Services
