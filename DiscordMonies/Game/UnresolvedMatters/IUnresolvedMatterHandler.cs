@@ -4,6 +4,7 @@ namespace DiscordMonies.Game.UnresolvedMatters;
 
 public interface IUnresolvedMatterResolver;
 
+[UsedImplicitly(ImplicitUseTargetFlags.WithInheritors | ImplicitUseTargetFlags.Members)]
 public interface IUnresolvedMatterResolver<T> : IUnresolvedMatterResolver where T : IUnresolvedMatter
 {
     /// <summary>
@@ -16,6 +17,5 @@ public interface IUnresolvedMatterResolver<T> : IUnresolvedMatterResolver where 
     /// If the matter can be resolved, the implementation is expected to call <see cref="GameControllerService.ProcessNextUnresolvedMatter"/>
     /// Otherwise, the implementation is expected to write a message to the channel asking the player how to continue.
     /// </remarks>
-    [UsedImplicitly]
     public Task Resolve(T matter);
 }
