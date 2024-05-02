@@ -1,16 +1,23 @@
-using Remora.Discord.Hosting.Extensions;
-using Remora.Discord.Caching.Extensions;
-using Remora.Discord.Commands.Extensions;
-using Remora.Discord.Interactivity.Extensions;
-using Remora.Discord.Extensions.Extensions;
-using Remora.Discord.API.Abstractions.Rest;
-using Remora.Discord.Commands.Services;
-using Remora.Rest.Core;
-using DiscordMonies.Lobby;
-using DiscordMonies.Game;
+using DiscordMonies;
 using DiscordMonies.Board;
+using DiscordMonies.Game;
+using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
+using DiscordMonies.Game.UnresolvedMatters.Payment;
+using DiscordMonies.Game.UnresolvedMatters.PurchaseDecision;
+using DiscordMonies.Game.UnresolvedMatters.RequiredBailPayment;
+using DiscordMonies.Game.UnresolvedMatters.RequiredBailPaymentComplete;
+using DiscordMonies.Lobby;
 using DiscordMonies.Remora;
 using Remora.Commands.Extensions;
+using Remora.Discord.API.Abstractions.Rest;
+using Remora.Discord.Caching.Extensions;
+using Remora.Discord.Commands.Extensions;
+using Remora.Discord.Commands.Services;
+using Remora.Discord.Extensions.Extensions;
+using Remora.Discord.Hosting.Extensions;
+using Remora.Discord.Interactivity.Extensions;
+using Remora.Rest.Core;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -34,7 +41,12 @@ builder.Services
     .AddParser<ColorSetParser>()
     .AddAutocompleteProvider<SpaceAutocompleteProvider>()
     .AddAutocompleteProvider<OwnedSpaceAutocompleteProvider>()
-    .AddAutocompleteProvider<ColorSetAutocompleteProvider>();
+    .AddAutocompleteProvider<ColorSetAutocompleteProvider>()
+    .AddUnresolvedMatterHandler<DiceRollMatterHandler>()
+    .AddUnresolvedMatterHandler<PaymentMatterHandler>()
+    .AddUnresolvedMatterHandler<PurchaseDecisionMatterHandler>()
+    .AddUnresolvedMatterHandler<RequiredBailPaymentMatterHandler>()
+    .AddUnresolvedMatterHandler<RequiredBailPaymentCompleteMatterHandler>();
 
 builder.Services
     .AddSingleton<LobbyService>()
@@ -73,8 +85,11 @@ else
 
 host.Run();
 
-internal sealed class DiscordMoniesConfiguration
+namespace DiscordMonies
 {
-    public required string DiscordToken { get; set; }
-    public ulong? DebugServerId { get; set; }
+    internal sealed class DiscordMoniesConfiguration
+    {
+        public required string DiscordToken { get; set; }
+        public ulong? DebugServerId { get; set; }
+    }
 }

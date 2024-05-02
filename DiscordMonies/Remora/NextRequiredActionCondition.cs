@@ -19,7 +19,7 @@ public sealed class NextRequiredActionCondition(GameService gameService, IIntera
             return new(new NotGameChannelError());
         }
 
-        if (actions.Contains(gameState.NextRequiredAction))
+        if (actions.Contains(gameState.CurrentlyResolvingMatter.Action))
         {
             return new(Result.Success);
         }

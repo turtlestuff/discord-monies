@@ -19,6 +19,7 @@ using Remora.Results;
 
 using System.Diagnostics;
 using System.Drawing;
+using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 
 namespace DiscordMonies.Lobby;
 
@@ -180,6 +181,11 @@ public class LobbyInteractions(
                 Color = color
             });
         }
+
+        gameState.CurrentlyResolvingMatter = new DiceRollMatter()
+        {
+            Player = gameState.Players[0]
+        };
 
         return gameState;
     }

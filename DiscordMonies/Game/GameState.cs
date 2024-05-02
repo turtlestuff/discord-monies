@@ -1,5 +1,6 @@
 ﻿using DiscordMonies.Board;
-
+using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Rest.Core;
 
@@ -18,6 +19,7 @@ public partial class GameState
     public List<GamePlayer> Players { get; } = [];
 
     public int CurrentPlayerIndex { get; set; } = 0;
+    
     public GamePlayer CurrentPlayer => Players[CurrentPlayerIndex];
 
     public GamePlayer? TryGetById(Snowflake userId) 
@@ -34,7 +36,9 @@ public partial class GameState
 
     public GameDice Dice { get; } = new();
 
-    public GameAction NextRequiredAction { get; set; }
+    public IUnresolvedMatter CurrentlyResolvingMatter { get; set; } = null!;
+
+    public IList<IUnresolvedMatter> UnresolvedMatters { get; } = new List<IUnresolvedMatter>();
 }
 
 public enum GameAction

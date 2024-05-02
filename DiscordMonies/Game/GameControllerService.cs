@@ -1,5 +1,11 @@
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
+using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
+using DiscordMonies.Game.UnresolvedMatters.Payment;
+using DiscordMonies.Game.UnresolvedMatters.PurchaseDecision;
+using DiscordMonies.Game.UnresolvedMatters.RequiredBailPayment;
+using DiscordMonies.Game.UnresolvedMatters.RequiredBailPaymentComplete;
 using DiscordMonies.Remora;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
@@ -7,88 +13,42 @@ using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Extensions.Embeds;
-using Remora.Discord.Extensions.Formatting;
 
 namespace DiscordMonies.Game;
 
-public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context, BoardRenderer renderer, GameService gameService)
+public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context, BoardRenderer renderer, GameService gameService, IServiceProvider serviceProvider)
 {
     /// <summary>
     /// Advances the turn to the next player and performs necessary actions.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task AdvanceTurn()
+    public async Task ProcessNextUnresolvedMatter()
     {
-        if (state.Players.Any(x => x.Money < 0))
+        if (state.UnresolvedMatters.Count == 0)
         {
-            if (state.NextRequiredAction != GameAction.BankruptcyResolution)
+            state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
+            state.CurrentlyResolvingMatter = new DiceRollMatter()
             {
-                await service.SendEmbedAsync(state.ThreadId,
-                    Embeds.BankruptcyResolutionRequired(state.Players.Where(x => x.Money < 0)), options: new()
-                    {
-                        MessageComponents = new([
-                            new ActionRowComponent([
-                                Buttons.DeclareBankruptcy()                            
-                            ])
-                        ])
-                    });
-            }
-            state.NextRequiredAction = GameAction.BankruptcyResolution;
-            return;
+                Player = state.CurrentPlayer
+            };
+        }
+        else
+        {
+            state.CurrentlyResolvingMatter = state.UnresolvedMatters[0];
+            state.UnresolvedMatters.RemoveAt(0);
         }
         
-        state.NextRequiredAction = GameAction.Roll;
+        await ProcessCurrentlyUnresolvedMatter();
+    }
 
-        // No one is in danger of being bankrupt any more
-        foreach (var player in state.Players)
-        {
-            player.LastPaid = null;
-        }
-        
-        if (state.Dice.DoubleRoll)
-        {
-            await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
-                embeds: new([Embeds.TurnAdvancedDoubles(state.CurrentPlayer)]),
-                options: new()
-            {
-                Attachments = new([
-                    new FileData("board.png", renderer.RenderToStream())
-                ]),
-                MessageComponents = new([
-                    new ActionRowComponent([
-                        Buttons.Roll()
-                    ])
-                ])
-            });
-            return;
-        }
-        
-        state.Dice.Reset();
-        state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
+    private async Task ProcessCurrentlyUnresolvedMatter()
+    {
+        var specificType = typeof(IUnresolvedMatterResolver<>).MakeGenericType(state.CurrentlyResolvingMatter.GetType());
+        var resolver = serviceProvider.GetRequiredService(specificType);
 
-        // TODO: Render map and send embed
-        List<IMessageComponent> buttons = [
-            Buttons.Roll()
-        ];
-        
-        if (state.CurrentPlayer.JailTurns != -1)
-        {
-            buttons.Insert(0, Buttons.Bail(state.Board.JailFine));
-            
-            // TODO: Get out of jail free card
-        }
-        
-        await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
-            embeds: new([Embeds.TurnAdvanced(state.CurrentPlayer)]),
-            options: new()
-        {
-            Attachments = new([
-                new FileData("board.png", renderer.RenderToStream())
-            ]),
-            MessageComponents = new([
-                new ActionRowComponent(buttons)
-            ])
-        });
+        var type = resolver.GetType();
+        var resolveMethod = type.GetMethod("Resolve")!;
+        await (Task) resolveMethod.Invoke(resolver, [state.CurrentlyResolvingMatter])!;
     }
 
     public async Task RollDie()
@@ -101,15 +61,10 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             state.CurrentPlayer.JailTurns++;
             if (state.CurrentPlayer.JailTurns == 3)
             {
-                await service.SendContextualEmbedAsync(Embeds.FinalJailDieRolled(state.CurrentPlayer, state.Dice), new()
+                state.UnresolvedMatters.Add(new RequiredBailPaymentMatter()
                 {
-                    MessageComponents = new([
-                        new ActionRowComponent([
-                            Buttons.Bail(state.Board.JailFine)                        
-                        ])
-                    ])
+                    Player = state.CurrentPlayer
                 });
-                state.NextRequiredAction = GameAction.RequiredBailPayment;
             }
             else
             {
@@ -117,9 +72,9 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                     3 - state.CurrentPlayer.JailTurns));
                 
                 state.Dice.Reset();
-
-                await AdvanceTurn();
             }
+            
+            await ProcessNextUnresolvedMatter();
             return;
         }
         
@@ -132,7 +87,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             // Reset the die so that they don't get another Doubles roll
             state.Dice.Reset();
             
-            await AdvanceTurn();
+            await ProcessNextUnresolvedMatter();
             return;
         }
         
@@ -154,20 +109,23 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 state.CurrentPlayer.CurrentSpace));
         }
 
-        if (await ProcessPlayerLand())
-        {
-            await AdvanceTurn();
-        }
+        await ProcessPlayerLand();
+        await ProcessNextUnresolvedMatter();
     }
 
     public async Task BuyProperty()
     {
-        var space = state.CurrentPlayer.CurrentSpace;
+        if (state.CurrentlyResolvingMatter is not PurchaseDecisionMatter matter)
+        {
+            return;
+        }
+        
+        var space = matter.Space;
         var value = ((ValueSpace)space.Info).Value;
-        if (!await TryPay(state.CurrentPlayer, null, value))
+        if (!await TryPay(matter.Purchaser, null, value))
         {
             await service.SendContextualAsync(
-                Strings.BalanceTooLow($"Your balance is too low to buy {space}", state.CurrentPlayer.Money, value));
+                Strings.BalanceTooLow($"Your balance is too low to buy {space}", matter.Purchaser.Money, value));
             return;
         }
         
@@ -176,10 +134,10 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             await service.SendContextualAsync($"Purchasing {space}...");
         }
 
-        space.Owner = state.CurrentPlayer;
-        await service.SendEmbedAsync(state.ThreadId, Embeds.PropertyObtained(state.CurrentPlayer, space));
+        space.Owner = matter.Purchaser;
+        await service.SendEmbedAsync(state.ThreadId, Embeds.PropertyObtained(matter.Purchaser, space));
         
-        await AdvanceTurn();
+        await ProcessNextUnresolvedMatter();
     }
 
     /// <summary>
@@ -215,9 +173,9 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
         await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
 
-        if (state.NextRequiredAction == GameAction.BankruptcyResolution)
+        if (state.CurrentlyResolvingMatter is PaymentMatter && to?.Money >= 0)
         {
-            await AdvanceTurn();
+            await ProcessCurrentlyUnresolvedMatter();
         }
         
         return true;
@@ -238,36 +196,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             return;
         }
         
-        var payer = from?.DisplayName ?? "The Bank";
-        var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
-
-        // Decrease the money of the payer if they exist
-        if (from != null)
+        state.UnresolvedMatters.Add(new PaymentMatter()
         {
-            from.Money -= value;
-        }
-
-        // Increase the money of the payee if they exist
-        if (to != null)
-        {
-            to.Money += value;
-        }
-
-        await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
-
-        if (state.NextRequiredAction == GameAction.BankruptcyResolution)
-        {
-            await AdvanceTurn();
-        }
-        else
-        {
-            // Track for bankruptcy
-            if (from is not null)
-            {
-                from.LastPaid = to;
-            }
-        }
-
+            From = from,
+            To = to,
+            Amount = value
+        });
     }
 
     /// <summary>
@@ -277,7 +211,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// <param name="spaces">The number of spaces to move relative to the player's current position.</param>
     /// <param name="passGoBonus">A flag indicating whether the player should receive a pass Go bonus if passing Go. Default is true.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task MovePlayerRelative(GamePlayer player, int spaces, bool passGoBonus = true)
+    public async Task MovePlayerRelative(GamePlayer player, int spaces, bool passGoBonus = true)
     {
         var boardLength = state.Board.Spaces.Length;
         var position = (player.Position + spaces) % boardLength;
@@ -310,33 +244,33 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// <summary>
     /// Processes the landing of the current player on a board space.
     /// </summary>
-    /// <returns>A task representing the asynchronous operation. Returns true if the turn should be advanced, false otherwise.</returns>
-    private async Task<bool> ProcessPlayerLand(bool bigRent = false)
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task ProcessPlayerLand(bool bigRent = false)
     {
         var currentSpace = state.CurrentPlayer.CurrentSpace;
 
         switch (currentSpace.Info)
         {
             case DrawCardSpace:
-                return await ProcessDrawCardSpaceLand();
+                await ProcessDrawCardSpaceLand();
+                return;
             case PropertySpace:
-                return await ProcessPropertySpaceLand(bigRent);
+                await ProcessPropertySpaceLand(bigRent);
+                return;
             case TaxSpace ts:
                 await Pay(state.CurrentPlayer, null, ts.Value);
-                break;
+                return;
             case GoToJailSpace:
                 await SendToJail();
-                break;
+                return;
         }
-
-        return true;
     }
 
-    private async Task<bool> ProcessDrawCardSpaceLand()
+    private async Task ProcessDrawCardSpaceLand()
     {
         var space = state.CurrentPlayer.CurrentSpace;
         
-        return await DrawCard(space.Info switch
+        await DrawCard(space.Info switch
         {
             DrawChanceSpace => state.Board.GambleCards,
             DrawChestSpace => state.Board.TreasureCards,
@@ -348,8 +282,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// Draws a card from the specified card stack and performs the corresponding action.
     /// </summary>
     /// <param name="stack">The card stack from which to draw the card.</param>
-    /// <returns>A task representing the asynchronous operation. Returns true if the turn should be advanced, false otherwise.</returns>
-    private async Task<bool> DrawCard(CardStack stack)
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task DrawCard(CardStack stack)
     {
         var card = stack.DrawCard();
         await service.SendEmbedAsync(state.ThreadId,
@@ -361,15 +295,15 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             case "arrest":
                 await SendToJail();
-                return true;
+                return;
 
             case "give":
                 await Pay(null, state.CurrentPlayer, int.Parse(parts[1]));
-                return true;
+                return;
 
             case "pay":
                 await Pay(state.CurrentPlayer, null, int.Parse(parts[1]));
-                return true;
+                return;
 
             case "repairs":
                 {
@@ -397,31 +331,33 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                     });
 
                     await Pay(state.CurrentPlayer, null, total);
-                    return true;
+                    return;
                 }
 
             case "warp":
                 await MovePlayer(state.CurrentPlayer, int.Parse(parts[1]));
                 await service.SendEmbedAsync(state.ThreadId,
                     Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
-                return await ProcessPlayerLand();
+                await ProcessPlayerLand();
+                return;
 
             case "warprel":
                 await MovePlayerRelative(state.CurrentPlayer, int.Parse(parts[1]));
                 await service.SendEmbedAsync(state.ThreadId,
                     Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
-                return await ProcessPlayerLand();
+                await ProcessPlayerLand();
+                return;
 
             case "jailfree":
                 // TODO: Implement Get Out of Jail Free cards
-                return true;
+                return;
 
             case "paychance":
                 // TODO: Implement Take Card or Pay
                 // waiting = Waiting.ForTakeCardOrPayDecision;
                 // payOrTakeCardVal = int.Parse(parts[1]);
                 // payOrTakeCardType = CardType.Chance;
-                return true;
+                return;
 
             case "advance":
                 var loc = parts[1] switch
@@ -436,7 +372,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 await MovePlayer(state.CurrentPlayer, loc);
                 await service.SendEmbedAsync(state.ThreadId,
                     Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
-                return await ProcessPlayerLand(true);
+                await ProcessPlayerLand(true);
+                return;
 
             case "recvall":
                 var paymentAmount = int.Parse(parts[1]);
@@ -444,9 +381,10 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 {
                     await Pay(player, state.CurrentPlayer, paymentAmount);
                 }
-                return true;
+
+                return;
             default:
-                return true;
+                return;
         }
     }
 
@@ -454,30 +392,18 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// Processes the landing of a player on a property space and performs the necessary actions.
     /// </summary>
     /// <param name="bigRent">A boolean indicating if rent is doubled for train stations, or if the rent is 10 times the amount shown on the die for utilities.</param>
-    /// <returns>A task representing the asynchronous operation. Returns true if the turn should be advanced, false otherwise.</returns>
-    private async Task<bool> ProcessPropertySpaceLand(bool bigRent)
+    /// <returns>A task representing the asynchronous operation</returns>
+    private async Task ProcessPropertySpaceLand(bool bigRent)
     {
         var space = state.CurrentPlayer.CurrentSpace;
-        var property = (PropertySpace) space.Info;
         if (space.Owner is null)
         {
-            // Purchase this property?
-            await service.SendAsync(state.ThreadId,
-                $"{Mention.User(state.CurrentPlayer)} - **{space}** is available for purchase! Do you want to purchase it?",
-                embeds: new([space.TitleDeedEmbed()]),
-                options: new()
-                {
-                    MessageComponents = new([
-                        new ActionRowComponent([
-                            Buttons.Purchase(space.ToString(), property.Value),
-                            Buttons.SendToAuction()
-                        ])
-                    ])
-                });
-            
-            state.NextRequiredAction = GameAction.PurchaseDecision;
-            
-            return false;
+            state.UnresolvedMatters.Add(new PurchaseDecisionMatter()
+            {
+                Purchaser = state.CurrentPlayer,
+                Space = space
+            });
+            return;
         }
 
         if (space.Owner == state.CurrentPlayer)
@@ -493,8 +419,6 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             // Pay rent!
             await Pay(state.CurrentPlayer, space.Owner, await CalculateRent(space, bigRent));
         }
-
-        return true;
     }
 
     /// <summary>
@@ -566,7 +490,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         await service.SendAsync(state.ThreadId,
             $"Auction is currently not supported. Advancing the turn to the next player...");
         
-        await AdvanceTurn();
+        await ProcessNextUnresolvedMatter();
     }
 
     public async Task Bail()
@@ -577,7 +501,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             return;
         }
         
-        if (state.NextRequiredAction == GameAction.RequiredBailPayment)
+        if (state.CurrentlyResolvingMatter is RequiredBailPaymentMatter)
         {
             if (!context.Interaction.Message.HasValue)
             {
@@ -586,12 +510,11 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
             state.CurrentPlayer.JailTurns = -1;
             await Pay(state.CurrentPlayer, null, state.Board.JailFine);
-            await MovePlayerRelative(state.CurrentPlayer, state.Dice.Total);
-            await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(state.CurrentPlayer, state.Board.JailFine, state.CurrentPlayer.CurrentSpace));
-            if (await ProcessPlayerLand())
+            state.UnresolvedMatters.Add(new RequiredBailPaymentCompleteMatter()
             {
-                await AdvanceTurn();
-            }
+                Player = state.CurrentPlayer,
+                Spaces = state.Dice.Total
+            });
         }
         else
         {
@@ -856,7 +779,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             await service.SendContextualAsync($"Mortgaging property {space}...");
             
             space.BuiltHouses = -1;
-            await Pay(null, player, space.TitleDeed!.MortgageValue);
+            await TryPay(null, player, space.TitleDeed!.MortgageValue);
 
             await service.SendEmbedAsync(state.ThreadId, Embeds.Mortgage(space));
         }
@@ -865,7 +788,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             await service.SendContextualAsync($"Unmortgaging mortgaged property {space}...");
             
             space.BuiltHouses = 0;
-            await Pay(player, null, space.TitleDeed!.UnmortgageValue);
+            await TryPay(player, null, space.TitleDeed!.UnmortgageValue);
 
             await service.SendEmbedAsync(state.ThreadId, Embeds.Unmortgage(space));
         }
@@ -873,12 +796,14 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
     public async Task DropPlayer(GamePlayer player)
     {
-        var transferredAssets = player.Money < 0 ? player.LastPaid : null;
+        var transferredAssets = state.CurrentlyResolvingMatter is PaymentMatter matter ? matter.To : null;
         var transferredName = transferredAssets?.DisplayName ?? "the bank";
         
         // Transfer all of player's assets to transferredAssets
         List<string> billOfMaterials = [];
-        await Pay(player, transferredAssets, player.Money);
+        
+        // Use TryPay because Pay will queue up a payment
+        await TryPay(player, transferredAssets, player.Money);
         billOfMaterials.Add($"{player.Money.MoneyString()} -> **{transferredName}**");
         foreach (var space in state.Board.Spaces.Where(space => space.Owner == player))
         {
@@ -888,21 +813,27 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         // TODO: Transfer get out of jail free cards
         // TODO: Require the recipient to pay a 10% fee for transferring any mortgaged properties
-
+        
         // Remove the player from the game
         // Advance the player pointer if necessary
-        var playerAdvanceRequired = state.CurrentPlayer == player && state.NextRequiredAction == GameAction.Roll;
+        var playerAdvanceRequired = state.CurrentPlayer == player && state.CurrentlyResolvingMatter is DiceRollMatter;
         if (state.CurrentPlayer == player)
         {
             state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
         }
-
+        
         var nextPlayer = state.CurrentPlayer;
         state.Players.Remove(player);
         state.CurrentPlayerIndex = state.Players.IndexOf(nextPlayer);
 
+        // Clear out all pending unresolved matters
+        foreach (var unresolvedMatter in state.UnresolvedMatters.Where(x => x.Player == player))
+        {
+            state.UnresolvedMatters.Remove(unresolvedMatter);
+        }
+        
         await service.SendEmbedAsync(state.ThreadId, Embeds.Dropped(player, transferredAssets, billOfMaterials));
-
+        
         if (state.Players.Count == 1)
         {
             // End of game!
@@ -916,12 +847,19 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             gameService.CloseGame(state);
             return;
         }
-
+        
         // Advance the turn if the current player is waiting to roll so that the next player gets the prompt
         if (playerAdvanceRequired)
         {
             state.CurrentPlayerIndex -= 1;
-            await AdvanceTurn();
+            await ProcessNextUnresolvedMatter();
+            return;
+        }
+
+        // Process the next unresolved matter if the current player is declaring bankruptcy to continue the game
+        if (state.CurrentlyResolvingMatter is PaymentMatter pm && pm.Player == player)
+        {
+            await ProcessNextUnresolvedMatter();
         }
     }
 }

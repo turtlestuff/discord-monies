@@ -3,6 +3,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
+using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
+using DiscordMonies.Game.UnresolvedMatters.Payment;
 using DiscordMonies.Remora;
 using OneOf.Types;
 using Remora.Commands.Attributes;
@@ -29,7 +32,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     public async Task<Result> Drop()
     {
         var player = gameState.GetById(ctx.GetUserId());
-        if (gameState.NextRequiredAction == GameAction.AuctionBid)
+        if (gameState.CurrentlyResolvingMatter.Action == GameAction.AuctionBid)
         {
             await feedback.SendContextualAsync("Please wait for the auction to complete before you drop.", options: new()
             {
@@ -38,7 +41,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
             return Result.Success;
         }
         
-        if (gameState.NextRequiredAction != GameAction.Roll && gameState.NextRequiredAction != GameAction.BankruptcyResolution && gameState.CurrentPlayer == player)
+        if (gameState.CurrentlyResolvingMatter is not DiceRollMatter and not PaymentMatter && gameState.CurrentPlayer == player)
         {
             await feedback.SendContextualAsync("Please complete your turn before you drop.", options: new()
             {
@@ -303,7 +306,7 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
         }
         
         var player = gameState.GetById(ctx.GetUserId());
-        if (gameState.NextRequiredAction == GameAction.AuctionBid)
+        if (gameState.CurrentlyResolvingMatter.Action == GameAction.AuctionBid)
         {
             await feedback.SendContextualAsync("Please wait for the auction to complete before you drop.", options: new()
             {
@@ -312,7 +315,7 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
             return Result.Success;
         }
         
-        if (gameState.NextRequiredAction != GameAction.Roll && gameState.NextRequiredAction != GameAction.BankruptcyResolution && gameState.CurrentPlayer == player)
+        if (gameState.CurrentlyResolvingMatter is not DiceRollMatter and not PaymentMatter && gameState.CurrentPlayer == player)
         {
             await feedback.SendContextualAsync("Please complete your turn before you drop.", options: new()
             {
