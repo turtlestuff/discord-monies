@@ -260,6 +260,16 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
         return Result.Success;
     }
     
+    [Button("use-jail-card")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.Roll, GameAction.RequiredBailPayment, ErrorMessage = "You can't use your Get Out of Jail Free card right now")]
+    [Ephemeral]
+    public async Task<Result> UseJailCard(string state)
+    {
+        await gameControllerService.UseJailCard(state);
+        return Result.Success;
+    }
+    
     [Button("declare-bankruptcy")]
     [RequiresPlayer(PlayerType.Player)]
     [Ephemeral]

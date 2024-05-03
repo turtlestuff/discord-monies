@@ -7,7 +7,14 @@ public class RequiredBailPaymentCompleteMatterHandler(GameState state, IFeedback
     public async Task Resolve(RequiredBailPaymentCompleteMatter matter)
     {
         await controllerService.MovePlayerRelative(matter.Player, matter.Spaces);
-        await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(matter.Player, state.Board.JailFine, matter.Player.CurrentSpace));
+        if (matter.JailCard)
+        {
+            await service.SendEmbedAsync(state.ThreadId, Embeds.JailBailCard(matter.Player, matter.Player.CurrentSpace));
+        }
+        else
+        {
+            await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(matter.Player, state.Board.JailFine, matter.Player.CurrentSpace));
+        }
         await controllerService.ProcessNextUnresolvedMatter();
     }
 }

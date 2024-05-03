@@ -18,7 +18,7 @@ public partial class GameState
 
     public List<GamePlayer> Players { get; } = [];
 
-    public int CurrentPlayerIndex { get; set; } = 0;
+    public int CurrentPlayerIndex { get; set; }
     
     public GamePlayer CurrentPlayer => Players[CurrentPlayerIndex];
 

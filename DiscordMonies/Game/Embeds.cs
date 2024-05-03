@@ -157,6 +157,22 @@ public static partial class Embeds
             .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and has been released from Jail. They landed on **{landingSpace.NameWithPositionString}**")
             .Build().Get();
     }
+
+    public static Embed JailBailCard(GamePlayer player)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Jail Fine")
+            .WithDescription($"**{player}** has used a Get Out of Jail Free card and has been released from Jail")
+            .Build().Get();
+    }
+
+    public static Embed JailBailCard(GamePlayer player, Space landingSpace)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Jail Fine")
+            .WithDescription($"**{player}** has used a Get Out of Jail Free card and has been released from Jail. They landed on **{landingSpace.NameWithPositionString}**")
+            .Build().Get();
+    }
     
     public static Embed GenericLanding(GamePlayer player, Space landingSpace)
     {

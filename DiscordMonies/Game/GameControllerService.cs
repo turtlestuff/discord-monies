@@ -289,7 +289,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task DrawCard(CardStack stack)
     {
-        var card = stack.DrawCard();
+        LuckCard card;
+        do
+        {
+            card = stack.DrawCard();
+        } while (stack.JailCardOwner is not null && card.Command.StartsWith("jailcard"));
+        
         await service.SendEmbedAsync(state.ThreadId,
             Embeds.CardDrawn(state.CurrentPlayer, stack == state.Board.GambleCards, state.Board, card));
 
@@ -353,7 +358,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 return;
 
             case "jailfree":
-                // TODO: Implement Get Out of Jail Free cards
+                stack.JailCardOwner = state.CurrentPlayer;
                 return;
 
             case "paychance":
@@ -517,7 +522,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             state.UnresolvedMatters.Add(new RequiredBailPaymentCompleteMatter()
             {
                 Player = state.CurrentPlayer,
-                Spaces = state.Dice.Total
+                Spaces = state.Dice.Total,
+                JailCard = false
             });
             await ProcessNextUnresolvedMatter();
         }
@@ -537,6 +543,61 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             state.CurrentPlayer.JailTurns = -1;
 
             await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(state.CurrentPlayer, state.Board.JailFine),
+                new()
+                {
+                    MessageComponents = new([
+                        new ActionRowComponent([
+                            Buttons.Roll()
+                        ])
+                    ])
+                });
+        }
+    }
+
+    public async Task UseJailCard(string type)
+    {
+        var cardStack = type switch
+        {
+            "gamble" => state.Board.GambleCards,
+            "treasure" => state.Board.TreasureCards,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+
+        if (cardStack.JailCardOwner != state.CurrentPlayer)
+        {
+            await service.SendContextualAsync("You don't own the Get Out of Jail Free card.");
+            return;
+        }
+        
+        if (state.CurrentPlayer.JailTurns == -1)
+        {
+            await service.SendContextualAsync("You can't use your Get Out of Jail Free card right now");
+            return;
+        }
+        
+        if (!context.Interaction.Message.HasValue)
+        {
+            await service.SendContextualAsync("Using Get Out of Jail Free card...");
+        }
+        
+        state.CurrentPlayer.JailTurns = -1;
+        cardStack.JailCardOwner = null;
+        
+        if (state.CurrentlyResolvingMatter is RequiredBailPaymentMatter)
+        {
+            // Immediately move the amount shown on the die
+            state.UnresolvedMatters.Add(new RequiredBailPaymentCompleteMatter()
+            {
+                Player = state.CurrentPlayer,
+                Spaces = state.Dice.Total,
+                JailCard = true
+            });
+            await ProcessNextUnresolvedMatter();
+        }
+        else
+        {
+            // Invite the player to roll
+            await service.SendEmbedAsync(state.ThreadId, Embeds.JailBailCard(state.CurrentPlayer),
                 new()
                 {
                     MessageComponents = new([
@@ -816,7 +877,17 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             billOfMaterials.Add($"**{space.NameWithPositionString}** -> **{transferredName}**");
         }
         
-        // TODO: Transfer get out of jail free cards
+        if (state.Board.GambleCards.JailCardOwner == player)
+        {
+            state.Board.GambleCards.JailCardOwner = transferredAssets;
+            billOfMaterials.Add($"Get Out of Jail Free card -> **{transferredName}**");
+        }
+        if (state.Board.TreasureCards.JailCardOwner == player)
+        {
+            state.Board.TreasureCards.JailCardOwner = transferredAssets;
+            billOfMaterials.Add($"Get Out of Jail Free card -> **{transferredName}**");
+        }
+        
         // TODO: Require the recipient to pay a 10% fee for transferring any mortgaged properties
         
         // Remove the player from the game

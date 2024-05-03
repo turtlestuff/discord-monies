@@ -38,7 +38,14 @@ public class DiceRollMatterHandler(GameState state, IFeedbackService service, Bo
         {
             buttons.Insert(0, Buttons.Bail(state.Board.JailFine));
             
-            // TODO: Get out of jail free card
+            if (state.Board.GambleCards.JailCardOwner == state.CurrentPlayer)
+            {
+                buttons.Insert(0, Buttons.UseJailCard("gamble"));
+            }
+            if (state.Board.TreasureCards.JailCardOwner == state.CurrentPlayer)
+            {
+                buttons.Insert(0, Buttons.UseJailCard("treasure"));
+            }
         }
         
         await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
