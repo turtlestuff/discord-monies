@@ -270,6 +270,26 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
         return Result.Success;
     }
     
+    [Button("take-card")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.TakeCardOrPayDecision)]
+    [Ephemeral]
+    public async Task<Result> TakeCard()
+    {
+        await gameControllerService.TakeCard();
+        return Result.Success;
+    }
+    
+    [Button("take-card-pay")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.TakeCardOrPayDecision)]
+    [Ephemeral]
+    public async Task<Result> TakeCardPay()
+    {
+        await gameControllerService.TakeCardPay();
+        return Result.Success;
+    }
+    
     [Button("declare-bankruptcy")]
     [RequiresPlayer(PlayerType.Player)]
     [Ephemeral]

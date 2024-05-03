@@ -3,6 +3,7 @@ using DiscordMonies.Extensions;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
+using DiscordMonies.Game.UnresolvedMatters.PayOrGamble;
 using DiscordMonies.Game.UnresolvedMatters.PurchaseDecision;
 using DiscordMonies.Game.UnresolvedMatters.RequiredBailPayment;
 using DiscordMonies.Game.UnresolvedMatters.RequiredBailPaymentComplete;
@@ -177,7 +178,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
         await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
 
-        if (state.CurrentlyResolvingMatter is PaymentMatter && to?.Money >= 0)
+        if (state.CurrentlyResolvingMatter is PaymentMatter pm && pm.From == to && to?.Money >= 0)
         {
             await ProcessCurrentlyUnresolvedMatter();
         }
@@ -362,10 +363,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 return;
 
             case "paychance":
-                // TODO: Implement Take Card or Pay
-                // waiting = Waiting.ForTakeCardOrPayDecision;
-                // payOrTakeCardVal = int.Parse(parts[1]);
-                // payOrTakeCardType = CardType.Chance;
+                state.UnresolvedMatters.Add(new PayOrGambleMatter()
+                {
+                    Player = state.CurrentPlayer,
+                    PayValue = int.Parse(parts[1]),
+                    CardStack = state.Board.GambleCards
+                });
                 return;
 
             case "advance":
@@ -487,6 +490,9 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             .First(x => x.space.Info is JailSpace).i, false);
 
         state.CurrentPlayer.JailTurns = 0;
+        
+        // Reset the dice so that they don't get another turn
+        state.Dice.Reset();
 
         await service.SendEmbedAsync(state.ThreadId, Embeds.SentToJail(state.CurrentPlayer));
     }
@@ -852,9 +858,13 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         else
         {
             await service.SendContextualAsync($"Unmortgaging mortgaged property {space}...");
+            if (!await TryPay(player, null, space.TitleDeed!.UnmortgageValue))
+            {
+                await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to unmortgage **{space}** because your balance is too low to unmortgage it", player.Money,
+                        space.TitleDeed.UnmortgageValue));
+            }
             
             space.BuiltHouses = 0;
-            await TryPay(player, null, space.TitleDeed!.UnmortgageValue);
 
             await service.SendEmbedAsync(state.ThreadId, Embeds.Unmortgage(space));
         }
@@ -937,5 +947,28 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             await ProcessNextUnresolvedMatter();
         }
+    }
+
+    public async Task TakeCard()
+    {
+        var matter = (PayOrGambleMatter) state.CurrentlyResolvingMatter;
+        await DrawCard(matter.CardStack);
+        await ProcessNextUnresolvedMatter();
+    }
+
+    public async Task TakeCardPay()
+    {
+        var matter = (PayOrGambleMatter) state.CurrentlyResolvingMatter;
+        if (!await TryPay(matter.Player, null, matter.PayValue))
+        {
+            await service.SendContextualAsync(
+                Strings.BalanceTooLow("Your balance is too low to pay the required amount", matter.Player.Money,
+                    matter.PayValue), options: new()
+                {
+                    MessageFlags = new(MessageFlags.Ephemeral)
+                });
+        }
+
+        await ProcessNextUnresolvedMatter();
     }
 }

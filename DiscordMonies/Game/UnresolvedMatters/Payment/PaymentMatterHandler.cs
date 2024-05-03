@@ -10,33 +10,42 @@ public class PaymentMatterHandler(GameState state, IFeedbackService service, Gam
         var payer = matter.From?.DisplayName ?? "The Bank";
         var receiver = matter.To?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
 
-        // Decrease the money of the payer if they exist
-        if (matter.From != null)
+        // Only process a forced payment if it has not yet been processed
+        if (!matter.PaymentComplete)
         {
-            if (matter.From.Money < matter.Amount)
+            // Decrease the money of the payer if they exist
+            if (matter.From != null)
             {
-                // Not enough money to resolve this matter
-                await service.SendEmbedAsync(state.ThreadId,
-                    Embeds.BankruptcyResolutionRequired(state.Players.Where(x => x.Money < 0)), options: new()
-                    {
-                        MessageComponents = new([
-                            new ActionRowComponent([
-                                Buttons.DeclareBankruptcy()                            
-                            ])
-                        ])
-                    });
+                matter.From.Money -= matter.Amount;
+            }
+
+            // Increase the money of the payee if they exist
+            if (matter.To != null)
+            {
+                matter.To.Money += matter.Amount;
             }
             
-            matter.From.Money -= matter.Amount;
+            await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {matter.Amount.MoneyString()}");
+            
+            // Indicate that the payment portion of this matter is resolved
+            matter.PaymentComplete = true;
         }
 
-        // Increase the money of the payee if they exist
-        if (matter.To != null)
+        // At this stage, if the player is in debt, they need to resolve it immediately
+        if (matter.From?.Money is < 0)
         {
-            matter.To.Money += matter.Amount;
+            await service.SendEmbedAsync(state.ThreadId,
+                Embeds.BankruptcyResolutionRequired([matter.From]), options: new()
+                {
+                    MessageComponents = new([
+                        new ActionRowComponent([
+                            Buttons.DeclareBankruptcy()                            
+                        ])
+                    ])
+                });
+            return;
         }
 
-        await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {matter.Amount.MoneyString()}");
         await gameControllerService.ProcessNextUnresolvedMatter();
     }
 }

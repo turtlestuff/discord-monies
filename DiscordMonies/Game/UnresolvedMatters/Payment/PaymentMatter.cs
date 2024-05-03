@@ -11,4 +11,6 @@ public class PaymentMatter : IUnresolvedMatter
     public GameAction Action => GameAction.BankruptcyResolution;
 
     public GamePlayer? Player => From;
+    
+    public bool PaymentComplete { get; set; }
 }

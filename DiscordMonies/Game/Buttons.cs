@@ -30,4 +30,12 @@ public static class Buttons
     public static ButtonComponent UseJailCard(string type) =>
         new(ButtonComponentStyle.Success, "Use Get Out Of Jail Free Card",
             CustomID: CustomIDHelpers.CreateButtonIDWithState("use-jail-card", type));
+
+    public static ButtonComponent TakeCard() =>
+        new(ButtonComponentStyle.Secondary, "Take a card",
+            CustomID: CustomIDHelpers.CreateButtonID("take-card"));
+
+    public static ButtonComponent TakeCardPay(int price) =>
+        new(ButtonComponentStyle.Secondary, $"Pay {price.MoneyString(false)}",
+            CustomID: CustomIDHelpers.CreateButtonID("take-card-pay"));
 }
