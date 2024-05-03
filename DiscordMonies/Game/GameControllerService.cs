@@ -26,7 +26,11 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     {
         if (state.UnresolvedMatters.Count == 0)
         {
-            state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
+            if (!state.Dice.DoubleRoll)
+            {
+                state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
+                state.Dice.Reset();
+            }
             state.CurrentlyResolvingMatter = new DiceRollMatter()
             {
                 Player = state.CurrentPlayer
@@ -233,7 +237,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     {
         if (position < player.Position && passGoBonus)
         {
-            await Pay(null, player, state.Board.PassGoValue);
+            await TryPay(null, player, state.Board.PassGoValue);
 
             await service.SendAsync(state.ThreadId, $"{player} was given {state.Board.PassGoValue.MoneyString()} for passing GO!");
         }
@@ -515,6 +519,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 Player = state.CurrentPlayer,
                 Spaces = state.Dice.Total
             });
+            await ProcessNextUnresolvedMatter();
         }
         else
         {
