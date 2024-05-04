@@ -38,6 +38,7 @@ builder.Services
     .AddPreparationErrorEvent<GameCommandPreparationErrorEvent>()
     .AddCondition<RequiresPlayerCondition>()
     .AddCondition<NextRequiredActionCondition>()
+    .AddCondition<RequiresTradeTableCondition>()
     .AddParser<GamePlayerParser>()
     .AddParser<SpaceParser>()
     .AddParser<ColorSetParser>()
