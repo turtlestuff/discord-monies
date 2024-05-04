@@ -33,6 +33,7 @@ builder.Services
     .AddCommandGroupsFromAssembly(typeof(Program).Assembly)
     .AddInteractionGroup<LobbyInteractions>()
     .AddInteractionGroup<GameInteractions>()
+    .AddInteractionGroup<TradeInteractions>()
     .AddPreExecutionEvent<GameCommandPreExecutionEvent>()
     .AddPostExecutionEvent<GameCommandPostExecutionEvent>()
     .AddPreparationErrorEvent<GameCommandPreparationErrorEvent>()

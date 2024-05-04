@@ -67,9 +67,9 @@ public class TradeCommands(GameState gameState, IInteractionCommandContext ctx, 
     [RequiresTradeTable]
     [Description("Place one of the other party's properties on the trade table")]
     [Ephemeral]
-    public async Task<Result> TakeProperty([AutocompleteProvider("autocomplete::spaces:owned")] Space space)
+    public async Task<Result> TakeProperty([AutocompleteProvider("autocomplete::spaces:trade")] Space space)
     {
-        await tradeService.Toggle(space, true);
+        await tradeService.Toggle(space, false);
         return Result.Success;
     }
     
@@ -80,7 +80,7 @@ public class TradeCommands(GameState gameState, IInteractionCommandContext ctx, 
     [Ephemeral]
     public async Task<Result> TakeMoney(int amount)
     {
-        await tradeService.SetMoney(amount, true);
+        await tradeService.SetMoney(amount, false);
         return Result.Success;
     }
     

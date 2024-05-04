@@ -73,6 +73,35 @@ public sealed class PropertyAutocompleteProvider(GameService gameService, IInter
     }
 }
 
+public sealed class TradePropertyAutocompleteProvider(GameService gameService, IInteractionContext ctx)
+    : IAutocompleteProvider
+{
+    public string Identity => "autocomplete::spaces:trade";
+    
+    public async ValueTask<IReadOnlyList<IApplicationCommandOptionChoice>> GetSuggestionsAsync(
+        IReadOnlyList<IApplicationCommandInteractionDataOption> options,
+        string userInput,
+        CancellationToken ct = new CancellationToken())
+    {
+        if (gameService.GetGameState(ctx) is not { } gameState)
+        {
+            return [];
+        }
+        
+        var player = gameState.GetById(ctx.GetUserId());
+        
+        var tradeTable = player.ConfiguringTradeTable;
+        if (tradeTable is null)
+        {
+            return [];
+        }
+
+        return gameState.Board.Spaces.Where(space => space.NameWithPositionString.Contains(userInput, StringComparison.InvariantCultureIgnoreCase))
+            .Where(space => space.Owner == tradeTable.To)
+            .Select(space => new ApplicationCommandOptionChoice(space.NameWithPositionString, space.PositionCode)).ToImmutableList();
+    }
+}
+
 public sealed class OwnedSpaceAutocompleteProvider(GameService gameService, IInteractionContext ctx)
     : IAutocompleteProvider
 {

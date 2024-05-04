@@ -140,6 +140,16 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
 
     public Task<bool> EnsureTradeTableValid(TradeTable tradeTable)
     {
+        // Ensure everyone is actually still in the game
+        if (!gameState.Players.Contains(tradeTable.From))
+        {
+            return Task.FromResult(false);
+        }
+        if (!gameState.Players.Contains(tradeTable.To))
+        {
+            return Task.FromResult(false);
+        }
+        
         // Ensure everyone has enough money
         if (tradeTable.Money < 0)
         {
