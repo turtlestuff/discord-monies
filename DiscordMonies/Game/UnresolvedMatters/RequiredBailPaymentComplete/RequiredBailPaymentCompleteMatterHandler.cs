@@ -15,6 +15,8 @@ public class RequiredBailPaymentCompleteMatterHandler(GameState state, IFeedback
         {
             await service.SendEmbedAsync(state.ThreadId, Embeds.JailBail(matter.Player, state.Board.JailFine, matter.Player.CurrentSpace));
         }
+
+        await controllerService.ProcessPlayerLand();
         await controllerService.ProcessNextUnresolvedMatter();
     }
 }

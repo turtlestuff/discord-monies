@@ -3,6 +3,7 @@
 using DiscordMonies.Game;
 using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.MortgageTransfer;
 
 namespace DiscordMonies.Board;
 
@@ -58,7 +59,16 @@ public class Space : IOwnable
     {
         Owner = target;
         
-        // TODO: If the property is mortgaged, ask the target if they want to pay the mortgage transfer fee 
+        // If the property is mortgaged, ask the target if they want to pay the mortgage transfer fee
+        if (IsMortgaged)
+        {
+            return new MortgageTransferMatter
+            {
+                Player = target,
+                Space = this
+            };
+        }
+        
         return null;
     }
 }

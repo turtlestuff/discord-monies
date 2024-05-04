@@ -243,4 +243,12 @@ public static partial class Embeds
             .WithColour(Color.LimeGreen)
             .Build().Get();
     }
+
+    public static Embed MortgageTransfer(Space space)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Mortgage Transferred")
+            .WithDescription($"**{space}** was transferred, but is currently mortgaged. Do you want to keep the property mortgaged for 10% of the mortgage price, or unmortgage the property now?")
+            .Build().Get();
+    }
 }

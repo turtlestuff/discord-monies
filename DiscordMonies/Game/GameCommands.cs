@@ -110,6 +110,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [Ephemeral]
     public async Task<Result> Deed([Description("The space to view the title deed for")] [Autocomplete] Space space)
     {
+        // TODO: Ensure that the space has a title deed
         await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
         return Result.Success;
     }
@@ -288,6 +289,26 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
     public async Task<Result> TakeCardPay()
     {
         await gameControllerService.TakeCardPay();
+        return Result.Success;
+    }
+    
+    [Button("mortgage-transfer-unmortgage")]
+    [RequiresPlayer(PlayerType.MatterHead)]
+    [NextRequiredAction(GameAction.MortgageTransferDecision)]
+    [Ephemeral]
+    public async Task<Result> MortgageTransferUnmortgage()
+    {
+        await gameControllerService.MortgageTransferUnmortgage();
+        return Result.Success;
+    }
+    
+    [Button("mortgage-transfer-mortgage")]
+    [RequiresPlayer(PlayerType.MatterHead)]
+    [NextRequiredAction(GameAction.MortgageTransferDecision)]
+    [Ephemeral]
+    public async Task<Result> MortgageTransferMortgage()
+    {
+        await gameControllerService.MortgageTransferMortgage();
         return Result.Success;
     }
     

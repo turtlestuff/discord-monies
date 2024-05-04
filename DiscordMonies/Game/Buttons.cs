@@ -1,3 +1,4 @@
+using DiscordMonies.Board;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Interactivity;
@@ -50,4 +51,14 @@ public static class Buttons
     public static ButtonComponent RejectTrade(string id) =>
         new(ButtonComponentStyle.Danger, "Reject",
             CustomID: CustomIDHelpers.CreateButtonIDWithState("trade-reject", id));
+
+    public static ButtonComponent MortgageTransferUnmortgage(Space space) =>
+        new(ButtonComponentStyle.Primary,
+            $"Unmortgage {space} for {space.TitleDeed!.UnmortgageValue.MoneyString(false)}",
+            CustomID: CustomIDHelpers.CreateButtonID("mortgage-transfer-unmortgage"));
+
+    public static ButtonComponent MortgageTransferKeepMortgage(Space space) =>
+        new(ButtonComponentStyle.Secondary,
+            $"Keep {space} mortgaged for {((int)(space.TitleDeed!.MortgageValue * 0.1)).MoneyString(false)}",
+            CustomID: CustomIDHelpers.CreateButtonID("mortgage-transfer-mortgage"));
 }

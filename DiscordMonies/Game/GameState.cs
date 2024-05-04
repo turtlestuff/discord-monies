@@ -51,5 +51,6 @@ public enum GameAction
     AuctionBid,
     RequiredBailPayment,
     BankruptcyResolution,
-    TakeCardOrPayDecision
+    TakeCardOrPayDecision,
+    MortgageTransferDecision
 }

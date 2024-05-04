@@ -4,6 +4,7 @@ using DiscordMonies.Game;
 using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
+using DiscordMonies.Game.UnresolvedMatters.MortgageTransfer;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
 using DiscordMonies.Game.UnresolvedMatters.PayOrGamble;
 using DiscordMonies.Game.UnresolvedMatters.PurchaseDecision;
@@ -52,7 +53,8 @@ builder.Services
     .AddUnresolvedMatterHandler<PurchaseDecisionMatterHandler>()
     .AddUnresolvedMatterHandler<RequiredBailPaymentMatterHandler>()
     .AddUnresolvedMatterHandler<RequiredBailPaymentCompleteMatterHandler>()
-    .AddUnresolvedMatterHandler<PayOrGambleMatterHandler>();
+    .AddUnresolvedMatterHandler<PayOrGambleMatterHandler>()
+    .AddUnresolvedMatterHandler<MortgageTransferMatterHandler>();
 
 builder.Services
     .AddSingleton<LobbyService>()

@@ -3,6 +3,7 @@ using DiscordMonies.Extensions;
 using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
+using DiscordMonies.Game.UnresolvedMatters.MortgageTransfer;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
 using DiscordMonies.Game.UnresolvedMatters.PayOrGamble;
 using DiscordMonies.Game.UnresolvedMatters.PurchaseDecision;
@@ -202,7 +203,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             return;
         }
         
-        state.UnresolvedMatters.Add(new PaymentMatter()
+        state.UnresolvedMatters.Insert(0, new PaymentMatter()
         {
             From = from,
             To = to,
@@ -251,7 +252,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// Processes the landing of the current player on a board space.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task ProcessPlayerLand(bool bigRent = false)
+    public async Task ProcessPlayerLand(bool bigRent = false)
     {
         var currentSpace = state.CurrentPlayer.CurrentSpace;
 
@@ -858,13 +859,13 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         }
         else
         {
-            await service.SendContextualAsync($"Unmortgaging mortgaged property {space}...");
             if (!await TryPay(player, null, space.TitleDeed!.UnmortgageValue))
             {
                 await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to unmortgage **{space}** because your balance is too low to unmortgage it", player.Money,
                         space.TitleDeed.UnmortgageValue));
             }
             
+            await service.SendContextualAsync($"Unmortgaging mortgaged property {space}...");
             space.BuiltHouses = 0;
 
             await service.SendEmbedAsync(state.ThreadId, Embeds.Unmortgage(space));
@@ -974,6 +975,32 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 });
         }
 
+        await ProcessNextUnresolvedMatter();
+    }
+
+    public async Task MortgageTransferUnmortgage()
+    {
+        var matter = (MortgageTransferMatter)state.CurrentlyResolvingMatter;
+        
+        if (!await TryPay(matter.Player, null, matter.Space.TitleDeed!.UnmortgageValue))
+        {
+            await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to unmortgage **{matter.Space}** because your balance is too low to unmortgage it", matter.Player.Money,
+                matter.Space.TitleDeed.UnmortgageValue));
+        }
+            
+        await service.SendContextualAsync($"Unmortgaging mortgaged property {matter.Space}...");
+        matter.Space.BuiltHouses = 0;
+
+        await service.SendEmbedAsync(state.ThreadId, Embeds.Unmortgage(matter.Space));
+        await ProcessNextUnresolvedMatter();
+    }
+
+    public async Task MortgageTransferMortgage()
+    {
+        var matter = (MortgageTransferMatter)state.CurrentlyResolvingMatter;
+        await Pay(matter.Player, null, (int)(matter.Space.TitleDeed!.MortgageValue * 0.1));
+        
+        await service.SendContextualAsync($"Keeping mortgaged property {matter.Space} mortgaged...");
         await ProcessNextUnresolvedMatter();
     }
 }

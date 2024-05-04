@@ -35,8 +35,16 @@ public sealed class RequiresPlayerCondition(GameService gameService, IInteractio
             return new(Result.Success);
         }
 
+        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+        var comparePlayer = playerType switch
+        {
+            PlayerType.CurrentPlayer => gameState.CurrentPlayer,
+            PlayerType.MatterHead => gameState.CurrentlyResolvingMatter.Player,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        
         // The command must be run by the current player in the game
-        if (gameState.CurrentPlayer.Id != userId)
+        if (comparePlayer?.Id != userId)
         {
             return new(new NotCurrentPlayerError());
         }
@@ -55,5 +63,6 @@ public enum PlayerType
 {
     PlayerOrSpectator, // Anyone in a game channel
     Player,
-    CurrentPlayer
+    CurrentPlayer,
+    MatterHead
 }
