@@ -370,6 +370,33 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
         return Result.Success;
     }
     
+    [Button("auction-bid-other")]
+    [RequiresPlayer(PlayerType.MatterHead)]
+    [NextRequiredAction(GameAction.AuctionBid)]
+    [SuppressInteractionResponse(true)]
+    public async Task<Result> AuctionBidOther()
+    {
+        var auction = (AuctionMatter)gameState.CurrentlyResolvingMatter;
+        return await interactionApi.CreateInteractionResponseAsync(ctx.Interaction.ID, ctx.Interaction.Token,
+            new InteractionResponse(InteractionCallbackType.Modal, new(new InteractionModalCallbackData(
+                CustomIDHelpers.CreateModalID("do-bid-other"),
+                $"Bid for {auction.AuctionSpace}",
+                [
+                    new ActionRowComponent([
+                        new TextInputComponent(
+                            "bid",
+                            TextInputStyle.Short,
+                            $"Your bid? (min {(auction.HighestBid + 1).MoneyString(false)})",
+                            1,
+                            4,
+                            true,
+                            default,
+                            "100"
+                        )])
+                ]
+            ))));
+    }
+    
     [Button("auction-title-deed")]
     [RequiresPlayer(PlayerType.PlayerOrSpectator)]
     [NextRequiredAction(GameAction.AuctionBid)]
@@ -420,6 +447,27 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
     {
         var player = gameState.GetById(ctx.GetUserId());
         await gameControllerService.DevelopProperties(player, new(state), [space0, space1, space2]);
+        return Result.Success;
+    }
+    
+    [Modal("do-bid-other")]
+    [RequiresPlayer(PlayerType.MatterHead)]
+    [NextRequiredAction(GameAction.AuctionBid)]
+    [Ephemeral]
+    public async Task<Result> DoBidOther(int bid)
+    {
+        var auction = (AuctionMatter)gameState.CurrentlyResolvingMatter;
+        
+        if (bid <= auction.HighestBid)
+        {
+            await feedback.SendContextualAsync($"You need to bid higher than the highest bid. The highest bid is {auction.HighestBid.MoneyString()}", options: new()
+            {
+                MessageFlags = new(MessageFlags.Ephemeral)
+            });
+            return Result.Success;
+        }
+        
+        await gameControllerService.AuctionBid(bid - auction.HighestBid);
         return Result.Success;
     }
 }

@@ -31,13 +31,14 @@ public class AuctionMatterHandler(GameState state, IFeedbackService service, Gam
         var embed = Embeds.Auction(matter.AuctionSpace, matter.HighestBid, matter.HighestBidder);
         List<ActionRowComponent> messageComponents = [
             new([
-                Buttons.Bid(1),
-                Buttons.Bid(5),
-                Buttons.Bid(10),
-                Buttons.Bid(20),
-                Buttons.Bid(100)
+                Buttons.Bid(1, matter.HighestBid),
+                Buttons.Bid(5, matter.HighestBid),
+                Buttons.Bid(10, matter.HighestBid),
+                Buttons.Bid(20, matter.HighestBid),
+                Buttons.Bid(100, matter.HighestBid)
             ]),
             new([
+                Buttons.AuctionBidOther(),
                 Buttons.AuctionTitleDeed(),
                 Buttons.DropAuction()
             ])

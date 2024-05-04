@@ -155,9 +155,9 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     /// <param name="to">The player who is receiving the payment. If null, the payment is made to the bank.</param>
     /// <param name="value">The amount of money to be paid.</param>
     /// <returns>True if the player has enough funds to complete the transaction</returns>
-    public async Task<bool> TryPay(GamePlayer? from, GamePlayer? to, int value)
+    public async Task<bool> TryPay(GamePlayer? from, GamePlayer? to, int value, bool bankruptcyPayment = false)
     {
-        if (value < 0) return await TryPay(to, from, -value);
+        if (value < 0) return await TryPay(to, from, -value, bankruptcyPayment);
         
         var payer = from?.DisplayName ?? "The Bank";
         var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
@@ -181,7 +181,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
         await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
 
-        if (state.CurrentlyResolvingMatter is PaymentMatter pm && pm.From == to && to?.Money >= 0)
+        if (!bankruptcyPayment && state.CurrentlyResolvingMatter is PaymentMatter pm && pm.From == to && to?.Money >= 0)
         {
             await ProcessCurrentlyUnresolvedMatter();
         }
@@ -885,7 +885,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         List<string> billOfMaterials = [];
         
         // Use TryPay because Pay will queue up a payment
-        await TryPay(player, transferredAssets, player.Money);
+        await TryPay(player, transferredAssets, player.Money, true);
         billOfMaterials.Add($"{player.Money.MoneyString()} -> **{transferredName}**");
 
         List<IOwnable> playerAssets = [];
@@ -915,7 +915,11 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         var playerAdvanceRequired = state.CurrentPlayer == player && state.CurrentlyResolvingMatter is DiceRollMatter;
         if (state.CurrentPlayer == player)
         {
-            state.CurrentPlayerIndex = (state.CurrentPlayerIndex + 1) % state.Players.Count;
+            state.Dice.Reset();
+            
+            // Move to the previous player so that the next turn is taken by the next player
+            // because moving to the next turn increments the player pointer
+            state.CurrentPlayerIndex = (state.CurrentPlayerIndex + state.Players.Count - 1) % state.Players.Count;
         }
         
         var nextPlayer = state.CurrentPlayer;
@@ -977,6 +981,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 {
                     MessageFlags = new(MessageFlags.Ephemeral)
                 });
+            return;
         }
 
         await ProcessNextUnresolvedMatter();
@@ -990,6 +995,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to unmortgage **{matter.Space}** because your balance is too low to unmortgage it", matter.Player.Money,
                 matter.Space.TitleDeed.UnmortgageValue));
+            return;
         }
             
         await service.SendContextualAsync($"Unmortgaging mortgaged property {matter.Space}...");

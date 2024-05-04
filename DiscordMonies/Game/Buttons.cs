@@ -66,11 +66,15 @@ public static class Buttons
         new(ButtonComponentStyle.Danger, $"Drop out of this auction",
             CustomID: CustomIDHelpers.CreateButtonID("auction-drop"));
 
-    public static ButtonComponent Bid(int value) =>
+    public static ButtonComponent Bid(int value, int highestBid) =>
         new(ButtonComponentStyle.Primary, $"+{value.MoneyString(false)}",
             CustomID: CustomIDHelpers.CreateButtonIDWithState("auction-bid", $"{value}"));
 
     public static ButtonComponent AuctionTitleDeed() =>
         new(ButtonComponentStyle.Secondary, $"View Title Deed",
             CustomID: CustomIDHelpers.CreateButtonID("auction-title-deed"));
+
+    public static ButtonComponent AuctionBidOther() =>
+        new(ButtonComponentStyle.Success, "Bid another amount",
+            CustomID: CustomIDHelpers.CreateButtonID("auction-bid-other"));
 }
