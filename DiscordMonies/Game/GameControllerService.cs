@@ -1,5 +1,6 @@
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
+using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
@@ -818,7 +819,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         await service.SendContextualEmbedAsync(embedBuilder.Build().Get());
     }
 
-    private IEnumerable<Space> SpacesInColorSet(ColorSet colorSet)
+    public IEnumerable<Space> SpacesInColorSet(ColorSet colorSet)
     {
         return state.Board.Spaces.Where(x => x.Info is RoadSpace rs && rs.Group == colorSet.Index);
     }
@@ -881,24 +882,28 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         // Use TryPay because Pay will queue up a payment
         await TryPay(player, transferredAssets, player.Money);
         billOfMaterials.Add($"{player.Money.MoneyString()} -> **{transferredName}**");
-        foreach (var space in state.Board.Spaces.Where(space => space.Owner == player))
-        {
-            space.Owner = transferredAssets;
-            billOfMaterials.Add($"**{space.NameWithPositionString}** -> **{transferredName}**");
-        }
-        
+
+        List<IOwnable> playerAssets = [];
+        playerAssets.AddRange(state.Board.Spaces.Where(space => space.Owner == player));
         if (state.Board.GambleCards.JailCardOwner == player)
         {
-            state.Board.GambleCards.JailCardOwner = transferredAssets;
-            billOfMaterials.Add($"Get Out of Jail Free card -> **{transferredName}**");
+            playerAssets.Add(state.Board.GambleCards);
         }
         if (state.Board.TreasureCards.JailCardOwner == player)
         {
-            state.Board.TreasureCards.JailCardOwner = transferredAssets;
-            billOfMaterials.Add($"Get Out of Jail Free card -> **{transferredName}**");
+            playerAssets.Add(state.Board.TreasureCards);
         }
         
-        // TODO: Require the recipient to pay a 10% fee for transferring any mortgaged properties
+        foreach (var ownable in playerAssets)
+        {
+            var unresolvedMatter = ownable.GiveTo(transferredAssets);
+            if (unresolvedMatter is not null)
+            {
+                state.UnresolvedMatters.Add(unresolvedMatter);
+            }
+            billOfMaterials.Add($"**{ownable}** -> **{transferredName}**");
+        }
+        
         
         // Remove the player from the game
         // Advance the player pointer if necessary
@@ -913,7 +918,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         state.CurrentPlayerIndex = state.Players.IndexOf(nextPlayer);
 
         // Clear out all pending unresolved matters
-        foreach (var unresolvedMatter in state.UnresolvedMatters.Where(x => x.Player == player))
+        foreach (var unresolvedMatter in state.UnresolvedMatters.Where(x => x.Player == player).ToList())
         {
             state.UnresolvedMatters.Remove(unresolvedMatter);
         }

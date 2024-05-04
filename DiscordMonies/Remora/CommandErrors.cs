@@ -1,4 +1,5 @@
-﻿using Remora.Results;
+﻿using Remora.Discord.Extensions.Formatting;
+using Remora.Results;
 
 namespace DiscordMonies.Remora;
 
@@ -15,3 +16,6 @@ internal sealed record NotCurrentPlayerError() : DiscordMoniesError("You can onl
 internal sealed record NotGameSpaceError() : DiscordMoniesError("That's not a valid space on the board.");
 
 internal sealed record NotColorSetError() : DiscordMoniesError("That's not a valid color set.");
+
+// TODO: Replace error message with a mention of the slash command
+internal sealed record NotPlayerIsConfiguringTradeTableError() : DiscordMoniesError("You have no open trade table. Open a trade table using the /trade open command.");

@@ -4,7 +4,6 @@ using DiscordMonies.Board;
 using DiscordMonies.Remora;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Extensions.Embeds;
-using Remora.Rest.Core;
 
 namespace DiscordMonies.Game;
 
@@ -30,7 +29,7 @@ public static partial class Embeds
     public static Embed SentToJail(GamePlayer victim)
     {
         return new EmbedBuilder()
-            .WithTitle("Jail \ufffd") // oncoming police car
+            .WithTitle($"Jail {Emoji.OncomingPoliceCar}")
             .WithDescription($"**{victim}** has been sent to jail.")
             .WithColour(Color.Red)
             .Build().Get();

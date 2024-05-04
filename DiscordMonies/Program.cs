@@ -1,6 +1,7 @@
 using DiscordMonies;
 using DiscordMonies.Board;
 using DiscordMonies.Game;
+using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
@@ -43,6 +44,7 @@ builder.Services
     .AddAutocompleteProvider<SpaceAutocompleteProvider>()
     .AddAutocompleteProvider<OwnedSpaceAutocompleteProvider>()
     .AddAutocompleteProvider<ColorSetAutocompleteProvider>()
+    .AddAutocompleteProvider<PropertyAutocompleteProvider>()
     .AddUnresolvedMatterHandler<DiceRollMatterHandler>()
     .AddUnresolvedMatterHandler<PaymentMatterHandler>()
     .AddUnresolvedMatterHandler<PurchaseDecisionMatterHandler>()
@@ -55,6 +57,7 @@ builder.Services
     .AddSingleton<GameService>()
     .AddSingleton<BoardService>()
     .AddScoped<GameControllerService>()
+    .AddScoped<TradeService>()
     .AddScoped<GameStateInjector>()
     .AddScoped<BoardRenderer>();
 

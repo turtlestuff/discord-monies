@@ -1,6 +1,8 @@
 ﻿using System.Collections.Immutable;
 
 using DiscordMonies.Game;
+using DiscordMonies.Game.Trade;
+using DiscordMonies.Game.UnresolvedMatters;
 
 namespace DiscordMonies.Board;
 
@@ -27,7 +29,7 @@ public sealed record LuckCard(
 
 public record ColorSet(int Index);
 
-public sealed class Space
+public class Space : IOwnable
 {
     public required GameBoard Board { get; init; }
     
@@ -51,6 +53,14 @@ public sealed class Space
         ToString() + (string.IsNullOrEmpty(PositionString) ? string.Empty : PositionString);
 
     public override string ToString() => $"{Info.Name}";
+    
+    public IUnresolvedMatter? GiveTo(GamePlayer? target)
+    {
+        Owner = target;
+        
+        // TODO: If the property is mortgaged, ask the target if they want to pay the mortgage transfer fee 
+        return null;
+    }
 }
 
 public sealed record GameBoard

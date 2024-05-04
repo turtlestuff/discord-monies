@@ -1,4 +1,5 @@
 ﻿using DiscordMonies.Board;
+using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using Remora.Discord.API.Abstractions.Objects;
@@ -38,7 +39,9 @@ public partial class GameState
 
     public IUnresolvedMatter CurrentlyResolvingMatter { get; set; } = null!;
 
-    public IList<IUnresolvedMatter> UnresolvedMatters { get; } = new List<IUnresolvedMatter>();
+    public List<IUnresolvedMatter> UnresolvedMatters { get; } = [];
+
+    public IList<TradeTable> TradeTables { get; } = [];
 }
 
 public enum GameAction

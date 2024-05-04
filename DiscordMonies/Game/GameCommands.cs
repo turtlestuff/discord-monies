@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
+using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using DiscordMonies.Game.UnresolvedMatters.Payment;

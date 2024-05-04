@@ -1,9 +1,12 @@
 using System.Collections.Immutable;
 using DiscordMonies.Game;
+using DiscordMonies.Game.Trade;
+using DiscordMonies.Game.UnresolvedMatters;
 
 namespace DiscordMonies.Board;
 
-public class CardStack(ImmutableArray<LuckCard> allCards)
+// IOwnable because of the jail card inside
+public class CardStack(ImmutableArray<LuckCard> allCards) : IOwnable
 {
     public ImmutableArray<LuckCard> AllCards => allCards;
 
@@ -20,5 +23,15 @@ public class CardStack(ImmutableArray<LuckCard> allCards)
         }
 
         return UnusedCards.Pop();
+    }
+
+    GamePlayer? IOwnable.Owner => JailCardOwner;
+
+    string IOwnable.ToString() => "Get Out of Jail Free card";
+    
+    public IUnresolvedMatter? GiveTo(GamePlayer? target)
+    {
+        JailCardOwner = target;
+        return null;
     }
 }

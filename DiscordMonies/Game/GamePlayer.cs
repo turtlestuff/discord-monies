@@ -5,6 +5,7 @@ using Remora.Discord.API.Abstractions.Objects;
 using Remora.Rest.Core;
 
 using System.Drawing;
+using DiscordMonies.Game.Trade;
 
 namespace DiscordMonies.Game;
 
@@ -92,6 +93,8 @@ public sealed record GamePlayer : IUser
     Optional<UserFlags> IUser.PublicFlags => User.PublicFlags;
 
     Optional<IImageHash?> IUser.AvatarDecoration => User.AvatarDecoration;
+    
+    public TradeTable? ConfiguringTradeTable { get; set; }
 
     #endregion
 }

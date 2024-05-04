@@ -38,4 +38,16 @@ public static class Buttons
     public static ButtonComponent TakeCardPay(int price) =>
         new(ButtonComponentStyle.Secondary, $"Pay {price.MoneyString(false)}",
             CustomID: CustomIDHelpers.CreateButtonID("take-card-pay"));
+
+    public static ButtonComponent AcceptTrade(string id) =>
+        new(ButtonComponentStyle.Success, "Accept",
+            CustomID: CustomIDHelpers.CreateButtonIDWithState("trade-accept", id));
+
+    public static ButtonComponent CounterTrade(string id) =>
+        new(ButtonComponentStyle.Secondary, "Counter",
+            CustomID: CustomIDHelpers.CreateButtonIDWithState("trade-counter", id));
+
+    public static ButtonComponent RejectTrade(string id) =>
+        new(ButtonComponentStyle.Danger, "Reject",
+            CustomID: CustomIDHelpers.CreateButtonIDWithState("trade-reject", id));
 }
