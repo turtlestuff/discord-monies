@@ -5,6 +5,7 @@ using DiscordMonies.Board;
 using DiscordMonies.Extensions;
 using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.AuctionMatter;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
 using DiscordMonies.Remora;
@@ -98,6 +99,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [SuppressInteractionResponse(true)]
     public async Task<Result> Nudge()
     {
+        // TODO: Auctions
         var current = gameState.CurrentPlayer;
         await feedback.SendContextualAsync(
             $"{Mention.User(current.Id)}, {gameState.GetById(ctx.GetUserId()).DisplayName} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
@@ -346,6 +348,37 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
                         )])
                 ]
             ))));
+    }
+    
+    [Button("auction-drop")]
+    [RequiresPlayer(PlayerType.MatterHead)]
+    [NextRequiredAction(GameAction.AuctionBid)]
+    [Ephemeral]
+    public async Task<Result> AuctionDrop()
+    {
+        await gameControllerService.AuctionDrop();
+        return Result.Success;
+    }
+    
+    [Button("auction-bid")]
+    [RequiresPlayer(PlayerType.MatterHead)]
+    [NextRequiredAction(GameAction.AuctionBid)]
+    [Ephemeral]
+    public async Task<Result> AuctionBid(int state)
+    {
+        await gameControllerService.AuctionBid(state);
+        return Result.Success;
+    }
+    
+    [Button("auction-title-deed")]
+    [RequiresPlayer(PlayerType.PlayerOrSpectator)]
+    [NextRequiredAction(GameAction.AuctionBid)]
+    [Ephemeral]
+    public async Task<Result> AuctionTitleDeed()
+    {
+        var space = ((AuctionMatter)gameState.CurrentlyResolvingMatter).AuctionSpace;
+        await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
+        return Result.Success;
     }
 
     [Modal("do-drop")]

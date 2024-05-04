@@ -3,6 +3,7 @@
 using DiscordMonies.Game;
 using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.AuctionMatter;
 using DiscordMonies.Game.UnresolvedMatters.MortgageTransfer;
 
 namespace DiscordMonies.Board;
@@ -55,13 +56,28 @@ public class Space : IOwnable
 
     public override string ToString() => $"{Info.Name}";
     
-    public IUnresolvedMatter? GiveTo(GamePlayer? target)
+    public IUnresolvedMatter? GiveTo(GamePlayer? target, List<GamePlayer> players)
     {
         Owner = target;
         
-        // If the property is mortgaged, ask the target if they want to pay the mortgage transfer fee
-        if (IsMortgaged)
+        if (target is null)
         {
+            // If the target is the bank, it needs to be auctioned off and unmortgaged
+            if (BuiltHouses < 0)
+            {
+                BuiltHouses = 0;
+            }
+            
+            return new AuctionMatter
+            {
+                Player = players.First(),
+                BiddingPlayers = players,
+                AuctionSpace = this
+            };
+        }
+        else if (IsMortgaged)
+        {
+            // If the property is mortgaged, ask the target if they want to pay the mortgage transfer fee
             return new MortgageTransferMatter
             {
                 Player = target,

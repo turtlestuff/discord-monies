@@ -251,4 +251,34 @@ public static partial class Embeds
             .WithDescription($"**{space}** was transferred, but is currently mortgaged. Do you want to keep the property mortgaged for 10% of the mortgage price, or unmortgage the property now?")
             .Build().Get();
     }
+
+    public static Embed Auction(Space space, int value, GamePlayer? matterHighestBidder)
+    {
+        var embed = new EmbedBuilder()
+            .WithTitle("It's auction time!")
+            .WithDescription($"**{space}** is going for auction! The auction ends when all players except for one have dropped out!");
+
+        if (value > 0)
+        {
+            embed = embed.AddField("Highest Bid", $"{value.MoneyString()} by **{matterHighestBidder}**").Get();
+        }
+
+        return embed.Build().Get();
+    }
+
+    public static Embed AuctionComplete(Space space, GamePlayer winner, int value)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Auction complete!")
+            .WithDescription($"**{space}** was won by **{winner}** for {value.MoneyString()}")
+            .Build().Get();
+    }
+
+    public static Embed AuctionFailure(Space space)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Auction complete!")
+            .WithDescription($"No one bid on **{space}**! It will be returned to the bank")
+            .Build().Get();
+    }
 }

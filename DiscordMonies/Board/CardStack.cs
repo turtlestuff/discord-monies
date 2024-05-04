@@ -29,7 +29,7 @@ public class CardStack(ImmutableArray<LuckCard> allCards) : IOwnable
 
     string IOwnable.ToString() => "Get Out of Jail Free card";
     
-    public IUnresolvedMatter? GiveTo(GamePlayer? target)
+    public IUnresolvedMatter? GiveTo(GamePlayer? target, List<GamePlayer> players)
     {
         JailCardOwner = target;
         return null;

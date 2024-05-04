@@ -61,4 +61,16 @@ public static class Buttons
         new(ButtonComponentStyle.Secondary,
             $"Keep {space} mortgaged for {((int)(space.TitleDeed!.MortgageValue * 0.1)).MoneyString(false)}",
             CustomID: CustomIDHelpers.CreateButtonID("mortgage-transfer-mortgage"));
+
+    public static ButtonComponent DropAuction() =>
+        new(ButtonComponentStyle.Danger, $"Drop out of this auction",
+            CustomID: CustomIDHelpers.CreateButtonID("auction-drop"));
+
+    public static ButtonComponent Bid(int value) =>
+        new(ButtonComponentStyle.Primary, $"+{value.MoneyString(false)}",
+            CustomID: CustomIDHelpers.CreateButtonIDWithState("auction-bid", $"{value}"));
+
+    public static ButtonComponent AuctionTitleDeed() =>
+        new(ButtonComponentStyle.Secondary, $"View Title Deed",
+            CustomID: CustomIDHelpers.CreateButtonID("auction-title-deed"));
 }

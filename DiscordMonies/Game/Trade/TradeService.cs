@@ -211,8 +211,8 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         tradeTable.State = TradeTable.TradeTableState.Closed;
         
         // Perform the trade!
-        gameState.UnresolvedMatters.AddRange(tradeTable.Giving.Select(o => o.GiveTo(tradeTable.To)).OfType<IUnresolvedMatter>());
-        gameState.UnresolvedMatters.AddRange(tradeTable.Receiving.Select(o => o.GiveTo(tradeTable.From)).OfType<IUnresolvedMatter>());
+        gameState.UnresolvedMatters.AddRange(tradeTable.Giving.Select(o => o.GiveTo(tradeTable.To, gameState.Players)).OfType<IUnresolvedMatter>());
+        gameState.UnresolvedMatters.AddRange(tradeTable.Receiving.Select(o => o.GiveTo(tradeTable.From, gameState.Players)).OfType<IUnresolvedMatter>());
 
         await gameControllerService.TryPay(tradeTable.From, tradeTable.To, tradeTable.Money);
 

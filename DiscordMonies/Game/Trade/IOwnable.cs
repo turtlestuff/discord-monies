@@ -8,5 +8,5 @@ public interface IOwnable
 
     public string ToString();
     
-    IUnresolvedMatter? GiveTo(GamePlayer? target);
+    IUnresolvedMatter? GiveTo(GamePlayer? target, List<GamePlayer> players);
 };

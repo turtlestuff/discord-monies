@@ -2,6 +2,7 @@ using DiscordMonies.Board;
 using DiscordMonies.Extensions;
 using DiscordMonies.Game.Trade;
 using DiscordMonies.Game.UnresolvedMatters;
+using DiscordMonies.Game.UnresolvedMatters.AuctionMatter;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using DiscordMonies.Game.UnresolvedMatters.MortgageTransfer;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
@@ -504,9 +505,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         var space = state.CurrentPlayer.CurrentSpace;
         await service.SendContextualAsync($"Sending {space} to auction...");
 
-        await service.SendAsync(state.ThreadId,
-            $"Auction is currently not supported. Advancing the turn to the next player...");
-        
+        state.UnresolvedMatters.Add(new AuctionMatter
+        {
+            AuctionSpace = space,
+            Player = state.CurrentPlayer,
+            BiddingPlayers = state.Players
+        });
         await ProcessNextUnresolvedMatter();
     }
 
@@ -897,7 +901,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         foreach (var ownable in playerAssets)
         {
-            var unresolvedMatter = ownable.GiveTo(transferredAssets);
+            var unresolvedMatter = ownable.GiveTo(transferredAssets, state.Players);
             if (unresolvedMatter is not null)
             {
                 state.UnresolvedMatters.Add(unresolvedMatter);
@@ -1002,5 +1006,55 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         await service.SendContextualAsync($"Keeping mortgaged property {matter.Space} mortgaged...");
         await ProcessNextUnresolvedMatter();
+    }
+
+    public async Task AuctionDrop()
+    {
+        var player = state.GetById(context.GetUserId());
+        var matter = (AuctionMatter) state.CurrentlyResolvingMatter;
+        
+        if (!context.Interaction.Message.HasValue)
+        {
+            await service.SendContextualAsync("Dropping from the auction...");
+        }
+
+        if (matter.BiddingPlayers.Count > 1)
+        {
+            var playerIndex = matter.BiddingPlayers.IndexOf(player);
+            matter.Player = matter.BiddingPlayers[(playerIndex + 1) % matter.BiddingPlayers.Count];
+        }
+        
+        matter.BiddingPlayers.Remove(player);
+        await service.SendAsync(state.ThreadId,
+            $"**{player}** has dropped from the auction!");
+        await ProcessCurrentlyUnresolvedMatter();
+    }
+
+    public async Task AuctionBid(int value)
+    {
+        var player = state.GetById(context.GetUserId());
+        var matter = (AuctionMatter) state.CurrentlyResolvingMatter;
+
+        if (player.Money < matter.HighestBid + value)
+        {
+            await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to bid that amount because your balance is too low", player.Money,
+                matter.HighestBid + value));
+            return;
+        }
+        
+        if (!context.Interaction.Message.HasValue)
+        {
+            await service.SendContextualAsync($"Bidding {value.MoneyString()}...");
+        }
+
+        matter.HighestBid += value;
+        matter.HighestBidder = player;
+        
+        await service.SendAsync(state.ThreadId,
+            $"**{player}** bid {matter.HighestBid.MoneyString()} (+{value.MoneyString()})");
+        
+        var playerIndex = matter.BiddingPlayers.IndexOf(player);
+        matter.Player = matter.BiddingPlayers[(playerIndex + 1) % matter.BiddingPlayers.Count];
+        await ProcessCurrentlyUnresolvedMatter();
     }
 }
