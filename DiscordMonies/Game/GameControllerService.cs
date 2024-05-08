@@ -335,6 +335,11 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                             return currentTotal;
                         }
 
+                        if (space.BuiltHouses < 0)
+                        {
+                            return currentTotal;
+                        }
+
                         if (space.BuiltHouses == 5)
                         {
                             return currentTotal + hotelValue;
