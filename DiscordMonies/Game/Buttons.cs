@@ -66,7 +66,7 @@ public static class Buttons
             CustomID: CustomIDHelpers.CreateButtonID("mortgage-transfer-mortgage"));
 
     public static ButtonComponent DropAuction() =>
-        new(ButtonComponentStyle.Danger, $"Drop out of this auction",
+        new(ButtonComponentStyle.Danger, $"Withdraw from this auction",
             CustomID: CustomIDHelpers.CreateButtonID("auction-drop"));
 
     public static ButtonComponent Bid(int value, int highestBid) =>

@@ -36,19 +36,13 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
         var player = gameState.GetById(ctx.GetUserId());
         if (gameState.CurrentlyResolvingMatter.Action == GameAction.AuctionBid)
         {
-            await feedback.SendContextualAsync("Please wait for the auction to complete before you drop.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("Please wait for the auction to complete before you drop.", options: MessageOptions.Ephemeral);
             return Result.Success;
         }
         
         if (gameState.CurrentlyResolvingMatter is not DiceRollMatter and not PaymentMatter && gameState.CurrentPlayer == player)
         {
-            await feedback.SendContextualAsync("Please complete your turn before you drop.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("Please complete your turn before you drop.", options: MessageOptions.Ephemeral);
             return Result.Success;
         }
         
@@ -470,10 +464,7 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
         
         if (bid <= auction.HighestBid)
         {
-            await feedback.SendContextualAsync($"You need to bid higher than the highest bid. The highest bid is {auction.HighestBid.MoneyString()}", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync($"That bid is too low. You need to bid at least {(auction.HighestBid + 1).MoneyString()}.", options: MessageOptions.Ephemeral);
             return Result.Success;
         }
         

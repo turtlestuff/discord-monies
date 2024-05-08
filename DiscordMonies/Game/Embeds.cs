@@ -10,19 +10,20 @@ namespace DiscordMonies.Game;
 public static partial class Embeds
 {
     private static readonly string[] Dies = [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6"
+        "<:1_:869985162979606598>",
+        "<:2_:869985162971185212>",
+        "<:3_:869985163793281104>",
+        "<:4_:869985162962829422>",
+        "<:5_:869985162979598346>",
+        "<:6_:869985162740498473>"
     ];
 
     public static Embed PropertyObtained(GamePlayer player, Space space)
     {
         return new EmbedBuilder()
             .WithTitle("Property Obtained")
-            .WithDescription($"{player} has obtained {space} for {((ValueSpace) space.Info).Value.MoneyString()}")
+            .WithDescription($"{player} has obtained {space} for {((ValueSpace) space.Info).Value.MoneyString()}.")
+            .WithColour(space.GroupColorOrDefault(PrettyColors.Green))
             .Build().Get();
     }
 
@@ -31,7 +32,7 @@ public static partial class Embeds
         return new EmbedBuilder()
             .WithTitle($"Jail {Emoji.OncomingPoliceCar}")
             .WithDescription($"**{victim}** has been sent to jail.")
-            .WithColour(Color.Red)
+            .WithColour(PrettyColors.Red)
             .Build().Get();
     }
 
@@ -67,7 +68,7 @@ public static partial class Embeds
         return new EmbedBuilder()
             .WithTitle(deck)
             .WithDescription($"**{victim}** takes a deep breath and draws a {deck} card...")
-            .WithColour(Color.Yellow)
+            .WithColour(PrettyColors.Gold)
             .AddField($"{deck} card", humanReadableDescription).Get()
             .Build().Get();
     }
@@ -78,29 +79,32 @@ public static partial class Embeds
             .WithTitle("Next Round")
             .WithDescription($"It's **{currentPlayer}**'s turn.")
             .WithImageUrl("attachment://board.png")
-            .AddField("Current Player", currentPlayer.ToString(), true).Get()
+            .WithColour(currentPlayer.Color.Color)
             .AddField("Current Position", currentPlayer.JailTurns != -1 ? "In Jail" : currentPlayer.CurrentSpace.NameWithPositionString, true).Get()
-            .AddField("Player Colour", currentPlayer.Color.Name, true).Get()
+            .AddField("Color", currentPlayer.Color.Name, true).Get()
+            .AddField("Balance", currentPlayer.Money.MoneyString(), true).Get()
             .Build().Get();
     }
     
     public static Embed TurnAdvancedDoubles(GamePlayer currentPlayer)
     {
         return new EmbedBuilder()
-            .WithTitle("Next Round")
-            .WithDescription($"It's **{currentPlayer}**'s turn again because they rolled doubles.")
+            .WithTitle($"Doubles {Emoji.Die} {Emoji.Die}")
+            .WithDescription($"It's **{currentPlayer}**'s turn again because they rolled doubles!")
             .WithImageUrl("attachment://board.png")
-            .AddField("Current Player", currentPlayer.ToString(), true).Get()
+            .WithColour(PrettyColors.Green)
             .AddField("Current Position", currentPlayer.CurrentSpace.NameWithPositionString, true).Get()
-            .AddField("Player Colour", currentPlayer.Color.Name, true).Get()
+            .AddField("Color", currentPlayer.Color.Name, true).Get()
+            .AddField("Balance", currentPlayer.Money.MoneyString(), true).Get()
             .Build().Get();
     }
 
     public static Embed DieRolled(GamePlayer player, GameDice dice, Space landingSpace)
     {
         return new EmbedBuilder()
-            .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]} and landed on **{landingSpace.NameWithPositionString}**")
+            .WithTitle($"Roll {Emoji.Die}")
+            .WithColour(player.Color.Color)
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]} and landed on **{landingSpace.NameWithPositionString}**.")
             .Build().Get();
     }
     
@@ -109,6 +113,7 @@ public static partial class Embeds
         return new EmbedBuilder()
             .WithTitle("Jail Roll")
             .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}.")
+            .WithColour(PrettyColors.Red)
             .AddField("Attempts Remaining", $"{attempts} attempts remaining").Get()
             .Build().Get();
     }
@@ -119,17 +124,9 @@ public static partial class Embeds
     public static Embed SpeedingDieRolled(GamePlayer player, GameDice dice)
     {
         return new EmbedBuilder()
-            .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}. The policemen are on their way!")
-            .Build().Get();
-    }
-
-    public static Embed FinalJailDieRolled(GamePlayer player, GameDice dice)
-    {
-        return new EmbedBuilder()
-            .WithTitle("Jail Roll")
-            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}.")
-            .AddField("Attempts Remaining", "0 attempts remaining.").Get()
+            .WithTitle($"Roll {Emoji.Die}")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}. This is the third time they have rolled doubles. The policemen are on their way — no speeding!")
+            .WithColour(player.Color.Color)
             .Build().Get();
     }
 
@@ -137,7 +134,9 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Roll")
-            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]} and left jail. They landed on **{landingSpace.NameWithPositionString}**")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]} and was released from jail! They landed on **{landingSpace.NameWithPositionString}**.")
+            .WithFooter("They do not get an extra turn for rolling doubles.")
+            .WithColour(PrettyColors.Green)
             .Build().Get();
     }
 
@@ -145,7 +144,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Jail Fine")
-            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and has been released from Jail")
+            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and was released from gaol.")
+            .WithColour(player.Color.Color)
             .Build().Get();
     }
     
@@ -153,7 +153,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Jail Fine")
-            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and has been released from Jail. They landed on **{landingSpace.NameWithPositionString}**")
+            .WithDescription($"**{player}** has paid the fine of {bailFine.MoneyString()} and was released from jail. They landed on **{landingSpace.NameWithPositionString}**.")
+            .WithColour(player.Color.Color)
             .Build().Get();
     }
 
@@ -161,7 +162,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Jail Fine")
-            .WithDescription($"**{player}** has used a Get Out of Jail Free card and has been released from Jail")
+            .WithDescription($"**{player}** has used a Get Out of Jail Free card and was released from jail!")
+            .WithColour(player.Color.Color)
             .Build().Get();
     }
 
@@ -169,7 +171,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Jail Fine")
-            .WithDescription($"**{player}** has used a Get Out of Jail Free card and has been released from Jail. They landed on **{landingSpace.NameWithPositionString}**")
+            .WithDescription($"**{player}** has used a Get Out of Jail Free card and was released from jail! They landed on **{landingSpace.NameWithPositionString}**.")
+            .WithColour(player.Color.Color)
             .Build().Get();
     }
     
@@ -177,7 +180,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Player Moved")
-            .WithDescription($"**{player}** landed on **{landingSpace.NameWithPositionString}**")
+            .WithDescription($"**{player}** landed on **{landingSpace.NameWithPositionString}**.")
+            .WithColour(player.Color.Color)
             .Build().Get();
     }
 
@@ -185,8 +189,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Mortgage")
-            .WithDescription(
-                $"**{space.Owner}** has mortgaged **{space.NameWithPositionString}** for {space.TitleDeed!.MortgageValue.MoneyString()}")
+            .WithDescription($"**{space.Owner}** has mortgaged **{space.NameWithPositionString}** for {space.TitleDeed!.MortgageValue.MoneyString()}.")
+            .WithColour(space.GroupColorOrDefault(PrettyColors.Gold))
             .Build().Get();
     }
 
@@ -195,7 +199,8 @@ public static partial class Embeds
         return new EmbedBuilder()
             .WithTitle("Mortgage")
             .WithDescription(
-                $"**{space.Owner}** has unmortgaged **{space.NameWithPositionString}** for {space.TitleDeed!.UnmortgageValue.MoneyString()}")
+                $"**{space.Owner}** has unmortgaged **{space.NameWithPositionString}** for {space.TitleDeed!.UnmortgageValue.MoneyString()}.")
+            .WithColour(space.GroupColorOrDefault(PrettyColors.Gold))
             .Build().Get();
     }
 
@@ -204,7 +209,7 @@ public static partial class Embeds
         return new EmbedBuilder()
             .WithTitle("Player is in arrears!")
             .WithDescription($"**{bankruptPlayer}** is in debt! Before the game can continue, they must clear their debt by selling houses, mortgaging, or trading.")
-            .WithColour(Color.Red)
+            .WithColour(PrettyColors.Red)
             .AddField("Auto-sell", "To get you out of debt, auto-sell will:\n" + Formatting.RecoupFundsOperations(autoSellOperations) + "\nIf you don't want to auto-sell, you can manually sell houses, mortgage, or trade to get out of debt.").Get()
             .Build().Get();
     }
@@ -213,18 +218,17 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Bankrupt!")
-            .WithDescription($"**{player}** is in debt to **{transferTo?.ToString() ?? "the bank"}** and is unable to recover!")
-            .WithColour(Color.Red)
+            .WithDescription($"**{player}** is in debt to **{transferTo?.ToString() ?? "the bank"}** and does not own sufficient assets to repay them!")
+            .WithColour(PrettyColors.Red)
             .Build().Get();
     }
-
 
     public static Embed Dropped(GamePlayer player, GamePlayer? transferTo, IEnumerable<string> billOfMaterials)
     {
         var builder = new EmbedBuilder()
             .WithTitle("Bankruptcy")
-            .WithDescription($"**{player}** has been declared bankrupt and has been removed from the game. All of their remaining assets will be transferred to **{transferTo?.DisplayName ?? "the bank"}**.")
-            .WithColour(Color.Red);
+            .WithDescription($"**{player}** has declared bankruptcy and is now removed from the game. All of their remaining assets will be transferred to {$"**{transferTo?.DisplayName}**" ?? "**the bank**, where it will be auctioned off to the highest bidder"}.")
+            .WithColour(PrettyColors.Red);
 
         var materials = billOfMaterials.ToList();
         if (materials.Count != 0)
@@ -241,7 +245,7 @@ public static partial class Embeds
             .WithTitle("Victory!")
             .WithDescription($"The game has ended in a victory for **{player}**! The game is now closed.")
             .WithImageUrl("attachment://board.png")
-            .WithColour(Color.LimeGreen)
+            .WithColour(PrettyColors.Green)
             .Build().Get();
     }
 
@@ -250,14 +254,16 @@ public static partial class Embeds
         return new EmbedBuilder()
             .WithTitle("Mortgage Transferred")
             .WithDescription($"**{space}** was transferred, but is currently mortgaged. Do you want to keep the property mortgaged for 10% of the mortgage price, or unmortgage the property now?")
+            .WithColour(space.GroupColorOrDefault(PrettyColors.Green))
             .Build().Get();
     }
 
     public static Embed Auction(Space space, int value, GamePlayer? matterHighestBidder)
     {
         var embed = new EmbedBuilder()
-            .WithTitle("It's auction time!")
-            .WithDescription($"**{space}** is going for auction! The auction ends when all players except for one have dropped out!");
+            .WithTitle($"It's auction time! {Emoji.Judge}")
+            .WithDescription($"**{space}** is going for auction! The auction ends when all players except for one have withdrawn!")
+            .WithColour(space.GroupColorOrDefault(Color.Transparent));
 
         if (value > 0)
         {
@@ -271,7 +277,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Auction complete!")
-            .WithDescription($"**{space}** was won by **{winner}** for {value.MoneyString()}")
+            .WithDescription($"**{space}** was won by **{winner}** for {value.MoneyString()}.")
+            .WithColour(space.GroupColorOrDefault(Color.Transparent))
             .Build().Get();
     }
 
@@ -279,7 +286,8 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Auction complete!")
-            .WithDescription($"No one bid on **{space}**! It will be returned to the bank")
+            .WithDescription($"No one bid on **{space}**. The property will be returned to the bank.")
+            .WithColour(space.GroupColorOrDefault(Color.Transparent))
             .Build().Get();
     }
 }

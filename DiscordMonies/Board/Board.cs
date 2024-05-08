@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Drawing;
 
 using DiscordMonies.Game;
 using DiscordMonies.Game.Trade;
@@ -55,7 +56,10 @@ public class Space : IOwnable
         ToString() + (string.IsNullOrEmpty(PositionString) ? string.Empty : PositionString);
 
     public override string ToString() => $"{Info.Name}";
-    
+
+    public Color GroupColorOrDefault(Color defaultColor) 
+        => Info is RoadSpace rs ? PrettyColors.ColorMap[Board.GroupNames[rs.Group]] : defaultColor;
+
     public IUnresolvedMatter? GiveTo(GamePlayer? target, List<GamePlayer> players)
     {
         Owner = target;

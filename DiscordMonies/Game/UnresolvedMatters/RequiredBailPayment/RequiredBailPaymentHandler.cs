@@ -21,7 +21,7 @@ public class RequiredBailPaymentMatterHandler(GameState state, IFeedbackService 
             buttons.Insert(0, Buttons.UseJailCard("treasure"));
         }
         
-        await service.SendContextualEmbedAsync(Embeds.FinalJailDieRolled(state.CurrentPlayer, state.Dice), new()
+        await service.SendContextualEmbedAsync(Embeds.JailDieRolled(state.CurrentPlayer, state.Dice, 0), new()
         {
             MessageComponents = new([
                 new ActionRowComponent(buttons)

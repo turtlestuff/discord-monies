@@ -134,7 +134,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         if (!await TryPay(matter.Purchaser, null, value))
         {
             await service.SendContextualAsync(
-                Strings.BalanceTooLow($"Your balance is too low to buy {space}", matter.Purchaser.Money, value));
+                Strings.BalanceTooLow($"You do not have enough funds to buy {space}", matter.Purchaser.Money, value));
             return;
         }
         
@@ -161,7 +161,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         if (value < 0) return await TryPay(to, from, -value, bankruptcyPayment);
         
         var payer = from?.DisplayName ?? "The Bank";
-        var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the bank");
+        var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "The Bank");
 
         // Decrease the money of the payer if they exist
         if (from != null)
@@ -180,7 +180,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             to.Money += value;
         }
 
-        await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {value.MoneyString()}");
+        await service.SendAsync(state.ThreadId, $"{Emoji.FlyingMoney} {value.MoneyString()}: **{payer}** {Emoji.ArrowRight} **{receiver}**");
 
         if (!bankruptcyPayment && state.CurrentlyResolvingMatter is PaymentMatter pm && pm.From == to && to?.Money >= 0)
         {
@@ -542,7 +542,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     {
         if (state.CurrentPlayer.JailTurns == -1)
         {
-            await service.SendContextualAsync("You can't bail from jail right now");
+            await service.SendContextualAsync("You can't bail from jail right now.");
             return;
         }
         
@@ -567,7 +567,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             if (!await TryPay(state.CurrentPlayer, null, state.Board.JailFine))
             {
-                await service.SendContextualAsync(Strings.BalanceTooLow("Your balance is too low to bail from jail", state.CurrentPlayer.Money, state.Board.JailFine));
+                await service.SendContextualAsync(Strings.BalanceTooLow("You do not have enough funds to bail from jail", state.CurrentPlayer.Money, state.Board.JailFine));
                 return;
             }
 
@@ -607,7 +607,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         if (state.CurrentPlayer.JailTurns == -1)
         {
-            await service.SendContextualAsync("You can't use your Get Out of Jail Free card right now");
+            await service.SendContextualAsync("You can't use your Get Out of Jail Free card right now.");
             return;
         }
         
@@ -696,7 +696,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         if (!await TryPay(player, null, price))
         {
             await service.SendContextualAsync(
-                Strings.BalanceTooLow("Your balance is too low to complete the required development", player.Money, price),
+                Strings.BalanceTooLow("You do not have enough funds to develop the requested properties", player.Money, price),
                 options: MessageOptions.Ephemeral);
             return;
         }
@@ -862,7 +862,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
         if (space.BuiltHouses > 0)
         {
-            await service.SendContextualAsync($"Unable to mortgage **{space}** because houses are currently built on it.");
+            await service.SendContextualAsync($"Unable to mortgage **{space}** because you have developed buildings on it.");
             return;
         }
 
@@ -870,7 +870,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             if (SpacesInColorSet(new(rs.Group)).Any(property => property.BuiltHouses > 0))
             {
-                await service.SendContextualAsync($"Unable to mortgage **{space}** because houses are currently built on other spaces in the same color set.");
+                await service.SendContextualAsync($"Unable to mortgage **{space}** because you have developed buildings on other spaces in the same color set.");
                 return;
             }
         }
@@ -888,7 +888,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             if (!await TryPay(player, null, space.TitleDeed!.UnmortgageValue))
             {
-                await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to unmortgage **{space}** because your balance is too low to unmortgage it", player.Money,
+                await service.SendContextualAsync(Strings.BalanceTooLow($"You do not have enough funds to unmortgage **{space}**", player.Money,
                         space.TitleDeed.UnmortgageValue));
             }
             
@@ -909,7 +909,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         // Use TryPay because Pay will queue up a payment
         await TryPay(player, transferredAssets, player.Money, true);
-        billOfMaterials.Add($"{player.Money.MoneyString()} -> **{transferredName}**");
+        billOfMaterials.Add($"{player.Money.MoneyString()} {Emoji.ArrowRight} **{transferredName}**");
 
         List<IOwnable> playerAssets = [];
         playerAssets.AddRange(state.Board.Spaces.Where(space => space.Owner == player));
@@ -929,9 +929,9 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             {
                 state.UnresolvedMatters.Add(unresolvedMatter);
             }
-            billOfMaterials.Add($"**{ownable}** -> **{transferredName}**");
+
+            billOfMaterials.Add($"**{ownable.ToString()}** {Emoji.ArrowRight} **{transferredName}**");
         }
-        
         
         // Remove the player from the game
         // Advance the player pointer if necessary
@@ -999,11 +999,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         if (!await TryPay(matter.Player, null, matter.PayValue))
         {
             await service.SendContextualAsync(
-                Strings.BalanceTooLow("Your balance is too low to pay the required amount", matter.Player.Money,
-                    matter.PayValue), options: new()
-                {
-                    MessageFlags = new(MessageFlags.Ephemeral)
-                });
+                Strings.BalanceTooLow("You do not have enough funds to do that", matter.Player.Money, matter.PayValue), 
+                options: MessageOptions.Ephemeral);
             return;
         }
 
@@ -1016,7 +1013,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         if (!await TryPay(matter.Player, null, matter.Space.TitleDeed!.UnmortgageValue))
         {
-            await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to unmortgage **{matter.Space}** because your balance is too low to unmortgage it", matter.Player.Money,
+            await service.SendContextualAsync(Strings.BalanceTooLow($"You do not have enough funds to unmortgage **{matter.Space}**", matter.Player.Money,
                 matter.Space.TitleDeed.UnmortgageValue));
             return;
         }
@@ -1044,7 +1041,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         if (!context.Interaction.Message.HasValue)
         {
-            await service.SendContextualAsync("Dropping from the auction...");
+            await service.SendContextualAsync("Withdrawing from the auction...");
         }
 
         if (matter.BiddingPlayers.Count > 1)
@@ -1055,7 +1052,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         
         matter.BiddingPlayers.Remove(player);
         await service.SendAsync(state.ThreadId,
-            $"**{player}** has dropped from the auction!");
+            $"**{player}** has withdrawn from the auction.");
         await ProcessCurrentlyUnresolvedMatter();
     }
 
@@ -1066,7 +1063,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
         if (player.Money < matter.HighestBid + value)
         {
-            await service.SendContextualAsync(Strings.BalanceTooLow($"Unable to bid that amount because your balance is too low", player.Money,
+            await service.SendContextualAsync(Strings.BalanceTooLow($"You can't afford that bid", player.Money,
                 matter.HighestBid + value));
             return;
         }

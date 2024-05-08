@@ -162,7 +162,7 @@ public class LobbyInteractions(
             Board = new(board)
         };
 
-        var shuffledColors = GamePlayer.ColorList.OrderBy(_ => Random.Shared.Next()).ToArray();
+        var shuffledColors = PrettyColors.ColorList.OrderBy(_ => Random.Shared.Next()).ToArray();
 
         foreach (var (playerId, color) in lobby.Players.Select((player, i) => (player, shuffledColors[i])))
         {
