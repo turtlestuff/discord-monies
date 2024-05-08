@@ -199,24 +199,25 @@ public static partial class Embeds
             .Build().Get();
     }
 
-    public static Embed BankruptcyResolutionRequired(IEnumerable<GamePlayer> bankruptPlayers)
+    public static Embed BankruptcyResolutionRequired(GamePlayer bankruptPlayer, IList<RecoupFundsOperation> autoSellOperations)
     {
-        var gamePlayers = bankruptPlayers.ToList();
-        if (gamePlayers.Count == 1)
-        {
-            return new EmbedBuilder()
-                .WithTitle("Player is in arrears!")
-                .WithDescription($"**{gamePlayers[0].DisplayName}** is in debt! Before the game can continue, they must clear their debt by selling houses, mortgaging or trading. If they are unable to clear their debt, they must declare bankruptcy.")
-                .WithColour(Color.Red)
-                .Build().Get();
-        }
-        
         return new EmbedBuilder()
-            .WithTitle("Some players are in arrears!")
-            .WithDescription($"{string.Join(", ", gamePlayers.Select(x => $"**{x.DisplayName}**"))} are in debt! Before the game can continue, they must clear their debt by selling houses, mortgaging or trading. If they are unable to clear their debt, they must declare bankruptcy.")
+            .WithTitle("Player is in arrears!")
+            .WithDescription($"**{bankruptPlayer}** is in debt! Before the game can continue, they must clear their debt by selling houses, mortgaging, or trading.")
+            .WithColour(Color.Red)
+            .AddField("Auto-sell", "To get you out of debt, auto-sell will:\n" + Formatting.RecoupFundsOperations(autoSellOperations) + "\nIf you don't want to auto-sell, you can manually sell houses, mortgage, or trade to get out of debt.").Get()
+            .Build().Get();
+    }
+
+    public static Embed Bankrupt(GamePlayer player, GamePlayer? transferTo)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Bankrupt!")
+            .WithDescription($"**{player}** is in debt to **{transferTo?.ToString() ?? "the bank"}** and is unable to recover!")
             .WithColour(Color.Red)
             .Build().Get();
     }
+
 
     public static Embed Dropped(GamePlayer player, GamePlayer? transferTo, IEnumerable<string> billOfMaterials)
     {

@@ -34,15 +34,34 @@ public class PaymentMatterHandler(GameState state, IFeedbackService service, Gam
         // At this stage, if the player is in debt, they need to resolve it immediately
         if (matter.From?.Money is < 0)
         {
-            await service.SendEmbedAsync(state.ThreadId,
-                Embeds.BankruptcyResolutionRequired([matter.From]), options: new()
-                {
-                    MessageComponents = new([
-                        new ActionRowComponent([
-                            Buttons.DeclareBankruptcy()                            
+            var autosell = gameControllerService.TryRecoupFunds(matter.From);
+            if (autosell.Count == 0)
+            {
+                await service.SendEmbedAsync(state.ThreadId,
+                    Embeds.Bankrupt(matter.From, matter.To), options: new()
+                    {
+                        MessageComponents = new([
+                            new ActionRowComponent([
+                                Buttons.DeclareBankruptcy()
+                            ])
                         ])
-                    ])
-                });
+                    });
+            }
+            else
+            {
+                matter.AutoSell = autosell;
+                await service.SendEmbedAsync(state.ThreadId,
+                    Embeds.BankruptcyResolutionRequired(matter.From, autosell), options: new()
+                    {
+                        MessageComponents = new([
+                            new ActionRowComponent([
+                                Buttons.AutoSell(matter.From.Money)
+                            ])
+                        ])
+                    });
+            }
+
+
             return;
         }
 

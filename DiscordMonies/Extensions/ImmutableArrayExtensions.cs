@@ -9,4 +9,16 @@ public static class ImmutableArrayExtensions
             .Select(i => i % list.Count)
             .First(i => predicate(list[i]));
     }
+
+    public static T? OnlyOrDefault<T>(this IEnumerable<T> enumerable)
+    {
+        try
+        {
+            return enumerable.SingleOrDefault();
+        }
+        catch (InvalidOperationException)
+        {
+            return default;
+        }
+    }
 }

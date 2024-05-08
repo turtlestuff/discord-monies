@@ -28,6 +28,9 @@ public static class Buttons
     public static ButtonComponent DeclareBankruptcy() => new(ButtonComponentStyle.Danger, $"Declare Bankruptcy",
         CustomID: CustomIDHelpers.CreateButtonID("declare-bankruptcy"));
 
+    public static ButtonComponent AutoSell(int currentBalance) => new(ButtonComponentStyle.Secondary, $"Auto-sell",
+        CustomID: CustomIDHelpers.CreateButtonIDWithState("auto-sell", currentBalance.ToString()));
+
     public static ButtonComponent UseJailCard(string type) =>
         new(ButtonComponentStyle.Success, "Use Get Out Of Jail Free Card",
             CustomID: CustomIDHelpers.CreateButtonIDWithState("use-jail-card", type));

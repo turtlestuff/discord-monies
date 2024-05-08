@@ -349,7 +349,17 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
                 ]
             ))));
     }
-    
+
+    [Button("auto-sell")]
+    [RequiresPlayer(PlayerType.CurrentPlayer)]
+    [NextRequiredAction(GameAction.BankruptcyResolution)]
+    public async Task<Result> AutoSell(int state)
+    {
+        await gameControllerService.AutoSell(state);
+        return Result.Success;
+    }
+
+
     [Button("auction-drop")]
     [RequiresPlayer(PlayerType.MatterHead)]
     [NextRequiredAction(GameAction.AuctionBid)]

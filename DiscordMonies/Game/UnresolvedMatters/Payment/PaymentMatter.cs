@@ -13,4 +13,6 @@ public class PaymentMatter : IUnresolvedMatter
     public GamePlayer? Player => From;
     
     public bool PaymentComplete { get; set; }
+
+    public IList<RecoupFundsOperation>? AutoSell { get; set; }
 }
