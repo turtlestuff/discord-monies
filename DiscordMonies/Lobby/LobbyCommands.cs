@@ -19,6 +19,7 @@ using Remora.Results;
 
 using System.Diagnostics;
 using System.Drawing;
+using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 
 namespace DiscordMonies.Lobby;
@@ -68,7 +69,8 @@ public class LobbyInteractions(
     IFeedbackService feedbackService,
     IDiscordRestGuildAPI guildApi,
     IInteractionContext ctx,
-    IDiscordRestChannelAPI channelApi) : InteractionGroup
+    IDiscordRestChannelAPI channelApi,
+    IServiceProvider serviceProvider) : InteractionGroup
 {
     private static FeedbackMessageOptions Ephemeral = new(MessageFlags: MessageFlags.Ephemeral);
 
@@ -146,6 +148,15 @@ public class LobbyInteractions(
 
         var gameState = await BuildNewGameState(lobby.Players, thread, lobby);
         gameService.OpenGame(gameState);
+        
+        // Kick off the game
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var gameStateInjector = scope.ServiceProvider.GetRequiredService<GameStateInjector>();
+        gameStateInjector.GameState = gameState;
+        
+        var diceRollHandler = scope.ServiceProvider.GetRequiredService<IUnresolvedMatterResolver<DiceRollMatter>>();
+        await diceRollHandler.Resolve((DiceRollMatter)gameState.CurrentlyResolvingMatter);
+        
         return Result.Success;
     }
 

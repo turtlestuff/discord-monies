@@ -1,6 +1,6 @@
 ﻿namespace DiscordMonies.Game;
 
-internal class GameStateInjector
+public class GameStateInjector
 {
     public GameState? GameState { get; set; }
 }
