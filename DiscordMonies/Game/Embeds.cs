@@ -125,7 +125,7 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle($"Roll {Emoji.Die}")
-            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}. This is the third time they have rolled doubles. The policemen are on their way — no speeding!")
+            .WithDescription($"**{player}** rolled {Dies[dice.Die1 - 1]} {Dies[dice.Die2 - 1]}. This is the third time they have rolled doubles. The policemen are on their way ï¿½ no speeding!")
             .WithColour(player.Color.Color)
             .Build().Get();
     }
@@ -288,6 +288,32 @@ public static partial class Embeds
             .WithTitle("Auction complete!")
             .WithDescription($"No one bid on **{space}**. The property will be returned to the bank.")
             .WithColour(space.GroupColorOrDefault(Color.Transparent))
+            .Build().Get();
+    }
+
+    public static Embed NewAutoSellSituation(IList<RecoupFundsOperation> autoSellOperations)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Auto-sell")
+            .WithDescription("Your situation has changed, so the previous auto-sell plan no longer applies. Auto-sell can get you out of debt by:\n" +
+                             Formatting.RecoupFundsOperations(autoSellOperations))
+            .Build().Get();
+    }
+
+    public static Embed AutoSellUnable()
+    {
+        return new EmbedBuilder()
+            .WithTitle("Auto-sell")
+            .WithDescription("Your situation has changed, and auto-sell is no longer able to get you out of debt.")
+            .Build().Get();
+    }
+
+    public static Embed AutoSellComplete(GamePlayer player, IList<RecoupFundsOperation> autoSellOperations, int moneyEarned)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Auto-sell")
+            .WithDescription($"Auto-sell performed the following actions and netted **{player}** {moneyEarned.MoneyString()}.")
+            .AddField("Changes to properties", Formatting.RecoupFundsOperations(autoSellOperations)).Get()
             .Build().Get();
     }
 }

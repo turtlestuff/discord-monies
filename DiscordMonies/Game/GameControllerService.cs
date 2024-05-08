@@ -1251,27 +1251,116 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         var matter = (PaymentMatter)state.CurrentlyResolvingMatter;
         if (state.CurrentPlayer.Money != currentBalance)
         {
-            await service.SendContextualAsync("You can't auto-sell because you've done some stupid crap.");
+            await RecalculateAutoSell();
             return;
         }
 
-        // TODO: Ensure autosell is still valid.
+        // Ensure autosell is still valid
+        List<Space> mortgagedSpaces = [];
+        Dictionary<Space, int> housesOnSpace = new();
+        var remainingHouses = state.Board.HousesRemaining;
+        
+        foreach (var operation in matter.AutoSell!)
+        {
+            switch (operation)
+            {
+                case MortgageProperty mortgage:
+                    if (mortgagedSpaces.Contains(mortgage.Space) || mortgage.Space.IsMortgaged)
+                    {
+                        // Property is already mortgaged
+                        await RecalculateAutoSell();
+                        return;
+                    }
+                    
+                    mortgagedSpaces.Add(mortgage.Space);
+                    break;
+
+                case SellImprovement sell:
+                    var ok = housesOnSpace.TryGetValue(sell.Space, out var houses);
+                    if (!ok) houses = sell.Space.BuiltHouses;
+
+                    if (houses == 0)
+                    {
+                        // No more houses to sell
+                        await RecalculateAutoSell();
+                        return;
+                    }
+
+                    if (houses == 5)
+                    {
+                        // 4 houses less because we're selling a hotel
+                        remainingHouses -= 4;
+                    }
+                    else
+                    {
+                        // Selling one house to the bank
+                        remainingHouses += 1;
+                    }
+
+                    if (remainingHouses < 0)
+                    {
+                        // Oversold on houses
+                        await RecalculateAutoSell();
+                        return;
+                    }
+                    
+                    houses -= 1;
+                    housesOnSpace[sell.Space] = houses;
+                    break;
+            }
+        }
+
+        var moneyEarned = 0;
 
         foreach (var operation in matter.AutoSell!)
         {
             switch (operation)
             {
                 case MortgageProperty mortgage:
-                    await Mortgage(state.CurrentPlayer, mortgage.Space);
+                    mortgage.Space.BuiltHouses = -1;
+                    moneyEarned += mortgage.Space.TitleDeed!.MortgageValue;
                     break;
 
                 case SellImprovement sell:
                     sell.Space.BuiltHouses -= 1;
-                    TitleDeed titleDeed = sell.Space.TitleDeed!;
-                    await TryPay(null, state.CurrentPlayer, (sell.Space.BuiltHouses == 4 ? titleDeed.HotelCost : titleDeed.HouseCost) / 2);
+                    var titleDeed = sell.Space.TitleDeed!;
+                    moneyEarned += (sell.Space.BuiltHouses == 4 ? titleDeed.HotelCost : titleDeed.HouseCost) / 2;
                     // TODO: send message
                     break;
             }
+        }
+        
+        await TryPay(null, state.CurrentPlayer, moneyEarned);
+        await service.SendContextualEmbedAsync(Embeds.AutoSellComplete(state.CurrentPlayer, matter.AutoSell, moneyEarned));
+    }
+
+    private async Task RecalculateAutoSell()
+    {
+        var matter = (PaymentMatter)state.CurrentlyResolvingMatter;
+        var operations = TryRecoupFunds(state.CurrentPlayer);
+        if (operations.Count == 0)
+        {
+            matter.AutoSell = null;
+            await service.SendContextualEmbedAsync(Embeds.AutoSellUnable(), options: new()
+            {
+                MessageComponents = new([
+                    new ActionRowComponent([
+                        Buttons.DeclareBankruptcy()
+                    ])
+                ])
+            });
+        }
+        else
+        {
+            matter.AutoSell = operations;
+            await service.SendContextualEmbedAsync(Embeds.NewAutoSellSituation(operations), options: new()
+            {
+                MessageComponents = new([
+                    new ActionRowComponent([
+                        Buttons.AutoSell(state.CurrentPlayer.Money)
+                    ])
+                ])
+            });
         }
     }
 }
