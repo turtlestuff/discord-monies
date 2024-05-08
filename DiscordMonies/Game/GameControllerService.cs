@@ -1255,6 +1255,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             return;
         }
 
+        if (matter.AutoSell is null)
+        {
+            await RecalculateAutoSell();
+            return;
+        }
+
         // Ensure autosell is still valid
         List<Space> mortgagedSpaces = [];
         Dictionary<Space, int> housesOnSpace = new();

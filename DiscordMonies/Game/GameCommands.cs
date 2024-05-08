@@ -310,6 +310,7 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
     
     [Button("declare-bankruptcy")]
     [RequiresPlayer(PlayerType.Player)]
+    [NextRequiredAction(GameAction.BankruptcyResolution)]
     [Ephemeral]
     [SuppressInteractionResponse(true)]
     public async Task<Result> DeclareBankruptcy()
@@ -317,10 +318,14 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
         var player = gameState.GetById(ctx.GetUserId());
         if (player.Money >= 0)
         {
-            await feedback.SendContextualAsync("You cannot declare bankruptcy because you are not in debt.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("You cannot declare bankruptcy because you are not in debt.", options: MessageOptions.Ephemeral);
+            return Result.Success;
+        }
+
+        var matter = (PaymentMatter)gameState.CurrentlyResolvingMatter;
+        if (matter.AutoSell is not null)
+        {
+            await feedback.SendContextualAsync("You cannot declare bankruptcy because you can recoup funds by mortgaging or selling buildings.", options: MessageOptions.Ephemeral);
             return Result.Success;
         }
         
