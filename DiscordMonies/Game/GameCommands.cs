@@ -119,9 +119,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     {
         await feedback.SendContextualAsync("", options: new()
         {
-            Attachments = new([
-                new FileData("board.png", renderer.RenderToStream())
-            ])
+            Attachments = new([renderer.RenderToRemoraAttachment([])])
         });
         return Result.Success;
     }

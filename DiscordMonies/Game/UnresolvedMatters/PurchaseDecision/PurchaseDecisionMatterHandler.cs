@@ -6,7 +6,7 @@ using Remora.Discord.Extensions.Formatting;
 
 namespace DiscordMonies.Game.UnresolvedMatters.PurchaseDecision;
 
-public class PurchaseDecisionMatterHandler(GameState state, IFeedbackService service) : IUnresolvedMatterResolver<PurchaseDecisionMatter>
+public class PurchaseDecisionMatterHandler(GameState state, IFeedbackService service, BoardRenderer renderer) : IUnresolvedMatterResolver<PurchaseDecisionMatter>
 {
     public async Task Resolve(PurchaseDecisionMatter matter)
     {
@@ -18,6 +18,7 @@ public class PurchaseDecisionMatterHandler(GameState state, IFeedbackService ser
             embeds: new([matter.Space.TitleDeedEmbed()]),
             options: new()
             {
+                Attachments = new([renderer.RenderToRemoraAttachment([new(matter.Space, matter.Space.GroupColorOrDefault(PrettyColors.Green))])]),
                 MessageComponents = new([
                     new ActionRowComponent([
                         Buttons.Purchase(matter.Space.ToString(), property.Value),

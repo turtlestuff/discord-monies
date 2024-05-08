@@ -16,9 +16,7 @@ public class DiceRollMatterHandler(GameState state, IFeedbackService service, Bo
                 embeds: new([Embeds.TurnAdvancedDoubles(state.CurrentPlayer)]),
                 options: new()
                 {
-                    Attachments = new([
-                        new FileData("board.png", renderer.RenderToStream())
-                    ]),
+                    Attachments = new([renderer.RenderToRemoraAttachment([new(state.CurrentPlayer.CurrentSpace, state.CurrentPlayer.Color.Color)])]),
                     MessageComponents = new([
                         new ActionRowComponent([
                             Buttons.Roll()
@@ -52,9 +50,7 @@ public class DiceRollMatterHandler(GameState state, IFeedbackService service, Bo
             embeds: new([Embeds.TurnAdvanced(state.CurrentPlayer)]),
             options: new()
             {
-                Attachments = new([
-                    new FileData("board.png", renderer.RenderToStream())
-                ]),
+                Attachments = new([renderer.RenderToRemoraAttachment([new(state.CurrentPlayer.CurrentSpace, state.CurrentPlayer.Color.Color)])]),
                 MessageComponents = new([
                     new ActionRowComponent(buttons)
                 ])

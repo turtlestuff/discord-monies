@@ -23,6 +23,7 @@ public static class SpaceExtensions
                 .WithTitle($"Title Deed for {space} ({space.Board.GroupNames[roadSpace.Group]})")
                 .WithDescription($"Value: {valueSpace.Value.MoneyString()}")
                 .WithColour(space.GroupColorOrDefault(Color.Transparent))
+                .WithImageUrl("attachment://board.png")
                 .AddField("Rent Values", $"""
                                           **RENT**: {space.TitleDeed!.RentValues[0].MoneyString()}
                                           *Rent doubled when the entire group is owned by one person*
@@ -39,6 +40,7 @@ public static class SpaceExtensions
             TrainStationSpace => new EmbedBuilder()
                 .WithTitle($"Title Deed for {space}")
                 .WithDescription($"Value: {valueSpace.Value.MoneyString()}")
+                .WithImageUrl("attachment://board.png")
                 .AddField("Rent Values", $"""
                                           If 1 T.S. is owned: {space.TitleDeed!.RentValues[0].MoneyString()}
                                           If 2 T.S. are owned: {(space.TitleDeed!.RentValues[0] << 1).MoneyString()}
@@ -50,6 +52,7 @@ public static class SpaceExtensions
             UtilitySpace => new EmbedBuilder()
                 .WithTitle($"Title Deed for {space}")
                 .WithDescription($"Value: {valueSpace.Value.MoneyString()}")
+                .WithImageUrl("attachment://board.png")
                 .AddField("Rent Values", $"""
                                           If one utility is owned, the rent is **4×** the value on the dice.
                                           If both are owned, it is **10×** the value on the dice.

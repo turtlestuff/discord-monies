@@ -963,9 +963,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             await service.SendEmbedAsync(state.ThreadId, Embeds.Victory(state.Players[0]),
                 options: new()
                 {
-                    Attachments = new([
-                        new FileData("board.png", renderer.RenderToStream())
-                    ]),
+                    Attachments = new([renderer.RenderToRemoraAttachment([])]),
                 });
             gameService.CloseGame(state);
             return;
