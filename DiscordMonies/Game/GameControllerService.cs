@@ -705,7 +705,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
 
         var embedBuilder = new EmbedBuilder()
             .WithTitle($"Development on {state.Board.GroupNames[colorSet.Index]}")
-            .WithDescription($"Development on {state.Board.GroupNames[colorSet.Index]} has been completed by **{player}**. The changes are as follows:");
+            .WithDescription($"Development on {state.Board.GroupNames[colorSet.Index]} has been completed by **{player}**. The changes are as follows:")
+            .WithImageUrl("attachment://board.png");
 
         foreach (var (target, index) in targets.Take(spaces.Count).Select((x, i) => (x, i)))
         {
@@ -734,7 +735,10 @@ public class GameControllerService(GameState state, IFeedbackService service, II
             space.BuiltHouses = target;
         }
 
-        await service.SendContextualEmbedAsync(embedBuilder.Build().Get());
+        await service.SendContextualEmbedAsync(embedBuilder.Build().Get(), options: new()
+        {
+            Attachments = new([renderer.RenderToRemoraAttachment(spaces.Select(space => new HighlightedSpace(space, space.GroupColorOrDefault(PrettyColors.Green))))])
+        });
     }
 
     private Result<int> EnsureDevelopmentIsPossible(IList<Space> spaces, IEnumerable<int> targets, int? housesRemainingOpt = null)
