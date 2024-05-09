@@ -66,7 +66,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
             ))));
     }
     
-    [Command("balance")]
+    [Command("balance", "bal")]
     [Description("Obtain the balance for a player")]
     [RequiresPlayer(PlayerType.PlayerOrSpectator)]
     [Ephemeral]
@@ -74,6 +74,16 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     {
         player ??= gameState.GetById(ctx.GetUserId());
         await feedback.SendContextualAsync($"{player}'s balance: {player.Money.MoneyString()}");
+        return Result.Success;
+    }
+    
+    [Command("balances", "bals")]
+    [Description("Obtain the balance for all players")]
+    [RequiresPlayer(PlayerType.PlayerOrSpectator)]
+    [Ephemeral]
+    public async Task<Result> Balances()
+    {
+        await feedback.SendContextualEmbedAsync(Embeds.Balances(gameState.Players));
         return Result.Success;
     }
 
@@ -106,8 +116,35 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
     [Ephemeral]
     public async Task<Result> Deed([Description("The space to view the title deed for")] [Autocomplete] Space space)
     {
-        // TODO: Ensure that the space has a title deed
+        if (space.Info is not PropertySpace)
+        {
+            await feedback.SendContextualAsync(
+                $"**{space.NameWithPositionString}** doesn't have a title deed because it is not an ownable space.");
+            return Result.Success;
+        }
+        
         await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
+        return Result.Success;
+    }
+    
+    [Command("space")]
+    [Description("View information about a space")]
+    [RequiresPlayer(PlayerType.PlayerOrSpectator)]
+    [Ephemeral]
+    public async Task<Result> Space([Description("The space to view information on")] [Autocomplete] Space space)
+    {
+        // TODO: Ensure that the space has a title deed
+        await feedback.SendContextualEmbedAsync(Embeds.Space(space));
+        return Result.Success;
+    }
+
+    [Command("status")]
+    [Description("Show the status of the game")]
+    [RequiresPlayer(PlayerType.PlayerOrSpectator)]
+    [Ephemeral]
+    public async Task<Result> Deed()
+    {
+        await feedback.SendContextualEmbedAsync(Embeds.Status(gameState));
         return Result.Success;
     }
 

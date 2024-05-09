@@ -12,16 +12,16 @@ public static class SpaceExtensions
 {
     public static Embed TitleDeedEmbed(this Space space)
     {
-        if (space.Info is not ValueSpace valueSpace)
+        if (space.Info is not PropertySpace ps)
         {
             throw new InvalidOperationException();
         }
 
-        return valueSpace switch
+        return ps switch
         {
             RoadSpace roadSpace => new EmbedBuilder()
                 .WithTitle($"Title Deed for {space} ({space.Board.GroupNames[roadSpace.Group]})")
-                .WithDescription($"Value: {valueSpace.Value.MoneyString()}")
+                .WithDescription($"Value: {ps.Value.MoneyString()}")
                 .WithColour(space.GroupColorOrDefault(Color.Transparent))
                 .WithImageUrl("attachment://board.png")
                 .AddField("Rent Values", $"""
@@ -39,7 +39,7 @@ public static class SpaceExtensions
                 .Build().Get(),
             TrainStationSpace => new EmbedBuilder()
                 .WithTitle($"Title Deed for {space}")
-                .WithDescription($"Value: {valueSpace.Value.MoneyString()}")
+                .WithDescription($"Value: {ps.Value.MoneyString()}")
                 .WithImageUrl("attachment://board.png")
                 .AddField("Rent Values", $"""
                                           If 1 T.S. is owned: {space.TitleDeed!.RentValues[0].MoneyString()}
@@ -51,7 +51,7 @@ public static class SpaceExtensions
                 .Build().Get(),
             UtilitySpace => new EmbedBuilder()
                 .WithTitle($"Title Deed for {space}")
-                .WithDescription($"Value: {valueSpace.Value.MoneyString()}")
+                .WithDescription($"Value: {ps.Value.MoneyString()}")
                 .WithImageUrl("attachment://board.png")
                 .AddField("Rent Values", $"""
                                           If one utility is owned, the rent is **4×** the value on the dice.

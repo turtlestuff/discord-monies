@@ -316,4 +316,58 @@ public static partial class Embeds
             .AddField("Changes to properties", Formatting.RecoupFundsOperations(autoSellOperations)).Get()
             .Build().Get();
     }
+
+    public static Embed Status(GameState gameState)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Game Status")
+            .AddField("Playing Order", string.Join('\n', gameState.Players.Select(player => gameState.CurrentPlayer == player ? $"**{player} ({player.Color.Name})**" : $"{player} ({player.Color.Name})"))).Get()
+            .AddField("Available Houses", $"{gameState.Board.HousesRemaining}", true).Get()
+            .AddField("Available Hotels", $"{gameState.Board.HotelsRemaining}", true).Get()
+            .Build().Get();
+    }
+
+    public static Embed Space(Space space)
+    {
+        return new EmbedBuilder()
+            .WithTitle("Space Info")
+            .WithColour(space.GroupColorOrDefault(Color.Transparent))
+            .AddField("Type", space.Info switch
+            {
+                DrawChanceSpace => "Gamble",
+                DrawChestSpace => "Dubious Treasure",
+                FreeParkingSpace => "Free Parking",
+                GoSpace => "Go",
+                GoToJailSpace => "Go To Jail",
+                JailSpace => "Jail",
+                RoadSpace => "Road Property",
+                TrainStationSpace => "Train Station",
+                UtilitySpace => "Utility",
+                TaxSpace => "Tax",
+                _ => throw new ArgumentOutOfRangeException()
+            }, true).Get()
+            .AddField("Name", space.Info.Name, true).Get()
+            .AddField("Value", space.Info is ValueSpace vs ? vs.Value.MoneyString() : "N/A", true).Get()
+            .AddField("Owner", space.Info is PropertySpace ? space.Owner?.DisplayName ?? "Unowned" : "Not ownable", true).Get()
+            .AddField("Mortgaged?", space.IsMortgaged ? "Yes" : "No", true).Get()
+            .AddField("Color", space.Info is RoadSpace rs ? space.Board.GroupNames[rs.Group] : "N/A", true).Get()
+            .AddField("Buildings", space.BuiltHouses switch
+            {
+                -1 => "None",
+                0 => "None",
+                5 => "Hotel",
+                _ => $"{space.BuiltHouses}"
+            }, true).Get()
+            .Build().Get();
+    }
+
+    public static Embed Balances(IEnumerable<GamePlayer> players)
+    {
+        var gamePlayers = players.ToList();
+        var maxLength = gamePlayers.Select(player => player.Money.MoneyString(false).Length).Max();
+        return new EmbedBuilder()
+            .WithTitle("Balances")
+            .WithDescription(string.Join("\n", gamePlayers.Select(player => $"`{player.Money.MoneyString(false).PadLeft(maxLength)}` {player}")))
+            .Build().Get();
+    }
 }
