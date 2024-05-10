@@ -253,7 +253,7 @@ public static partial class Embeds
     {
         return new EmbedBuilder()
             .WithTitle("Mortgage Transferred")
-            .WithDescription($"**{space}** was transferred, but is currently mortgaged. Do you want to keep the property mortgaged for 10% of the mortgage price, or unmortgage the property now?")
+            .WithDescription($"**{space.NameWithPositionString}** was transferred, but is currently mortgaged. Do you want to keep the property mortgaged for 10% of the mortgage price, or unmortgage the property now?")
             .WithColour(space.GroupColorOrDefault(PrettyColors.Green))
             .Build().Get();
     }

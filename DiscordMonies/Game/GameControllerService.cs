@@ -1091,7 +1091,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         var operations = new List<RecoupFundsOperation>();
 
         var remainingDebt = -player.Money;
-        var mortgageableSpaces = state.Board.Spaces.Where(s => s.Owner == player && !s.IsMortgaged);
+        var mortgageableSpaces = state.Board.Spaces.Where(s => s.Owner == player && !s.IsMortgaged)
+            .Where(s => !operations.Any(op => op is MortgageProperty mp && mp.Space == s));
 
         var nonColorSetSpaces = mortgageableSpaces
             .Where(s => ColorSetOwner((PropertySpace)s.Info) is null)
@@ -1117,7 +1118,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             return operations;
         }
-
+        
         var ownedSets =
             mortgageableSpaces
             .Where(s => ColorSetOwner((PropertySpace)s.Info) is not null)
@@ -1339,7 +1340,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         }
         
         await TryPay(null, state.CurrentPlayer, moneyEarned);
-        await service.SendContextualEmbedAsync(Embeds.AutoSellComplete(state.CurrentPlayer, matter.AutoSell, moneyEarned));
+        await service.SendContextualEmbedAsync(Embeds.AutoSellComplete(matter.From!, matter.AutoSell, moneyEarned));
     }
 
     private async Task RecalculateAutoSell()
