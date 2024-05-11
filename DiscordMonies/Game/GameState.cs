@@ -42,6 +42,8 @@ public partial class GameState
     public List<IUnresolvedMatter> UnresolvedMatters { get; } = [];
 
     public IList<TradeTable> TradeTables { get; } = [];
+    
+    public Snowflake? LastRollMessage { get; set; }
 }
 
 public enum GameAction

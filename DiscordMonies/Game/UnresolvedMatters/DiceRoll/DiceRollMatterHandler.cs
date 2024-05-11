@@ -1,28 +1,32 @@
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Objects;
-using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Extensions.Formatting;
+using Remora.Rest.Core;
 
 namespace DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 
-public class DiceRollMatterHandler(GameState state, IFeedbackService service, BoardRenderer renderer) : IUnresolvedMatterResolver<DiceRollMatter>
+public class DiceRollMatterHandler(GameState state, IDiscordRestChannelAPI restChannelApi, BoardRenderer renderer) : IUnresolvedMatterResolver<DiceRollMatter>
 {
     public async Task Resolve(DiceRollMatter matter)
     {
         if (state.Dice.DoubleRoll)
         {
-            await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
+            var sendResult = await restChannelApi.CreateMessageAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}, it's your turn.",
                 embeds: new([Embeds.TurnAdvancedDoubles(state.CurrentPlayer)]),
-                options: new()
-                {
-                    Attachments = new([renderer.RenderToRemoraAttachment([new(state.CurrentPlayer.CurrentSpace, state.CurrentPlayer.Color.Color)])]),
-                    MessageComponents = new([
-                        new ActionRowComponent([
-                            Buttons.Roll()
-                        ])
+                components: new([
+                    new ActionRowComponent([
+                        Buttons.Roll()
                     ])
-                });
+                ]),
+                attachments: new([
+                    renderer.RenderToRemoraAttachment([
+                        new(state.CurrentPlayer.CurrentSpace, state.CurrentPlayer.Color.Color)
+                    ])
+                ]),
+                messageReference: state.LastRollMessage is null ? default(Optional<IMessageReference>) : new MessageReference(state.LastRollMessage.Value)
+            );
+            state.LastRollMessage = sendResult.Entity.ID;
             return;
         }
         
@@ -46,14 +50,18 @@ public class DiceRollMatterHandler(GameState state, IFeedbackService service, Bo
             }
         }
         
-        await service.SendAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}",
+        var result = await restChannelApi.CreateMessageAsync(state.ThreadId, $"{Mention.User(state.CurrentPlayer)}, it's your turn.",
             embeds: new([Embeds.TurnAdvanced(state.CurrentPlayer)]),
-            options: new()
-            {
-                Attachments = new([renderer.RenderToRemoraAttachment([new(state.CurrentPlayer.CurrentSpace, state.CurrentPlayer.Color.Color)])]),
-                MessageComponents = new([
-                    new ActionRowComponent(buttons)
+            components: new([
+                new ActionRowComponent(buttons)
+            ]),
+            attachments: new([
+                renderer.RenderToRemoraAttachment([
+                    new(state.CurrentPlayer.CurrentSpace, state.CurrentPlayer.Color.Color)
                 ])
-            });
+            ]),
+            messageReference: state.LastRollMessage is null ? default(Optional<IMessageReference>) : new MessageReference(state.LastRollMessage.Value)
+        );
+        state.LastRollMessage = result.Entity.ID;
     }
 }
