@@ -191,7 +191,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
                 GameControllerService.NotDevelopableReason.Developable => throw new UnreachableException(),
                 GameControllerService.NotDevelopableReason.NotOwned => $"You can't develop on the {boardGroupName} color set because you don't own the entire set.",
                 GameControllerService.NotDevelopableReason.Mortgaged => $"You can't develop on the {boardGroupName} color set because there are mortgaged properties on the set.",
-                _ => throw new ArgumentOutOfRangeException()
+                _ => throw new UnreachableException()
             }, options: new()
             {
                 MessageFlags = new(MessageFlags.Ephemeral)
@@ -456,7 +456,7 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
     [RequiresPlayer(PlayerType.Player)]
     public async Task<Result> DoDrop(string dropResponse)
     {
-        if (!dropResponse.Equals("y", StringComparison.CurrentCultureIgnoreCase))
+        if (!dropResponse.Equals("y", StringComparison.OrdinalIgnoreCase)) 
         {
             return Result.Success;
         }

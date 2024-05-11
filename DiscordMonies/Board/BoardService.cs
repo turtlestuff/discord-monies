@@ -19,7 +19,7 @@ public sealed class BoardService
         var asm = typeof(BoardService).Assembly;
         var maps =
             from name in asm.GetManifestResourceNames()
-            where name.StartsWith(ResourcePrefix)
+            where name.StartsWith(ResourcePrefix, StringComparison.Ordinal)
             let stripped = name[ResourcePrefix.Length..].Split('.', 2)
             group name by stripped[0];
 
@@ -27,7 +27,7 @@ public sealed class BoardService
         {
             T DeserializeResource<T>(string name)
             {
-                var resourceName = mapResources.First(r => r.EndsWith(name));
+                var resourceName = mapResources.First(r => r.EndsWith(name, StringComparison.Ordinal));
                 var stream = asm.GetManifestResourceStream(resourceName) ?? throw new UnreachableException();
                 return JsonSerializer.Deserialize<T>(stream) ?? throw new InvalidDataException("Board JSON should not be null value");
             }

@@ -6,7 +6,9 @@ using DiscordMonies.Game.UnresolvedMatters;
 namespace DiscordMonies.Board;
 
 // IOwnable because of the jail card inside
+#pragma warning disable CA1711
 public class CardStack(ImmutableArray<LuckCard> allCards) : IOwnable
+#pragma warning restore CA1711
 {
     public ImmutableArray<LuckCard> AllCards => allCards;
 

@@ -19,6 +19,7 @@ using Remora.Results;
 
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using Remora.Discord.Commands.Attributes;
@@ -59,11 +60,11 @@ public class LobbyCommands(LobbyService lobbyService, BoardService boardService,
 
         var buttons = new ActionRowComponent([
             new ButtonComponent(ButtonComponentStyle.Primary, "Join",
-                CustomID: CustomIDHelpers.CreateButtonIDWithState("JoinLobby", lobbyId.ToString())),
+                CustomID: CustomIDHelpers.CreateButtonIDWithState("JoinLobby", lobbyId.ToString(CultureInfo.InvariantCulture))),
             new ButtonComponent(ButtonComponentStyle.Danger, "Leave",
-                CustomID: CustomIDHelpers.CreateButtonIDWithState("DropLobby", lobbyId.ToString())),
+                CustomID: CustomIDHelpers.CreateButtonIDWithState("DropLobby", lobbyId.ToString(CultureInfo.InvariantCulture))),
             new ButtonComponent(ButtonComponentStyle.Success, "Close and start",
-                CustomID: CustomIDHelpers.CreateButtonIDWithState("CloseLobby", lobbyId.ToString()))
+                CustomID: CustomIDHelpers.CreateButtonIDWithState("CloseLobby", lobbyId.ToString(CultureInfo.InvariantCulture)))
             ]);
 
         return await feedbackService.SendContextualEmbedAsync(embed.Build().Get(), new()
@@ -89,7 +90,7 @@ public class LobbyInteractions(
     public async Task<IResult> JoinLobby(string state)
     {
         var user = ctx.Interaction.Member.Value.User.Value;
-        int lobbyId = int.Parse(state);
+        var lobbyId = int.Parse(state, CultureInfo.InvariantCulture);
 
         var result = lobbyService.JoinLobby(lobbyId, user.ID);
         if (result.IsSuccess)
@@ -111,7 +112,7 @@ public class LobbyInteractions(
     public async Task<IResult> DropLobby(string state)
     {
         var user = ctx.Interaction.Member.Value.User.Value;
-        int lobbyId = int.Parse(state);
+        var lobbyId = int.Parse(state, CultureInfo.InvariantCulture);
 
         var result = lobbyService.DropLobby(lobbyId, user.ID);
         if (result.IsSuccess)
@@ -135,7 +136,7 @@ public class LobbyInteractions(
         var user = ctx.Interaction.Member.Value.User.Value;
         var channel = ctx.Interaction.Channel.Value;
 
-        int lobbyId = int.Parse(state);
+        int lobbyId = int.Parse(state, CultureInfo.InvariantCulture);
 
         var result = lobbyService.CloseLobby(lobbyId, user.ID);
         if (!result.IsSuccess)

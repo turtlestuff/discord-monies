@@ -25,7 +25,7 @@ using Remora.Rest.Core;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-var dmConfig = builder.Configuration.GetSection("DiscordMonies").Get<DiscordMoniesConfiguration>() ?? throw new("Could not bind configuration.");
+var dmConfig = builder.Configuration.GetSection("DiscordMonies").Get<DiscordMoniesConfiguration>() ?? throw new InvalidOperationException("Could not bind configuration.");
 
 builder.Services
     .AddDiscordService(_ => dmConfig.DiscordToken)
@@ -75,8 +75,9 @@ var host = builder.Build();
 
 var slashService = host.Services.GetRequiredService<SlashService>();
 
-if (dmConfig.DebugServerId is ulong serverId)
+if (dmConfig.DebugServerId.HasValue)
 {
+    var serverId = dmConfig.DebugServerId.Value;
     if (builder.Environment.IsDevelopment())
     {
         var guildId = new Snowflake(serverId);
@@ -84,7 +85,8 @@ if (dmConfig.DebugServerId is ulong serverId)
     }
     else
     {
-        var appInfo = await host.Services.GetRequiredService<IDiscordRestOAuth2API>().GetCurrentBotApplicationInformationAsync();
+        var appInfo = await host.Services.GetRequiredService<IDiscordRestOAuth2API>()
+            .GetCurrentBotApplicationInformationAsync();
 
         var api = host.Services.GetRequiredService<IDiscordRestApplicationAPI>();
         await api.BulkOverwriteGuildApplicationCommandsAsync(appInfo.Entity.ID, new(serverId), []);

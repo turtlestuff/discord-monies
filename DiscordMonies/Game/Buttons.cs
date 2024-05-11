@@ -1,3 +1,4 @@
+using System.Globalization;
 using DiscordMonies.Board;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
@@ -29,7 +30,7 @@ public static class Buttons
         CustomID: CustomIDHelpers.CreateButtonID("declare-bankruptcy"));
 
     public static ButtonComponent AutoSell(int currentBalance) => new(ButtonComponentStyle.Secondary, $"Auto-sell",
-        CustomID: CustomIDHelpers.CreateButtonIDWithState("auto-sell", currentBalance.ToString()));
+        CustomID: CustomIDHelpers.CreateButtonIDWithState("auto-sell", currentBalance.ToString(CultureInfo.InvariantCulture)));
 
     public static ButtonComponent UseJailCard(string type) =>
         new(ButtonComponentStyle.Success, "Use Get Out Of Jail Free Card",

@@ -1,3 +1,4 @@
+using System.Globalization;
 using DiscordMonies.Board;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Remora;
@@ -121,7 +122,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         player.ConfiguringTradeTable = null;
         tradeTable.State = TradeTable.TradeTableState.Offered;
 
-        var id = gameState.TradeTables.Count.ToString();
+        var id = gameState.TradeTables.Count.ToString(CultureInfo.InvariantCulture);
         gameState.TradeTables.Add(tradeTable);
 
         await feedback.SendAsync(gameState.ThreadId,

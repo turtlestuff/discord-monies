@@ -5,7 +5,7 @@ using Remora.Results;
 
 namespace DiscordMonies.Game;
 
-internal class GameCommandPreExecutionEvent(GameService service, GameStateInjector injector, IInteractionContext ctx) : IPreExecutionEvent
+internal sealed class GameCommandPreExecutionEvent(GameService service, GameStateInjector injector, IInteractionContext ctx) : IPreExecutionEvent
 {
     public async Task<Result> BeforeExecutionAsync(ICommandContext context, CancellationToken ct = default)
     {
@@ -24,7 +24,7 @@ internal class GameCommandPreExecutionEvent(GameService service, GameStateInject
     }
 }
 
-internal class GameCommandPostExecutionEvent(GameService service, IInteractionContext ctx) : IPostExecutionEvent
+internal sealed class GameCommandPostExecutionEvent(GameService service, IInteractionContext ctx) : IPostExecutionEvent
 {
     public Task<Result> AfterExecutionAsync(ICommandContext context, IResult commandResult, CancellationToken ct = default)
     {

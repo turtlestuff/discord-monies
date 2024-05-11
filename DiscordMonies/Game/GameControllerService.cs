@@ -1,3 +1,4 @@
+using System.Globalization;
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
 using DiscordMonies.Game.Trade;
@@ -298,7 +299,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         do
         {
             card = stack.DrawCard();
-        } while (stack.JailCardOwner is not null && card.Command.StartsWith("jailcard"));
+        } while (stack.JailCardOwner is not null && card.Command.StartsWith("jailcard", StringComparison.Ordinal));
         
         await service.SendEmbedAsync(state.ThreadId,
             Embeds.CardDrawn(state.CurrentPlayer, stack == state.Board.GambleCards, state.Board, card));
@@ -312,17 +313,17 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 return;
 
             case "give":
-                await Pay(null, state.CurrentPlayer, int.Parse(parts[1]));
+                await Pay(null, state.CurrentPlayer, int.Parse(parts[1], CultureInfo.InvariantCulture));
                 return;
 
             case "pay":
-                await Pay(state.CurrentPlayer, null, int.Parse(parts[1]));
+                await Pay(state.CurrentPlayer, null, int.Parse(parts[1], CultureInfo.InvariantCulture));
                 return;
 
             case "repairs":
                 {
-                    var houseValue = int.Parse(parts[1]);
-                    var hotelValue = int.Parse(parts[2]);
+                    var houseValue = int.Parse(parts[1], CultureInfo.InvariantCulture);
+                    var hotelValue = int.Parse(parts[2], CultureInfo.InvariantCulture);
 
                     var total = state.Board.Spaces.Aggregate(0, (currentTotal, space) =>
                     {
@@ -354,14 +355,14 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 }
 
             case "warp":
-                await MovePlayer(state.CurrentPlayer, int.Parse(parts[1]));
+                await MovePlayer(state.CurrentPlayer, int.Parse(parts[1], CultureInfo.InvariantCulture));
                 await service.SendEmbedAsync(state.ThreadId,
                     Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
                 await ProcessPlayerLand();
                 return;
 
             case "warprel":
-                await MovePlayerRelative(state.CurrentPlayer, int.Parse(parts[1]));
+                await MovePlayerRelative(state.CurrentPlayer, int.Parse(parts[1], CultureInfo.InvariantCulture));
                 await service.SendEmbedAsync(state.ThreadId,
                     Embeds.GenericLanding(state.CurrentPlayer, state.CurrentPlayer.CurrentSpace));
                 await ProcessPlayerLand();
@@ -375,7 +376,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 state.UnresolvedMatters.Add(new PayOrGambleMatter()
                 {
                     Player = state.CurrentPlayer,
-                    PayValue = int.Parse(parts[1]),
+                    PayValue = int.Parse(parts[1], CultureInfo.InvariantCulture),
                     CardStack = state.Board.GambleCards
                 });
                 return;
@@ -397,7 +398,7 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 return;
 
             case "recvall":
-                var paymentAmount = int.Parse(parts[1]);
+                var paymentAmount = int.Parse(parts[1], CultureInfo.InvariantCulture);
                 foreach (var player in state.Players.Where(x => x != state.CurrentPlayer))
                 {
                     await Pay(player, state.CurrentPlayer, paymentAmount);

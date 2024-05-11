@@ -343,8 +343,8 @@ public static partial class Embeds
                 RoadSpace => "Road Property",
                 TrainStationSpace => "Train Station",
                 UtilitySpace => "Utility",
-                TaxSpace => "Tax",
-                _ => throw new ArgumentOutOfRangeException()
+                TaxSpace => "Tax", 
+                _ => throw new ArgumentOutOfRangeException(nameof(space))
             }, true).Get()
             .AddField("Name", space.Info.Name, true).Get()
             .AddField("Position", space.PositionCode, true).Get()

@@ -1,4 +1,5 @@
-﻿using DiscordMonies.Game;
+﻿using System.Diagnostics;
+using DiscordMonies.Game;
 
 using Remora.Commands.Conditions;
 using Remora.Discord.Commands.Contexts;
@@ -40,7 +41,7 @@ public sealed class RequiresPlayerCondition(GameService gameService, IInteractio
         {
             PlayerType.CurrentPlayer => gameState.CurrentPlayer,
             PlayerType.MatterHead => gameState.CurrentlyResolvingMatter.Player,
-            _ => throw new ArgumentOutOfRangeException()
+            _ => throw new UnreachableException()
         };
         
         // The command must be run by the current player in the game

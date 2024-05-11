@@ -12,38 +12,41 @@ namespace DiscordMonies.Remora;
 
 public sealed class ColorSetParser(GameService gameService, IInteractionContext ctx) : AbstractTypeParser<ColorSet>
 {
-    public override async ValueTask<Result<ColorSet>> TryParseAsync(string token, CancellationToken ct = default)
+    public override ValueTask<Result<ColorSet>> TryParseAsync(string token, CancellationToken ct = default)
     {
         if (gameService.GetGameState(ctx) is not { } gameState)
         {
-            return new NotGameChannelError();
+            return ValueTask.FromResult<Result<ColorSet>>(new NotGameChannelError());
         }
 
         var group = gameState.Board.GroupNames.Select((name, index) => (name, index))
-            .Where(set => token.Equals(set.name, StringComparison.CurrentCultureIgnoreCase)).ToList();
+            .Where(set => token.Equals(set.name, StringComparison.OrdinalIgnoreCase)).ToList();
 
         if (group.Count == 0)
         {
-            return new NotColorSetError();
+            return ValueTask.FromResult<Result<ColorSet>>(new NotColorSetError());
         }
 
-        return Result<ColorSet>.FromSuccess(new(group.First().index));
+        return ValueTask.FromResult(Result<ColorSet>.FromSuccess(new(group.First().index)));
     }
 }
 
 public sealed class ColorSetAutocompleteProvider(GameService gameService, IInteractionContext ctx)
     : IAutocompleteProvider<ColorSet>
 {
-    public async ValueTask<IReadOnlyList<IApplicationCommandOptionChoice>> GetSuggestionsAsync(
+    public ValueTask<IReadOnlyList<IApplicationCommandOptionChoice>> GetSuggestionsAsync(
         IReadOnlyList<IApplicationCommandInteractionDataOption> options,
         string userInput,
-        CancellationToken ct = new CancellationToken())
+        CancellationToken ct = new())
     {
-        if (gameService.GetGameState(ctx) is not { } gameState)
+        var res = gameService.GetGameState(ctx) switch
         {
-            return [];
-        }
-
-        return gameState.Board.GroupNames.Where(name => name.StartsWith(userInput, StringComparison.InvariantCultureIgnoreCase)).Select(name => new ApplicationCommandOptionChoice(name, name)).ToImmutableList();
+            { } gameState => gameState.Board.GroupNames
+                .Where(name => name.StartsWith(userInput, StringComparison.InvariantCultureIgnoreCase))
+                .Select(name => new ApplicationCommandOptionChoice(name, name)).ToImmutableList(),
+            
+            null => []
+        };
+        return ValueTask.FromResult<IReadOnlyList<IApplicationCommandOptionChoice>>(res);
     }
 }

@@ -1,10 +1,11 @@
 using System.Drawing;
-using DiscordMonies.Board;
+using DiscordMonies.Game;
 using Remora.Discord.API.Abstractions.Rest;
 using SkiaSharp;
+
 // ReSharper disable PossibleLossOfFraction
 
-namespace DiscordMonies.Game;
+namespace DiscordMonies.Board;
 
 public sealed record HighlightedSpace(Space Space, Color Color);
 
