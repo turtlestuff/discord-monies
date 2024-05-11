@@ -45,12 +45,18 @@ public record TradeTable
 
     public Embed PrintTradeTable(bool asGiving)
     {
-        return new EmbedBuilder()
+        var builder = new EmbedBuilder()
             .WithTitle("Trade")
             .AddField($"{From} gives", string.Join("\n", Giving.Select(OwnableEntry).Append(Money > 0 ? Money.MoneyString() : string.Empty))).Get()
-            .AddField($"{To} gives", string.Join("\n", Receiving.Select(OwnableEntry).Append(Money < 0 ? (-Money).MoneyString() : string.Empty))).Get()
-            .WithFooter($"{Emoji.CircledM} indicates mortgaged properties, which if traded, will need to be immediately unmortgaged or a 10% mortgage transfer fee paid to the bank.")
-            .Build().Get();
+            .AddField($"{To} gives", string.Join("\n", Receiving.Select(OwnableEntry).Append(Money < 0 ? (-Money).MoneyString() : string.Empty))).Get();
+
+        if (Giving.Concat(Receiving).Any(x => x is Space { IsMortgaged: true }))
+        {
+            builder = builder.WithFooter(
+                $"{Emoji.CircledM} indicates mortgaged properties, which if traded, will need to be immediately unmortgaged or a 10% mortgage transfer fee paid to the bank by the recipient.");
+        }
+        
+        return builder.Build().Get();
     }
 
     private static string OwnableEntry(IOwnable ownable)

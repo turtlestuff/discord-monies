@@ -928,8 +928,12 @@ public class GameControllerService(
         List<string> billOfMaterials = [];
         
         // Use TryPay because Pay will queue up a payment
+        if (player.Money > 0)
+        {
+            billOfMaterials.Add($"{player.Money.MoneyString()} {Emoji.ArrowRight} **{transferredName}**");
+        }
+        
         await TryPay(player, transferredAssets, player.Money, true);
-        billOfMaterials.Add($"{player.Money.MoneyString()} {Emoji.ArrowRight} **{transferredName}**");
 
         List<IOwnable> playerAssets = [];
         playerAssets.AddRange(state.Board.Spaces.Where(space => space.Owner == player));
