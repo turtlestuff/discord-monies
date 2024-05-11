@@ -53,7 +53,7 @@ public class Space : IOwnable
     public string PositionString => Index % 10 == 0 ? string.Empty : $" ({PositionCode})";
 
     public string NameWithPositionString =>
-        ToString() + (string.IsNullOrEmpty(PositionString) ? string.Empty : PositionString);
+        Info.Name + (string.IsNullOrEmpty(PositionString) ? string.Empty : PositionString);
 
     public override string ToString() => NameWithPositionString;
 
