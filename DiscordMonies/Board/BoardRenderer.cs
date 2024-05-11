@@ -50,9 +50,10 @@ public class BoardRenderer : IDisposable
         _arrow = SKBitmap.Decode(arrowStream);
     }
 
-    public FileData RenderToRemoraAttachment(IEnumerable<HighlightedSpace> highlightedSpaces) => new("board.png", RenderToStream(highlightedSpaces));
+    public FileData RenderToRemoraAttachment(IEnumerable<HighlightedSpace> highlightedSpaces) => 
+        new("board.png", RenderToStream(highlightedSpaces));
 
-    public MemoryStream RenderToStream(IEnumerable<HighlightedSpace> highlightedSpaces)
+    private MemoryStream RenderToStream(IEnumerable<HighlightedSpace> highlightedSpaces)
     {
         using var bmp = Render(highlightedSpaces);
         var memoryStream = new MemoryStream();
@@ -61,7 +62,7 @@ public class BoardRenderer : IDisposable
         return memoryStream;
     }
 
-    public SKBitmap Render(IEnumerable<HighlightedSpace> highlightedSpaces)
+    private SKBitmap Render(IEnumerable<HighlightedSpace> highlightedSpaces)
     {
         var bmp = _baseBoard.Copy(); // dont need to using because we are returning this
         var canvas = new SKCanvas(bmp);
@@ -120,14 +121,14 @@ public class BoardRenderer : IDisposable
 
         foreach (var space in highlightedSpaces)
         {
-            List<int> sides = [space.Space.Index / 10];
+            List<int> sides = [space.Space.Index / 10]; 
             var rotation = sides[0] * 90;
             if (space.Space.Index % 10 == 0)
             {
                 rotation -= 45;
                 sides.Add((sides[0] + 3) % 4);
             }
-            var arrow = Colored(RotateBitmap(_arrow, rotation), space.Color);
+            var arrow = ColoredRotateBitmap(_arrow, rotation, space.Color);
 
             var bounds = space.Space.Info.Bounds;
             if (space.Space.Info is JailSpace)
@@ -135,7 +136,7 @@ public class BoardRenderer : IDisposable
                 bounds = space.Space.Board.JailBounds;
             }
             var center = new SKPoint(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
-            var margin = sides.Count == 1 ? 100 : 50;
+            var margin = sides.Count == 1 ? 90 : 40;
             foreach (var side in sides)
             {
                 center.X += side switch
@@ -168,12 +169,12 @@ public class BoardRenderer : IDisposable
     private static SKBitmap Colored(SKBitmap bitmap, Color color)
     {
         var bmp = bitmap.Copy();
-        var cnv = new SKCanvas(bmp);
-        cnv.DrawColor(new(color.R, color.G, color.B), SKBlendMode.Modulate);
+        using var cnv = new SKCanvas(bmp);
+        cnv.DrawColor(new SKColor(color.R, color.G, color.B), SKBlendMode.Modulate);
         return bmp;
     }
 
-    private static SKBitmap RotateBitmap(SKBitmap oldBitmap, float angle)
+    private static SKBitmap ColoredRotateBitmap(SKBitmap oldBitmap, float angle, Color color)
     {
         // Get the dimensions of the bitmap.
         var oldWidth = oldBitmap.Width;
@@ -207,10 +208,12 @@ public class BoardRenderer : IDisposable
             canvas.Translate(-oldWidth / 2, -oldHeight / 2);
 
             // And then we draw the old bitmap onto our canvas
-            canvas.DrawBitmap(oldBitmap, 0, 0);
+            canvas.DrawBitmap(oldBitmap, 0, 0, new SKPaint { FilterQuality = SKFilterQuality.High });
 
             // restore the canvas state
             canvas.Restore();
+            
+            canvas.DrawColor(new SKColor(color.R, color.G, color.B), SKBlendMode.Modulate);
         }
 
         return newBitmap;
@@ -227,6 +230,7 @@ public class BoardRenderer : IDisposable
         _house3.Dispose();
         _house4.Dispose();
         _hotel.Dispose();
+        _arrow.Dispose();
         GC.SuppressFinalize(this);
     }
 }

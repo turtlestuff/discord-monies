@@ -38,7 +38,7 @@ public class Space : IOwnable
     
     public required BoardSpace Info { get; init; }
 
-    public required TitleDeed? TitleDeed { get; init;  }
+    public required TitleDeed? TitleDeed { get; init; }
 
     public GamePlayer? Owner { get; set; }
 
