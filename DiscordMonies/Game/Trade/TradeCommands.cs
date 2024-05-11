@@ -40,49 +40,59 @@ public class TradeCommands(GameState gameState, IInteractionCommandContext ctx, 
         return Result.Success;
     }
 
-    [Command("giveproperty")]
-    [RequiresPlayer(PlayerType.Player)]
-    [RequiresTradeTable]
-    [Description("Place one of your properties on the trade table")]
-    [Ephemeral]
-    public async Task<Result> GiveProperty([AutocompleteProvider("autocomplete::spaces:owned")] Space space)
+    [Group("give")]
+    public class GiveCommands(TradeService tradeService) : CommandGroup
     {
-        await tradeService.Toggle(space, true);
-        return Result.Success;
+
+        [Command("property")]
+        [RequiresPlayer(PlayerType.Player)]
+        [RequiresTradeTable]
+        [Description("Place one of your properties on the trade table")]
+        [Ephemeral]
+        public async Task<Result> GiveProperty([AutocompleteProvider("autocomplete::spaces:owned")] Space space)
+        {
+            await tradeService.Toggle(space, true);
+            return Result.Success;
+        }
+
+        [Command("money")]
+        [RequiresPlayer(PlayerType.Player)]
+        [RequiresTradeTable]
+        [Description("Place your money on the trade table")]
+        [Ephemeral]
+        public async Task<Result> GiveMoney(int amount)
+        {
+            await tradeService.SetMoney(amount, true);
+            return Result.Success;
+        }
     }
-    
-    [Command("givemoney")]
-    [RequiresPlayer(PlayerType.Player)]
-    [RequiresTradeTable]
-    [Description("Place your money on the trade table")]
-    [Ephemeral]
-    public async Task<Result> GiveMoney(int amount)
+
+
+    public class TakeCommands(TradeService tradeService)
     {
-        await tradeService.SetMoney(amount, true);
-        return Result.Success;
+        [Command("property")]
+        [RequiresPlayer(PlayerType.Player)]
+        [RequiresTradeTable]
+        [Description("Place one of the other party's properties on the trade table")]
+        [Ephemeral]
+        public async Task<Result> TakeProperty([AutocompleteProvider("autocomplete::spaces:trade")] Space space)
+        {
+            await tradeService.Toggle(space, false);
+            return Result.Success;
+        }
+
+        [Command("money")]
+        [RequiresPlayer(PlayerType.Player)]
+        [RequiresTradeTable]
+        [Description("Place the other party's money on the trade table")]
+        [Ephemeral]
+        public async Task<Result> TakeMoney(int amount)
+        {
+            await tradeService.SetMoney(amount, false);
+            return Result.Success;
+        }
     }
-    
-    [Command("takeproperty")]
-    [RequiresPlayer(PlayerType.Player)]
-    [RequiresTradeTable]
-    [Description("Place one of the other party's properties on the trade table")]
-    [Ephemeral]
-    public async Task<Result> TakeProperty([AutocompleteProvider("autocomplete::spaces:trade")] Space space)
-    {
-        await tradeService.Toggle(space, false);
-        return Result.Success;
-    }
-    
-    [Command("takemoney")]
-    [RequiresPlayer(PlayerType.Player)]
-    [RequiresTradeTable]
-    [Description("Place the other party's money on the trade table")]
-    [Ephemeral]
-    public async Task<Result> TakeMoney(int amount)
-    {
-        await tradeService.SetMoney(amount, false);
-        return Result.Success;
-    }
+
     
     [Command("offer")]
     [RequiresPlayer(PlayerType.Player)]
