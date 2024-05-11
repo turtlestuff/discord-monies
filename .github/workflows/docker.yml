@@ -37,11 +37,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@master
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+#      - name: Extract metadata (tags, labels) for Docker
+#        id: meta
+#        uses: docker/metadata-action@master
+#        with:
+#          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           
       - name: Build .NET
         run: |
@@ -50,4 +50,4 @@ jobs:
       - name: Publish .NET
         if: ${{ github.event_name == 'push' }}
         run: |
-          dotnet publish DiscordMonies/DiscordMonies.csproj -r linux-musl-x64 -t:PublishContainer -p:ContainerImageTag="${{ steps.meta.outputs.tags }}"
+          dotnet publish DiscordMonies/DiscordMonies.csproj -r linux-musl-x64 -t:PublishContainer -p:ContainerImageTag="${GITHUB_REF##*/}"
