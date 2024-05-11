@@ -327,6 +327,26 @@ public static partial class Embeds
             .Build().Get();
     }
 
+    public static Embed GameStatus(GameState gameState)
+    {
+        var builder = new EmbedBuilder()
+            .WithTitle("Game Status");
+
+        builder = gameState.Players.Aggregate(builder, (current, player) => 
+            current.AddField(player.DisplayName, $"""
+                                                  Balance: {player.Money.MoneyString()}
+                                                  Colour: {player.Color.Name}
+                                                  Position: {(player.JailTurns == -1 ? player.CurrentSpace.NameWithPositionString : "In Jail")}
+                                                  {(gameState.CurrentPlayer == player ? "**It's your turn!**" : "")}
+                                                  """)
+            .Get());
+        
+        builder = builder.AddField("Available Houses", $"{gameState.Board.HousesRemaining}", true).Get()
+            .AddField("Available Hotels", $"{gameState.Board.HotelsRemaining}", true).Get();
+
+        return builder.Build().Get();
+    }
+
     public static Embed Space(Space space)
     {
         return new EmbedBuilder()

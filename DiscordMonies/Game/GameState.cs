@@ -44,6 +44,8 @@ public partial class GameState
     public IList<TradeTable> TradeTables { get; } = [];
     
     public Snowflake? LastRollMessage { get; set; }
+    
+    public Snowflake? StatusMessage { get; set; }
 }
 
 public enum GameAction

@@ -160,6 +160,10 @@ public class LobbyInteractions(
 
         var gameState = await BuildNewGameState(lobby.Players, thread, lobby);
         gameService.OpenGame(gameState);
+
+        var gameStateMessage = await feedbackService.SendEmbedAsync(gameState.ThreadId, Embeds.GameStatus(gameState));
+        await channelApi.PinMessageAsync(gameState.ThreadId, gameStateMessage.Entity.ID);
+        gameState.StatusMessage = gameStateMessage.Entity.ID;
         
         // Kick off the game
         await using var scope = serviceProvider.CreateAsyncScope();

@@ -22,7 +22,14 @@ using Remora.Results;
 
 namespace DiscordMonies.Game;
 
-public class GameControllerService(GameState state, IFeedbackService service, IInteractionContext context, BoardRenderer renderer, GameService gameService, IServiceProvider serviceProvider)
+public class GameControllerService(
+    GameState state,
+    IFeedbackService service,
+    IInteractionContext context,
+    BoardRenderer renderer,
+    GameService gameService,
+    IServiceProvider serviceProvider,
+    IDiscordRestChannelAPI discordRestChannelApi)
 {
     /// <summary>
     /// Advances the turn to the next player and performs necessary actions.
@@ -59,6 +66,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         var type = resolver.GetType();
         var resolveMethod = type.GetMethod("Resolve")!;
         await (Task) resolveMethod.Invoke(resolver, [state.CurrentlyResolvingMatter])!;
+
+        await UpdateStatusMessage();
     }
 
     public async Task RollDie()
@@ -187,6 +196,8 @@ public class GameControllerService(GameState state, IFeedbackService service, II
         {
             await ProcessCurrentlyUnresolvedMatter();
         }
+        
+        await UpdateStatusMessage();
         
         return true;
     }
@@ -1376,6 +1387,12 @@ public class GameControllerService(GameState state, IFeedbackService service, II
                 ])
             });
         }
+    }
+
+    public async Task UpdateStatusMessage()
+    {
+        await discordRestChannelApi.EditMessageAsync(state.ThreadId, state.StatusMessage!.Value,
+            embeds: new([Embeds.GameStatus(state)]));
     }
 }
 
