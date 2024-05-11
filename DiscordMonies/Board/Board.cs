@@ -55,7 +55,7 @@ public class Space : IOwnable
     public string NameWithPositionString =>
         ToString() + (string.IsNullOrEmpty(PositionString) ? string.Empty : PositionString);
 
-    public override string ToString() => $"{Info.Name}";
+    public override string ToString() => NameWithPositionString;
 
     public Color GroupColorOrDefault(Color defaultColor) 
         => Info is RoadSpace rs ? PrettyColors.ColorMap[Board.GroupNames[rs.Group]] : defaultColor;

@@ -55,6 +55,6 @@ public record TradeTable
 
     private static string OwnableEntry(IOwnable ownable)
     {
-        return ownable is Space { IsMortgaged: true } ? $"{Emoji.CircledM} {ownable}" : ownable.ToString();
+        return ownable is Space { IsMortgaged: true } ? $"{Emoji.CircledM} {ownable.ToString()}" : ownable.ToString();
     }
 }

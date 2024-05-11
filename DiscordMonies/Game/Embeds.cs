@@ -347,6 +347,7 @@ public static partial class Embeds
                 _ => throw new ArgumentOutOfRangeException()
             }, true).Get()
             .AddField("Name", space.Info.Name, true).Get()
+            .AddField("Position", space.PositionCode, true).Get()
             .AddField("Value", space.Info is ValueSpace vs ? vs.Value.MoneyString() : "N/A", true).Get()
             .AddField("Owner", space.Info is PropertySpace ? space.Owner?.DisplayName ?? "Unowned" : "Not ownable", true).Get()
             .AddField("Mortgaged?", space.IsMortgaged ? "Yes" : "No", true).Get()
