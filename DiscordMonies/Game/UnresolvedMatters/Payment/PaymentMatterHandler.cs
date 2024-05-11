@@ -25,7 +25,7 @@ public class PaymentMatterHandler(GameState state, IFeedbackService service, Gam
                 matter.To.Money += matter.Amount;
             }
             
-            await service.SendAsync(state.ThreadId, $"{payer} paid {receiver} {matter.Amount.MoneyString()}");
+            await service.SendAsync(state.ThreadId, $"{Emoji.FlyingMoney} {matter.Amount.MoneyString()}: **{payer}** {Emoji.ArrowRight} **{receiver}**");
             
             // Indicate that the payment portion of this matter is resolved
             matter.PaymentComplete = true;
