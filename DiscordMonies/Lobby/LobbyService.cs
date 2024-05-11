@@ -75,7 +75,7 @@ public sealed class LobbyService
 
     public IResult<ClosedLobby> CloseLobby(int lobbyId, Snowflake playerId)
     {
-        if (!lobbies.TryRemove(lobbyId, out var lobby))
+        if (!lobbies.TryGetValue(lobbyId, out var lobby))
         {
             return Result<ClosedLobby>.FromError(new LobbyIsClosed());
         }
@@ -83,6 +83,11 @@ public sealed class LobbyService
         if (lobby.CreatorId != playerId)
         {
             return Result<ClosedLobby>.FromError(new UserCannotJoinDropClose());
+        }
+        
+        if (!lobbies.TryRemove(lobbyId, out _))
+        {
+            return Result<ClosedLobby>.FromError(new LobbyIsClosed());
         }
 
         var result = new ClosedLobby(lobby.LobbyId, lobby.GuildId, lobby.PlayerIds);
