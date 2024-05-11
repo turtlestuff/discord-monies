@@ -67,7 +67,7 @@ public class TradeCommands(GameState gameState, IInteractionCommandContext ctx, 
         }
     }
 
-
+    [Group("take")]
     public class TakeCommands(TradeService tradeService)
     {
         [Command("property")]
