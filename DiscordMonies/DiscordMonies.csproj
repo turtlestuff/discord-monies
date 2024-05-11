@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-DiscordMonies-f793d37b-5ab8-4082-be89-f7d358db5462</UserSecretsId>
+    <ContainerRegistry>$(REGISTRY)</ContainerRegistry>
+    <ContainerRepository>$(IMAGE_NAME)</ContainerRepository>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,53 @@
+name: Publish to GitHub Container Registry
+
+on:
+  push:
+    branches:
+      - 'discord-monies-2'
+      - 'master'
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: haya14busa/action-cond@v1
+        id: checkpr
+        with:
+          cond: ${{ github.event_name == 'pull_request' }}
+          if_true: false
+          if_false: true
+      - name: Checkout repository
+        uses: actions/checkout@v3.2.0
+        with:
+          submodules: 'recursive'
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@master
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          
+      - name: Build .NET
+        run: |
+          dotnet build -r linux-musl-x64 -c Release
+          
+      - name: Publish .NET
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          dotnet publish -r linux-musl-x64 -t:PublishContainer -p:ContainerImageTag="${{ steps.meta.outputs.tags }}"
