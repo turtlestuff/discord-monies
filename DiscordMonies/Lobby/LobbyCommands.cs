@@ -42,7 +42,7 @@ public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackS
                 $"""
                 {Mention.User(creatorId)} has opened **Lobby #{lobbyId}**!
                 """,
-            Footer = new($"This lobby will expire {Markdown.Timestamp(DateTime.UtcNow + TimeSpan.FromMinutes(5), TimestampStyle.RelativeTime)}"),
+            // Footer = new($"This lobby will expire {Markdown.Timestamp(DateTime.UtcNow + TimeSpan.FromMinutes(5), TimestampStyle.RelativeTime)}"),
             Colour = Color.PaleGreen
         };
 
