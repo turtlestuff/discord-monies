@@ -527,7 +527,11 @@ public class GameControllerService(GameState state, IFeedbackService service, II
     public async Task SendPropertyToAuction()
     {
         var space = state.CurrentPlayer.CurrentSpace;
-        await service.SendContextualAsync($"Sending {space} to auction...");
+        
+        if (!context.Interaction.Message.HasValue)
+        {
+            await service.SendContextualAsync($"Sending {space} to auction...");
+        }
 
         state.UnresolvedMatters.Add(new AuctionMatter
         {
