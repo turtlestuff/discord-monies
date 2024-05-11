@@ -45,9 +45,9 @@ jobs:
           
       - name: Build .NET
         run: |
-          dotnet build -r linux-musl-x64 -c Release
+          dotnet build DiscordMonies/DiscordMonies.csproj -r linux-musl-x64 -c Release
           
       - name: Publish .NET
         if: ${{ github.event_name == 'push' }}
         run: |
-          dotnet publish -r linux-musl-x64 -t:PublishContainer -p:ContainerImageTag="${{ steps.meta.outputs.tags }}"
+          dotnet publish DiscordMonies/DiscordMonies.csproj -r linux-musl-x64 -t:PublishContainer -p:ContainerImageTag="${{ steps.meta.outputs.tags }}"
