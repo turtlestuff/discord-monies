@@ -47,6 +47,7 @@ builder.Services
     .AddParser<ColorSetParser>()
     .AddAutocompleteProvider<SpaceAutocompleteProvider>()
     .AddAutocompleteProvider<OwnedSpaceAutocompleteProvider>()
+    .AddAutocompleteProvider<TradePropertyAutocompleteProvider>()
     .AddAutocompleteProvider<ColorSetAutocompleteProvider>()
     .AddAutocompleteProvider<PropertyAutocompleteProvider>()
     .AddAutocompleteProvider<BoardAutocompleteProvider>()
