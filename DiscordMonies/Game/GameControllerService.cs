@@ -170,8 +170,8 @@ public class GameControllerService(
     {
         if (value < 0) return await TryPay(to, from, -value, bankruptcyPayment);
         
-        var payer = from?.DisplayName ?? "The Bank";
-        var receiver = to?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "The Bank");
+        var payer = from?.ToString() ?? "The Bank";
+        var receiver = to?.ToString() ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "The Bank");
 
         // Decrease the money of the payer if they exist
         if (from != null)
@@ -689,9 +689,11 @@ public class GameControllerService(
 
     public async Task DevelopProperties(GamePlayer player, ColorSet colorSet, IEnumerable<int> targets)
     {
+        string groupName = state.Board.GroupNames[colorSet.Index];
+
         if (ColorSetOwner(colorSet) != player)
         {
-            await service.SendContextualAsync(Strings.UnableToDevelopOnColourSet(state.Board.GroupNames[colorSet.Index]));
+            await service.SendContextualAsync(Strings.UnableToDevelopOnColourSet(groupName));
             return;
         }
 
@@ -720,8 +722,9 @@ public class GameControllerService(
         // Everything is okay!
 
         var embedBuilder = new EmbedBuilder()
-            .WithTitle($"Development on {state.Board.GroupNames[colorSet.Index]}")
-            .WithDescription($"Development on {state.Board.GroupNames[colorSet.Index]} has been completed by **{player}**. The changes are as follows:")
+            .WithTitle($"Development on {groupName}")
+            .WithColour(PrettyColors.ColorMap[groupName])
+            .WithDescription($"Development on {groupName} has been completed by {player}.")
             .WithImageUrl("attachment://board.png");
 
         foreach (var (target, index) in targets.Take(spaces.Count).Select((x, i) => (x, i)))
@@ -922,7 +925,7 @@ public class GameControllerService(
     public async Task DropPlayer(GamePlayer player)
     {
         var transferredAssets = state.CurrentlyResolvingMatter is PaymentMatter matter ? matter.To : null;
-        var transferredName = transferredAssets?.DisplayName ?? "the bank";
+        var transferredName = transferredAssets?.ToString() ?? "the bank";
         
         // Transfer all of player's assets to transferredAssets
         List<string> billOfMaterials = [];

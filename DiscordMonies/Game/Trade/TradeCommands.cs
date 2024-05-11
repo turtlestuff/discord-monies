@@ -35,7 +35,7 @@ public class TradeCommands(GameState gameState, IInteractionCommandContext ctx, 
             CopyOf = null
         };
 
-        await feedback.SendContextualAsync($"{player} is creating a trade...", options: MessageOptions.SuppressNotifications);
+        await feedback.SendContextualAsync($"{player} is creating a trade...");
         await feedback.SendContextualAsync($"Opened a new trade table. Add items to the trade table, and then offer it to {Mention.User(otherPlayer)} when you're ready.", options: MessageOptions.Ephemeral);
         return Result.Success;
     }

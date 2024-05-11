@@ -1,11 +1,11 @@
-﻿using System.Collections.Immutable;
-using DiscordMonies.Board;
+﻿using DiscordMonies.Board;
 
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Rest.Core;
 
 using System.Drawing;
 using DiscordMonies.Game.Trade;
+using Remora.Discord.Extensions.Formatting;
 
 namespace DiscordMonies.Game;
 
@@ -42,7 +42,7 @@ public sealed record GamePlayer : IUser
 
     public override string ToString()
     {
-        return DisplayName;
+        return Mention.User(Id);
     }
 
     #region IUser Implementation

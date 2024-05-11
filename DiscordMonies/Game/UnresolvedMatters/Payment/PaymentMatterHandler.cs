@@ -7,8 +7,8 @@ public class PaymentMatterHandler(GameState state, IFeedbackService service, Gam
 {
     public async Task Resolve(PaymentMatter matter)
     {
-        var payer = matter.From?.DisplayName ?? "The Bank";
-        var receiver = matter.To?.DisplayName ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "the Bank");
+        var payer = matter.From?.ToString() ?? "The Bank";
+        var receiver = matter.To?.ToString() ?? (Random.Shared.Next(1000) == 253 ? "theBank" : "The Bank");
 
         // Only process a forced payment if it has not yet been processed
         if (!matter.PaymentComplete)

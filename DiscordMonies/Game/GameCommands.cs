@@ -3,13 +3,10 @@ using System.ComponentModel;
 using System.Diagnostics;
 using DiscordMonies.Board;
 using DiscordMonies.Extensions;
-using DiscordMonies.Game.Trade;
-using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.AuctionMatter;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
 using DiscordMonies.Game.UnresolvedMatters.Payment;
 using DiscordMonies.Remora;
-using OneOf.Types;
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
@@ -18,7 +15,6 @@ using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Attributes;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Feedback.Services;
-using Remora.Discord.Extensions.Formatting;
 using Remora.Discord.Interactivity;
 using Remora.Results;
 
@@ -106,7 +102,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
         // TODO: Auctions
         var current = gameState.CurrentPlayer;
         await feedback.SendContextualAsync(
-            $"{Mention.User(current.Id)}, {gameState.GetById(ctx.GetUserId()).DisplayName} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
+            $"{current}, {gameState.GetById(ctx.GetUserId()).DisplayName} wished to remind you that it is your turn to play by giving you a gentle nudge. *Nudge!*");
         return Result.Success;
     }
 
@@ -123,7 +119,7 @@ public class GameCommands(GameState gameState, IFeedbackService feedback, IInter
             return Result.Success;
         }
         
-        await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
+        await feedback.SendContextualEmbedAsync(space.TitleDeedEmbed());
         return Result.Success;
     }
     
@@ -448,7 +444,7 @@ public class GameInteractions(GameState gameState, IFeedbackService feedback, II
     public async Task<Result> AuctionTitleDeed()
     {
         var space = ((AuctionMatter)gameState.CurrentlyResolvingMatter).AuctionSpace;
-        await feedback.SendContextualAsync($"Title deed for {space}", embeds: new([space.TitleDeedEmbed()]));
+        await feedback.SendContextualEmbedAsync(space.TitleDeedEmbed());
         return Result.Success;
     }
 

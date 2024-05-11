@@ -30,7 +30,7 @@ public sealed record LuckCard(
     string Description,
     string Command);
 
-public record ColorSet(int Index);
+public readonly record struct ColorSet(int Index);
 
 public class Space : IOwnable
 {

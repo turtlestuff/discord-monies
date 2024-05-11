@@ -227,7 +227,7 @@ public static partial class Embeds
     {
         var builder = new EmbedBuilder()
             .WithTitle("Bankruptcy")
-            .WithDescription($"**{player}** has declared bankruptcy and is now removed from the game. All of their remaining assets will be transferred to {$"**{transferTo?.DisplayName}**" ?? "**the bank**, where it will be auctioned off to the highest bidder"}.")
+            .WithDescription($"{player} has declared bankruptcy and is now removed from the game. All of their remaining assets will be transferred to {$"**{transferTo?.ToString()}**" ?? "**the bank**, where it will be auctioned off to the highest bidder"}.")
             .WithColour(PrettyColors.Red);
 
         var materials = billOfMaterials.ToList();
@@ -369,7 +369,7 @@ public static partial class Embeds
             .AddField("Name", space.Info.Name, true).Get()
             .AddField("Position", space.PositionCode, true).Get()
             .AddField("Value", space.Info is ValueSpace vs ? vs.Value.MoneyString() : "N/A", true).Get()
-            .AddField("Owner", space.Info is PropertySpace ? space.Owner?.DisplayName ?? "Unowned" : "Not ownable", true).Get()
+            .AddField("Owner", space.Info is PropertySpace ? space.Owner?.ToString() ?? "Unowned" : "Not ownable", true).Get()
             .AddField("Mortgaged?", space.IsMortgaged ? "Yes" : "No", true).Get()
             .AddField("Color", space.Info is RoadSpace rs ? space.Board.GroupNames[rs.Group] : "N/A", true).Get()
             .AddField("Buildings", space.BuiltHouses switch
