@@ -21,19 +21,30 @@ using System.Diagnostics;
 using System.Drawing;
 using DiscordMonies.Game.UnresolvedMatters;
 using DiscordMonies.Game.UnresolvedMatters.DiceRoll;
+using Remora.Discord.Commands.Attributes;
 
 namespace DiscordMonies.Lobby;
 
 [Group("lobby")]
-public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup
+public class LobbyCommands(LobbyService lobbyService, BoardService boardService, IFeedbackService feedbackService, IInteractionCommandContext ctx) : CommandGroup
 {
     [Command("open")]
     [Description("Open a new lobby and start playing Discord Monies")]
-    public async Task<IResult> OpenLobby()
+    public async Task<IResult> OpenLobby([Description("The board to play on")] [AutocompleteProvider("autocomplete::board:name")] string board = "Standard")
     {
+        // TODO: Send this ephemerally
+        if (!boardService.HaveBoard(board))
+        {
+            await feedbackService.SendContextualAsync("Please select a valid board to play on.");
+            return Result.Success;
+        }
+        
         var creatorId = ctx.Interaction.Member.Value.User.Value.ID;
         var guildId = ctx.Interaction.GuildID.Value;
-        var lobbyId = lobbyService.OpenLobby(guildId, creatorId);
+        var lobbyId = lobbyService.OpenLobby(guildId, creatorId, new LobbyOptions()
+        {
+            Board = board
+        });
 
         var embed = new EmbedBuilder()
         {
@@ -44,7 +55,7 @@ public class LobbyCommands(LobbyService lobbyService, IFeedbackService feedbackS
                 """,
             // Footer = new($"This lobby will expire {Markdown.Timestamp(DateTime.UtcNow + TimeSpan.FromMinutes(5), TimestampStyle.RelativeTime)}"),
             Colour = Color.PaleGreen
-        };
+        }.AddField("Board", board, true).Get();
 
         var buttons = new ActionRowComponent([
             new ButtonComponent(ButtonComponentStyle.Primary, "Join",
@@ -162,7 +173,7 @@ public class LobbyInteractions(
 
     private async Task<GameState> BuildNewGameState(List<Snowflake> playerIds, IChannel thread, ClosedLobby lobby)
     {
-        var board = boardService.GetBoard("Standard");
+        var board = boardService.GetBoard(lobby.Options.Board);
 
         var gameState = new GameState
         {

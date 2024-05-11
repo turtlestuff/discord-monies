@@ -10,7 +10,7 @@ namespace DiscordMonies.Lobby;
 
 public sealed class LobbyService
 {
-    private sealed class Lobby(int lobbyId, Snowflake guildId, Snowflake creatorId)
+    private sealed class Lobby(int lobbyId, Snowflake guildId, Snowflake creatorId, LobbyOptions lobbyOptions)
     {
         public int LobbyId { get; } = lobbyId;
 
@@ -19,16 +19,18 @@ public sealed class LobbyService
         public Snowflake CreatorId { get; } = creatorId;
 
         public List<Snowflake> PlayerIds { get; } = [creatorId];
+        
+        public LobbyOptions LobbyOptions { get; } = lobbyOptions;
     }
 
     private readonly ConcurrentDictionary<int, Lobby> lobbies = new();
 
     private int currentLobbyId;
 
-    public int OpenLobby(Snowflake guildId, Snowflake creatorId)
+    public int OpenLobby(Snowflake guildId, Snowflake creatorId, LobbyOptions lobbyOptions)
     {
         var lobbyId = Interlocked.Increment(ref currentLobbyId);
-        if (!lobbies.TryAdd(lobbyId, new Lobby(lobbyId, guildId, creatorId)))
+        if (!lobbies.TryAdd(lobbyId, new Lobby(lobbyId, guildId, creatorId, lobbyOptions)))
         {
             throw new UnreachableException();
         }
@@ -90,12 +92,12 @@ public sealed class LobbyService
             return Result<ClosedLobby>.FromError(new LobbyIsClosed());
         }
 
-        var result = new ClosedLobby(lobby.LobbyId, lobby.GuildId, lobby.PlayerIds);
+        var result = new ClosedLobby(lobby.LobbyId, lobby.GuildId, lobby.PlayerIds, lobby.LobbyOptions);
         return Result<ClosedLobby>.FromSuccess(result);
     }
 }
 
-public sealed record ClosedLobby(int LobbyId, Snowflake GuildId, List<Snowflake> Players);
+public sealed record ClosedLobby(int LobbyId, Snowflake GuildId, List<Snowflake> Players, LobbyOptions Options);
 
 public class LobbyIsClosed : ResultErrorBase;
 

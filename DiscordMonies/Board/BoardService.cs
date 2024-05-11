@@ -46,6 +46,16 @@ public sealed class BoardService
     {
         return boards[name];
     }
+
+    public bool HaveBoard(string name)
+    {
+        return boards.ContainsKey(name);
+    }
+
+    public IEnumerable<string> Boards()
+    {
+        return boards.Keys;
+    }
 }
 
 public sealed class BoardInfo

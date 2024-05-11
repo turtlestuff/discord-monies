@@ -49,6 +49,7 @@ builder.Services
     .AddAutocompleteProvider<OwnedSpaceAutocompleteProvider>()
     .AddAutocompleteProvider<ColorSetAutocompleteProvider>()
     .AddAutocompleteProvider<PropertyAutocompleteProvider>()
+    .AddAutocompleteProvider<BoardAutocompleteProvider>()
     .AddUnresolvedMatterHandler<DiceRollMatterHandler>()
     .AddUnresolvedMatterHandler<PaymentMatterHandler>()
     .AddUnresolvedMatterHandler<PurchaseDecisionMatterHandler>()
