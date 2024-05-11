@@ -12,6 +12,8 @@ public static class PrettyColors
 
     public static readonly Color Gold = Color.FromArgb(0xF1C40F);
 
+    public static readonly Color Purple = Color.FromArgb(0x9B59B6);
+
     public static readonly ImmutableArray<NamedColor> ColorList =
     [
         new("red", Color.FromArgb(255, 70, 70)),

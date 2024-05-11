@@ -43,12 +43,18 @@ public record TradeTable
         };
     }
 
-    public Embed PrintTradeTable(bool asGiving)
+    public Embed PrintTradeTable()
     {
+        static string OwnableEntry(IOwnable ownable)
+        {
+            return ownable is Space { IsMortgaged: true } ? $"- {Emoji.CircledM} {ownable}" : $"- {ownable}";
+        }
+
         var builder = new EmbedBuilder()
-            .WithTitle("Trade")
-            .AddField($"{From} gives", string.Join("\n", Giving.Select(OwnableEntry).Append(Money > 0 ? Money.MoneyString() : string.Empty))).Get()
-            .AddField($"{To} gives", string.Join("\n", Receiving.Select(OwnableEntry).Append(Money < 0 ? (-Money).MoneyString() : string.Empty))).Get();
+            .WithTitle($"Trade {Emoji.TwistedArrows}")
+            .WithColour(PrettyColors.Purple)
+            .AddField($"{From.DisplayName} gives:", string.Join("\n", Giving.Select(OwnableEntry).Append(Money > 0 ? $"- {Money.MoneyString()}" : string.Empty)), true).Get()
+            .AddField($"{To.DisplayName} gives:", string.Join("\n", Receiving.Select(OwnableEntry).Append(Money < 0 ? $"- {(-Money).MoneyString()}" : string.Empty)), true).Get();
 
         if (Giving.Concat(Receiving).Any(x => x is Space { IsMortgaged: true }))
         {
@@ -57,10 +63,5 @@ public record TradeTable
         }
         
         return builder.Build().Get();
-    }
-
-    private static string OwnableEntry(IOwnable ownable)
-    {
-        return ownable is Space { IsMortgaged: true } ? $"{Emoji.CircledM} {ownable.ToString()}" : ownable.ToString();
     }
 }

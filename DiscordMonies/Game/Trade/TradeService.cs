@@ -63,7 +63,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         }
         
         entry.Add(ownable);
-        await feedback.SendContextualAsync($"Added {ownable} to the trade table.", embeds: new([tradeTable.PrintTradeTable(true)]));
+        await feedback.SendContextualAsync($"Added {ownable} to the trade table.", embeds: new([tradeTable.PrintTradeTable()]));
     }
 
     public async Task SetMoney(int money, bool giving)
@@ -93,7 +93,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         {
             tradeTable.Money = -money;
         }
-        await feedback.SendContextualAsync($"Added {money.MoneyString()} to the trade table.", embeds: new([tradeTable.PrintTradeTable(true)]));
+        await feedback.SendContextualAsync($"Added {money.MoneyString()} to the trade table.", embeds: new([tradeTable.PrintTradeTable()]));
     }
 
     public async Task Offer()
@@ -105,7 +105,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         {
             await feedback.SendContextualAsync(
                 $"Unable to offer this trade table as it is empty. Please add items to the trade table.",
-                embeds: new([tradeTable.PrintTradeTable(true)]));
+                embeds: new([tradeTable.PrintTradeTable()]));
             return;
         }
         
@@ -113,7 +113,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         {
             await feedback.SendContextualAsync(
                 $"Unable to offer this trade table as it is now invalid. Please check the trade table and ensure that each player has the required assets in order to trade.",
-                embeds: new([tradeTable.PrintTradeTable(true)]));
+                embeds: new([tradeTable.PrintTradeTable()]));
             return;
         }
 
@@ -127,7 +127,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
 
         await feedback.SendAsync(gameState.ThreadId,
             tradeTable.CopyOf is not null ? $"{Mention.User(tradeTable.To)}, **{tradeTable.From}** offers you a counter trade." : $"{Mention.User(tradeTable.To)}, **{tradeTable.From}** wants to trade with you.",
-            embeds: new([tradeTable.PrintTradeTable(false)]), options: new()
+            embeds: new([tradeTable.PrintTradeTable()]), options: new()
             {
                 MessageComponents = new([
                     new ActionRowComponent([
@@ -184,20 +184,14 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
     {
         if (tradeTable.State != TradeTable.TradeTableState.Offered)
         {
-            await feedback.SendContextualAsync("You can't accept this trade table because it's not currently open.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("You can't accept this trade table because it's not currently open.", options: MessageOptions.Ephemeral);
             return;
         }
         
         var player = gameState.GetById(ctx.GetUserId());
         if (tradeTable.To != player)
         {
-            await feedback.SendContextualAsync("You can't accept this trade table because it's not addressed to you.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("You can't accept this trade table because it's not addressed to you.", options: MessageOptions.Ephemeral);
             return;
         }
         
@@ -205,7 +199,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         {
             await feedback.SendContextualAsync(
                 "Unable to accept this trade table as it is now invalid. Please check the trade table and ensure that each player has the required assets in order to trade. You can counter the trade table in order to edit it.",
-                embeds: new([tradeTable.PrintTradeTable(true)]));
+                embeds: new([tradeTable.PrintTradeTable()]));
             return;
         }
         
@@ -218,28 +212,22 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         await gameControllerService.TryPay(tradeTable.From, tradeTable.To, tradeTable.Money);
 
         await feedback.SendAsync(gameState.ThreadId,
-            $"{tradeTable.To} has completed a trade with **{tradeTable.From}**.",
-            embeds: new([tradeTable.PrintTradeTable(true)]));
+            $"{tradeTable.To} has accepted {tradeTable.From}'s trade.",
+            embeds: new([tradeTable.PrintTradeTable()]));
     }
 
     public async Task CounterTradeTable(TradeTable tradeTable)
     {
         if (tradeTable.State != TradeTable.TradeTableState.Offered)
         {
-            await feedback.SendContextualAsync("You can't counter this trade table because it's not currently open.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("You can't counter this trade table because it's not currently open.", options: MessageOptions.Ephemeral);
             return;
         }
         
         var player = gameState.GetById(ctx.GetUserId());
         if (tradeTable.To != player)
         {
-            await feedback.SendContextualAsync("You can't counter this trade table because it's not addressed to you.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("You can't counter this trade table because it's not addressed to you.", options: MessageOptions.Ephemeral);
             return;
         }
         
@@ -247,7 +235,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
         player.ConfiguringTradeTable = tradeTable.Copy();
         
         await feedback.SendContextualAsync("You can now edit the trade. Once you're done, offer the trade with /trade offer again.",
-            embeds: new([tradeTable.PrintTradeTable(true)]), options: new()
+            embeds: new([tradeTable.PrintTradeTable()]), options: new()
         {
             MessageFlags = new(MessageFlags.Ephemeral)
         });
@@ -257,10 +245,7 @@ public class TradeService(IFeedbackService feedback, IInteractionContext ctx, Ga
     {
         if (tradeTable.State != TradeTable.TradeTableState.Offered)
         {
-            await feedback.SendContextualAsync("You can't reject this trade table because it's not currently open.", options: new()
-            {
-                MessageFlags = new(MessageFlags.Ephemeral)
-            });
+            await feedback.SendContextualAsync("You can't reject this trade table because it's not currently open.", options: MessageOptions.Ephemeral);
             return;
         }
         

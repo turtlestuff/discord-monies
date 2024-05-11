@@ -18,7 +18,6 @@ public class TradeCommands(GameState gameState, IInteractionCommandContext ctx, 
     [Command("open")]
     [RequiresPlayer(PlayerType.Player)]
     [Description("Set up a new trade with a player")]
-    [Ephemeral]
     public async Task<Result> Open([Description("The player to trade with")] GamePlayer otherPlayer)
     {
         var player = gameState.GetById(ctx.GetUserId());
@@ -35,8 +34,9 @@ public class TradeCommands(GameState gameState, IInteractionCommandContext ctx, 
             To = otherPlayer,
             CopyOf = null
         };
-        
-        await feedback.SendContextualAsync($"Opened a new trade table. Add items to the trade table, and then offer it to {Mention.User(otherPlayer)} when you're ready.");
+
+        await feedback.SendContextualAsync($"{player} is creating a trade...", options: MessageOptions.SuppressNotifications);
+        await feedback.SendContextualAsync($"Opened a new trade table. Add items to the trade table, and then offer it to {Mention.User(otherPlayer)} when you're ready.", options: MessageOptions.Ephemeral);
         return Result.Success;
     }
 
