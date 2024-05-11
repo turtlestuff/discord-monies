@@ -1,6 +1,6 @@
 [
   {
-    "Description": "Pay {moneyValue 10} with `pay` or take a Gamble card with `takecard`",
+    "Description": "Pay {moneyValue 10} or take a Gamble card",
     "Command": "paychance 10"
   },
   {
