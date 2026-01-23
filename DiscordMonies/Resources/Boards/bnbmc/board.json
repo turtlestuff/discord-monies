@@ -1,0 +1,502 @@
+{
+  "StartingMoney": 1500,
+  "JailFine": 50,
+  "JailBounds": {
+    "X": 820,
+    "Y": 80,
+    "Width": 100,
+    "Height": 100
+  },
+  "GroupNames": [
+    "yellow",
+    "pink",
+    "green",
+    "orange",
+    "blue",
+    "red",
+    "cyan",
+    "gray"
+  ],
+  "BoardSpaces": [
+    {
+      "Type": "Start",
+      "Name": "Go!",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 40,
+        "Width": 140,
+        "Height": 140
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Othoroot",
+      "Value": 60,
+      "Group": 0,
+      "Bounds": {
+        "X": 180,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Chest",
+      "Name": "You want to order!",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 251,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Firefly",
+      "Value": 60,
+      "Group": 0,
+      "Bounds": {
+        "X": 322,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Tax",
+      "Name": "Server Administration Fees",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 393,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "AirCS Central",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 464,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Contemporary Valley",
+      "Value": 100,
+      "Group": 1,
+      "Bounds": {
+        "X": 535,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Chance",
+      "Name": "Infinity Game Center",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 606,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Victor's Interesting City",
+      "Value": 100,
+      "Group": 1,
+      "Bounds": {
+        "X": 677,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Midcity",
+      "Value": 120,
+      "Group": 1,
+      "Bounds": {
+        "X": 748,
+        "Y": 40,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Jail",
+      "Name": "Visiting Jail",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 820,
+        "Y": 40,
+        "Width": 140,
+        "Height": 40
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Shishiro",
+      "Value": 140,
+      "Group": 2,
+      "Bounds": {
+        "X": 860,
+        "Y": 180,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Utility",
+      "Name": "Redstone Company",
+      "Value": 150,
+      "Group": null,
+      "Bounds": {
+        "X": 860,
+        "Y": 251,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Melanie City",
+      "Value": 140,
+      "Group": 2,
+      "Bounds": {
+        "X": 860,
+        "Y": 322,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Sunflower City",
+      "Value": 160,
+      "Group": 2,
+      "Bounds": {
+        "X": 860,
+        "Y": 393,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "Bridgett's Port Station",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 860,
+        "Y": 464,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Wairua",
+      "Value": 180,
+      "Group": 3,
+      "Bounds": {
+        "X": 860,
+        "Y": 535,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chest",
+      "Name": "You want to order!",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 860,
+        "Y": 606,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Anatoli City",
+      "Value": 180,
+      "Group": 3,
+      "Bounds": {
+        "X": 860,
+        "Y": 677,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Vremya",
+      "Value": 200,
+      "Group": 3,
+      "Bounds": {
+        "X": 860,
+        "Y": 748,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "FreeParking",
+      "Name": "Free Parking",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 820,
+        "Y": 820,
+        "Width": 140,
+        "Height": 140
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Estend",
+      "Value": 220,
+      "Group": 4,
+      "Bounds": {
+        "X": 748,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Chance",
+      "Name": "Infinity Game Center",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 677,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Yavno City",
+      "Value": 220,
+      "Group": 4,
+      "Bounds": {
+        "X": 606,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Dlphecity",
+      "Value": 240,
+      "Group": 4,
+      "Bounds": {
+        "X": 535,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "Whale City Station",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 464,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Red Island City",
+      "Value": 260,
+      "Group": 5,
+      "Bounds": {
+        "X": 393,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "New Clygro Town",
+      "Value": 260,
+      "Group": 5,
+      "Bounds": {
+        "X": 322,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Utility",
+      "Name": "On when Off",
+      "Value": 150,
+      "Group": null,
+      "Bounds": {
+        "X": 251,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Delancy",
+      "Value": 280,
+      "Group": 5,
+      "Bounds": {
+        "X": 180,
+        "Y": 860,
+        "Width": 70,
+        "Height": 100
+      }
+    },
+    {
+      "Type": "GoToJail",
+      "Name": "Go to Jail",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 820,
+        "Width": 140,
+        "Height": 140
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Energy Cove",
+      "Value": 300,
+      "Group": 6,
+      "Bounds": {
+        "X": 40,
+        "Y": 748,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Baxford",
+      "Value": 300,
+      "Group": 6,
+      "Bounds": {
+        "X": 40,
+        "Y": 677,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chest",
+      "Name": "You want to order!",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 606,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "Snicket",
+      "Value": 320,
+      "Group": 6,
+      "Bounds": {
+        "X": 40,
+        "Y": 535,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "TrainStation",
+      "Name": "NCC Central Orb Station",
+      "Value": 200,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 464,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Chance",
+      "Name": "Infinity Game Center",
+      "Value": null,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 393,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "The Supreme Court of Legal District",
+      "Value": 350,
+      "Group": 7,
+      "Bounds": {
+        "X": 40,
+        "Y": 322,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Tax",
+      "Name": "Court Fees",
+      "Value": 100,
+      "Group": null,
+      "Bounds": {
+        "X": 40,
+        "Y": 251,
+        "Width": 100,
+        "Height": 70
+      }
+    },
+    {
+      "Type": "Road",
+      "Name": "The Specimen House",
+      "Value": 400,
+      "Group": 7,
+      "Bounds": {
+        "X": 40,
+        "Y": 180,
+        "Width": 100,
+        "Height": 70
+      }
+    }
+  ]
+}
